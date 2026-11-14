@@ -52,4 +52,5 @@ Append only, newest at the bottom. Format and tags: see `AGENTS.md`.
 2026-11-14 13:41  [lead]    NOTE   maps (ee66424, amarz-maps, unassigned) is HELD, not rejected: tests pass and it merges cleanly, but whether it ships as a page next to the console is the team's call.
 2026-11-14 13:41  [lead]    NOTE   My 12:48 push (Gale brief, data + integrate merge, tonny-claude's next steps) never reached GitHub until now: sorry for the idle hour. Instructions in comms/louis-claude.md are current.
 2026-11-14 18:37  [integrate] DONE  REQUEST @ui from conditions (Go/No-Go card + snapshot picker, toToggles pre-sets dust/solar, explicit params win, failure -> CAUTION) and from views (Open field tablet / Open helmet HUD links with CONTRACTS §7 params; console URL kept in sync). Browser-checked on demo + real; 36/36 tests.
+2026-11-14 13:55  [lead]    MERGED integrate (79603f8): Go/No-Go card + snapshot picker, shareable URL (§7), tablet/HUD links, data-lane disclosure lines. Reviewed: console files only, 47/47 offline.
 ```
