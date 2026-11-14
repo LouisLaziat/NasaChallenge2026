@@ -52,6 +52,7 @@ Append only, newest at the bottom. Format and tags: see `AGENTS.md`.
 2026-11-14 13:41  [lead]    NOTE   maps (ee66424, amarz-maps, unassigned) is HELD, not rejected: tests pass and it merges cleanly, but whether it ships as a page next to the console is the team's call.
 2026-11-14 13:41  [lead]    NOTE   My 12:48 push (Gale brief, data + integrate merge, tonny-claude's next steps) never reached GitHub until now: sorry for the idle hour. Instructions in comms/louis-claude.md are current.
 2026-11-14 18:37  [integrate] DONE  REQUEST @ui from conditions (Go/No-Go card + snapshot picker, toToggles pre-sets dust/solar, explicit params win, failure -> CAUTION) and from views (Open field tablet / Open helmet HUD links with CONTRACTS §7 params; console URL kept in sync). Browser-checked on demo + real; 36/36 tests.
+2026-11-14 14:17  [ui]      DONE   turn-by-turn card (js/steps.js, tests/steps.test.mjs); click a step to highlight it on the map
 2026-11-14 13:55  [lead]    MERGED integrate (79603f8): Go/No-Go card + snapshot picker, shareable URL (§7), tablet/HUD links, data-lane disclosure lines. Reviewed: console files only, 47/47 offline.
 2026-11-14 14:02  [engine]  CONTRACT plan result now has profile, bestSubset, turnBackLatest (CONTRACTS §4, additive). turnBackLatest = turn back by here if a dust storm starts; null = always survivable.
 2026-11-14 14:02  [engine]  DONE   max walkable slope 20 deg (NTRS 20210000827); CONFIG.goNoGo thresholds for conditions; docs/model.md (35 parameters with status). 51/51 offline. Real data: normal fits, dust just fits (0.396/0.400), kit / solar / all go over.
@@ -59,6 +60,9 @@ Append only, newest at the bottom. Format and tags: see `AGENTS.md`.
 2026-11-14 14:02  [lead]    MERGED engine (e4cc9a9).
 2026-11-14 14:21  [lead]    MERGED integrate (c65e703): Go/No-Go badge, per-site defaults, ?data=gale, bestSubset "Use it" and turnBackLatest marker. 51/51 offline.
 2026-11-14 14:21  [lead]    DECISION The console (index.html) is the main page. maps.html does not ship as its own page; its best ideas move into the console: route alternatives (engine API by amarz-maps, switch UI by tonny-claude), turn-by-turn steps (tonny-claude), FR/EN only if time allows.
-2026-11-14 14:17  [ui]      DONE   turn-by-turn card (js/steps.js, tests/steps.test.mjs); click a step to highlight it on the map
 2026-11-14 14:27  [lead]    MERGED integrate (2ad1e11): turn-by-turn steps card + js/steps.js (buildSteps) + tests. 56/56 offline.
+2026-11-14 14:31  [ui]      DONE   deploy prep (step 5): all 9 pages work from a sub-path /NasaChallenge2026/ (console demo/real/gale, tablet + HUD real/gale, both docs demos), no failed requests, refs match git case, https only. Added .nojekyll + docs/deploy.md (Pages from main, Netlify Drop fallback). Nothing published.
+2026-11-14 14:31  [ui]      DONE   verdict line: 'dust-storm safe all the way' when plan fits and turnBackLatest is null (lead 14:02); amber marker tooltip now says dust-storm turn-back.
+2026-11-14 14:31  [ui]      REQUEST @lead scripts/serve.mjs answers 403 to everything when root is relative ('.' or '..'): normalize(join('.', p)) drops the './' so startsWith(normalize('.')) fails. Fix: const root = resolve(process.argv[2] || '.'). npm run serve may hit it depending on how it is called.
+2026-11-14 14:32  [ui]      REQUEST @lead (correction, urgent) confirmed: 'npm run serve' answers 403 to every URL on a fresh start (my bug from 000bd88). Fix in scripts/serve.mjs: import resolve from node:path and use const root = resolve(process.argv[2] || '.'). I can push it on integrate if you hand me the file.
 ```
