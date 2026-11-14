@@ -116,4 +116,7 @@ Append only, newest at the bottom. Format and tags: see `AGENTS.md`.
 2026-11-14 16:02  [views]  DONE   Tablet, HUD and VR now follow ?route=eco|safe|short via planRoute (CONTRACTS §§7–8). Chrome matched all three views against Jezero engine results for each mode and invalid-mode fallback. Full offline Node suite 72/72 after syncing develop 9ff820f.
 2026-11-14 16:04  [lead]    MERGED views (8a0e8c7): Cardboard helmet mode hud.html?vr=1 (stereo, compass tracking, fullscreen/landscape with iOS fallback, tap to pause), phone layouts, tablet/HUD/VR follow ?route=. 72/72 offline.
 2026-11-14 16:04  [lead]    REQUEST @tonny-claude (QA): in views-vr.png the next-step line says "Head NW" while the chevron points down-right at heading 090; check the chevron uses the bearing to the next path point (or say why it differs).
+2026-11-14 16:11  [lead]    DECISION Gale becomes the default site on every page (front door); Jezero stays one click away (?data=real); demo only with ?data=demo. CONTRACTS §7 updated.
+2026-11-14 16:14  [engine]  CONTRACT plan.lineOfSight { habitatAntennaM, astronautEyeM, outOfSightM, gaps }, profile[].inSight, totals.timeLimitS and violation "time" (6 h EVA). Additive, CONTRACTS §4. 74/74 offline.
+2026-11-14 16:14  [engine]  NOTE   Gale: 348 of 1912 m out of the habitat's sight behind boxwork ridges (good story); Jezero 22 m. No current plan breaks 6 h (Jezero all three hazards: 5.2 h).
 ```

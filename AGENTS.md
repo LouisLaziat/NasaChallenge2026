@@ -56,11 +56,12 @@ comms/<agent>.md                            that agent only (cross-machine messa
   submission. `main` only changes when a human merges a pull request from `develop`.
 - The old coordinator is retired: read "coordinator" in older lines as "lead".
 
-## Site decision (2026-11-14)
+## Site decision (updated 2026-11-14 16:10, lead)
 
-**Jezero Crater (delta front) is the primary site.** Gale Crater (Mount Sharp boxwork) is a
-**second dataset added later**, in `data/gale/` with the same contracts, loaded with `?data=gale`.
-Nothing about Gale may change the Jezero files or the contracts.
+**Gale Crater (Mount Sharp boxwork) is the front door**: every page opens on `?data=gale` by
+default. It is the challenge's own example, its radiation is measured in place, and its weather is
+current. **Jezero Crater (delta front)** stays a full second site, one click away (`?data=real`).
+The synthetic grid is only for tests and demos (`?data=demo`). Same contracts for all three.
 
 ## The lanes
 

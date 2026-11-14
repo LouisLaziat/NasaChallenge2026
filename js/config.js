@@ -48,6 +48,15 @@ export const CONFIG = {
     o2KgPerLitre: 0.001429, // SOURCE: O2 density 1.429 g/L at 0 °C and 1 atm. — NBS Circular 279 https://nvlpubs.nist.gov/nistpubs/Legacy/circ/nbscircular279.pdf
   },
 
+  // ---------- EVA length and safety ----------
+  eva: {
+    maxHours: 6, // ASSUMPTION: planned EVA length including work and a margin; Artemis EVA timeline studies run on this scale. — Scoville et al., NTRS 20210026296 https://ntrs.nasa.gov/api/citations/20210026296/downloads/Scoville%20Final%20presentation%20-%20compressed.pptx.pdf
+  },
+  safety: {
+    habitatAntennaM: 3, // DESIGN: height of the habitat antenna / observer for line of sight.
+    astronautEyeM: 1.8, // DESIGN: suited astronaut's helmet height for line of sight. Artemis traverse plans weigh line of sight to the lander. — NTRS 20230012314 https://ntrs.nasa.gov/api/citations/20230012314/downloads/EarlyArtemisSurfaceNavigation_v1-ION23-XXX-v3.docx
+  },
+
   // ---------- Radiation ----------
   radiation: {
     // SOURCE: Hassler et al. (2014), Science 343, Curiosity RAD at Gale Crater:
