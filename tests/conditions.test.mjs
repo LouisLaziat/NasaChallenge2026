@@ -3,7 +3,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { loadConditions, toToggles, verdict, renderConditions } from '../js/conditions.js';
-import { parseMEDA, parseDONKI, donkiURL, fetchConditions, MEDA_URL } from '../scripts/fetch_conditions.mjs';
+import { parseMEDA, parseREMS, parseDONKI, donkiURL, fetchConditions, MEDA_URL, REMS_URL } from '../scripts/fetch_conditions.mjs';
 import { CONFIG } from '../js/config.js';
 import { planWalk } from '../js/engine.js';
 
@@ -11,6 +11,7 @@ const json = async (path) => JSON.parse(await readFile(new URL(path, import.meta
 const quiet = await json('../data/conditions/demo-quiet.json');
 const meda = await json('./fixtures/conditions/meda.json');
 const donki = await json('./fixtures/conditions/donki-sep.json');
+const rems = await json('./fixtures/conditions/rems.json');
 const now = new Date('2026-11-14T17:00:00Z');
 const plan = (totals = {}) => ({ ok: true, withinBudget: true, totals: {
   o2UsedKg: 0.2, o2UsableKg: 0.4, doseMSv: 0.1, doseLimitMSv: 1, ...totals,
@@ -57,6 +58,41 @@ test('oxygen and dose caution boundaries are strict, measured against usable oxy
   assert.match(dose.reasons[0].text, /Gale Crater.*proxy for Jezero/);
 });
 
+test('condition decisions, text and DONKI parsing follow CONFIG.goNoGo', () => {
+  const original = { ...CONFIG.goNoGo };
+  try {
+    Object.assign(CONFIG.goNoGo, { dustTauStorm: 2, o2MarginCaution: 0.25, doseCautionFraction: 0.5, sepAlertDays: 1, sepWatchDays: 3 });
+    assert.deepEqual(toToggles({ ...quiet, dustTau: 1.5 }), { dustStorm: false, solarEvent: false });
+    assert.equal(toToggles({ ...quiet, dustTau: 2.1 }).dustStorm, true);
+    assert.match(verdict({ ...quiet, dustTau: 2.1 }).reasons.find((r) => r.code === 'dust').text, /exceeds 2;/);
+    const result = verdict(quiet, plan({ o2UsedKg: 0.31, doseMSv: 0.51 }));
+    assert.match(result.reasons.find((r) => r.code === 'oxygen-margin').text, /25%/);
+    assert.match(result.reasons.find((r) => r.code === 'dose-margin').text, /50%/);
+    assert.equal(parseDONKI([{ eventTime: new Date(now - 2 * 86400000).toISOString() }], now).status, 'watch');
+    assert.equal(parseDONKI([{ eventTime: new Date(now - 4 * 86400000).toISOString() }], now).status, 'quiet');
+  } finally { Object.assign(CONFIG.goNoGo, original); }
+});
+
+test('non-synthetic weather beyond seven sols is CAUTION even with complete other inputs', (t) => {
+  const date = '2026-11-01';
+  const solMs = 1.0274912517 * 86400000;
+  const end = Date.parse(`${date}T23:59:59.999Z`);
+  const cond = { ...quiet, synthetic: false, sources: [{ name: 'Curiosity REMS', note: `Weather observation date: ${date}; saved feed.` }] };
+  const clock = t.mock.method(Date, 'now', () => end + 7 * solMs);
+  assert.equal(verdict(cond, null).level, 'GO', 'exactly seven sols at date precision is allowed');
+  clock.mock.mockImplementation(() => end + 7 * solMs + 1);
+  const old = verdict(cond, null);
+  assert.equal(old.level, 'CAUTION');
+  const reason = old.reasons.find((r) => r.code === 'weather-stale');
+  assert.match(reason.text, /sol 1200.*2026-11-01.*7 sols/);
+  assert.equal(reason.source, 'Curiosity REMS');
+  assert.equal(verdict(quiet, null).level, 'GO', 'synthetic scenarios do not expire with wall time');
+  assert.ok(codes(verdict({ ...cond, sources: [] })).includes('weather-date-unknown'));
+  assert.ok(codes(verdict({ ...cond, sources: [{ name: 'MEDA', note: 'Weather observation date: 2026-02-31' }] })).includes('weather-date-unknown'));
+  clock.mock.mockImplementation(() => Date.parse('2026-10-01T00:00Z'));
+  assert.ok(codes(verdict(cond)).includes('weather-date-future'));
+});
+
 test('any engine budget violation yields NO-GO and preserves its explanation', () => {
   for (const violation of ['oxygen', 'radiation']) {
     const result = verdict(quiet, { ...plan(), withinBudget: false, violations: [violation] });
@@ -88,6 +124,14 @@ test('MEDA saved response selects latest sol and parses numeric strings / missin
   assert.equal(parseMEDA({ sols: [{ sol: 0, min_temp: '-80', max_temp: '-20', pressure: '700' }] }).pressurePa, 700);
   assert.throws(() => parseMEDA({}), /sols array/);
   assert.throws(() => parseMEDA({ sols: [] }), /no valid sols/);
+});
+
+test('REMS saved response uses soles, latest air temperatures, Pa and null missing readings', () => {
+  assert.deepEqual(parseREMS(rems), { sol: 4995, tempC: { min: -71, max: -5 }, pressurePa: 777, observationDate: '2026-08-25' });
+  assert.deepEqual(parseREMS({ soles: [...rems.soles].reverse() }), parseREMS(rems));
+  const latest = { ...rems.soles[0], sol: '4996', min_temp: '--', pressure: '--' };
+  assert.deepEqual(parseREMS({ soles: [...rems.soles, latest] }), { sol: 4996, tempC: null, pressurePa: null, observationDate: '2026-08-25' });
+  assert.throws(() => parseREMS({ sols: [] }), /REMS.*soles array/);
 });
 
 test('DONKI saved response chooses the latest event even when unsorted', () => {
@@ -132,6 +176,41 @@ test('fetcher uses injected fixture responses, CONFIG radiation, provenance and 
   assert.equal(verdict(cond, null).level, 'CAUTION');
 });
 
+test('Gale fetcher selects REMS, retains unknowns and describes RAD measured at Gale', async () => {
+  const urls = [];
+  const cond = await fetchConditions({ site: 'gale', now, fetchImpl: async (url) => {
+    urls.push(url);
+    return { ok: true, json: async () => url === REMS_URL ? rems : [] };
+  } });
+  assert.ok(urls.includes(REMS_URL));
+  assert.ok(!urls.includes(MEDA_URL));
+  assert.equal(cond.site, 'gale');
+  assert.equal(cond.synthetic, false);
+  assert.equal(cond.sol, 4995);
+  assert.equal(cond.dustTau, null);
+  assert.equal(cond.evaWindowLocal, null);
+  assert.equal(cond.doseRateMSvDay, CONFIG.radiation.surfaceMSvPerDay);
+  assert.match(cond.sources[0].note, /outreach feed.*2026-08-25/);
+  assert.match(cond.sources[2].note, /measured at Gale Crater, the same crater/);
+  assert.doesNotMatch(cond.sources[2].note, /proxy for Jezero/);
+  assert.ok(codes(verdict(cond)).includes('weather-stale'));
+  await assert.rejects(fetchConditions({ site: '../secret', fetchImpl: () => { throw new Error('must not fetch'); } }), /Unknown conditions site/);
+});
+
+test('committed Gale snapshot follows the conditions shape and keeps archival / same-crater provenance', async () => {
+  const cond = await json('../data/conditions/real-gale.json');
+  assert.equal(cond.site, 'gale');
+  assert.equal(cond.synthetic, false);
+  assert.ok(Number.isFinite(Date.parse(cond.asOf)));
+  assert.equal(cond.doseRateMSvDay, CONFIG.radiation.surfaceMSvPerDay);
+  assert.deepEqual(cond.tempC, parseREMS(rems).tempC);
+  assert.deepEqual(cond.manual, ['dustTau', 'evaWindowLocal']);
+  assert.ok(cond.sources.every((s) => s.name && s.url.startsWith('https://') && s.retrieved));
+  assert.match(cond.sources[0].name, /REMS/);
+  assert.ok(codes(verdict(cond)).includes('weather-stale'));
+  assert.doesNotMatch(cond.sources[2].note, /proxy for Jezero/);
+});
+
 test('network, HTTP, JSON and schema failures stay unknown instead of reporting quiet', async () => {
   const failures = [
     async () => { throw new Error('offline'); },
@@ -165,6 +244,8 @@ test('loader is module-relative, rejects unknown names / HTTP errors, and uses n
   assert.equal(calls[0].href, new URL('../data/conditions/demo-quiet.json', import.meta.url).href);
   await assert.rejects(loadConditions('../secret'), /Unknown/);
   assert.equal(calls.length, 1);
+  await loadConditions('real-gale');
+  assert.equal(calls[1].href, new URL('../data/conditions/real-gale.json', import.meta.url).href);
   t.mock.method(globalThis, 'fetch', async () => ({ ok: false, status: 404 }));
   await assert.rejects(loadConditions('real'), /HTTP 404/);
 });
@@ -209,4 +290,9 @@ test('renderer labels synthetic / manual values, replaces the card, uses text an
   assert.equal(mount.children.length, 1);
   assert.equal(mount.children[0].dataset.level, 'CAUTION');
   assert.match(mount.textContent, /Unknown/);
+  renderConditions(mount, { ...quiet, site: 'gale', sources: [] }, plan({ doseMSv: 0.9 }));
+  assert.equal(mount.children[0].dataset.site, 'gale');
+  assert.match(mount.textContent, /GALE CRATER/);
+  assert.match(mount.textContent, /measured at Gale Crater, the same crater/);
+  assert.doesNotMatch(mount.textContent, /proxy for Jezero/);
 });

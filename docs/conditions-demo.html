@@ -41,10 +41,17 @@
     Unknown inputs also cause CAUTION (ASSUMPTION). Temperature, pressure and the manual EVA window are shown for context;
     this version does not model thermal suit limits or enforce a clock window.</div>
   <details class="real">
-    <summary>Inspect the saved real-data snapshot (conditions only)</summary>
+    <summary>Inspect the saved Jezero snapshot (conditions only)</summary>
     <p>Refresh with <code>node scripts/fetch_conditions.mjs</code>. A new retrieval timestamp does not make archival weather current.
       Dust and the EVA window need manual entries and source notes. A failed solar query leaves an unknown status.</p>
     <div id="real"></div>
+  </details>
+  <details class="real">
+    <summary>Inspect the saved Gale snapshot (conditions only)</summary>
+    <p>Refresh with <code>node scripts/fetch_conditions.mjs --site gale</code>.
+      Curiosity REMS supplies Gale weather; its saved observation date is shown explicitly.
+      Historical RAD measurements were taken at Gale. Dust and the EVA window remain manual.</p>
+    <div id="real-gale"></div>
   </details>
   <p><a href="../index.html?data=demo&amp;cond=demo-quiet">Open the console</a> · Integration snippet is in this page’s source.</p>
 </main>
@@ -55,6 +62,9 @@ Mount <div id="conditions-card" aria-live="polite"></div> near the existing swit
 import { loadConditions, toToggles, renderConditions } from './js/conditions.js';
 const condName = new URLSearchParams(location.search).get('cond') || 'real';
 const cond = await loadConditions(condName); // catch errors; show unavailable, never invent quiet
+// real = Jezero MEDA; real-gale = Gale REMS. Read cond.site; do not relabel a snapshot
+// to match the terrain. CONFIG.goNoGo owns the decision thresholds. Real weather older
+// than 7 sols causes CAUTION; synthetic examples remain fixed demonstrations.
 const suggested = toToggles(cond); // { dustStorm, solarEvent }; heavyKit is never changed
 // Before planning, pre-set dust/solar from suggested. Explicit ?dust=1 / ?solar=1
 // can enable a user override; preserve manual switch choices on subsequent replans.
@@ -95,10 +105,12 @@ renderConditions(document.querySelector('#conditions-card'), cond, plan);
     status.textContent = `Demo unavailable: ${error.message}. Serve the repository over HTTP with npm run serve.`;
     status.className = 'error';
   }
-  try {
-    renderConditions(document.querySelector('#real'), await loadConditions('real'), null);
-  } catch (error) {
-    document.querySelector('#real').textContent = `Real snapshot unavailable: ${error.message}`;
+  for (const name of ['real', 'real-gale']) {
+    try {
+      renderConditions(document.getElementById(name), await loadConditions(name), null);
+    } catch (error) {
+      document.getElementById(name).textContent = `Saved snapshot unavailable: ${error.message}`;
+    }
   }
 </script>
 </body>
