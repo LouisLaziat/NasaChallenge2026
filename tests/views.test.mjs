@@ -4,10 +4,34 @@ import { readFileSync } from 'node:fs';
 import test from 'node:test';
 import { planWalk } from '../js/engine.js';
 import { buildSteps } from '../js/steps.js';
+import { cameraAt, cameraKeyframes, decimateTerrain, elevationAt } from '../js/views/flyover-geometry.js';
 import {
   bearingDeg, currentInstruction, deviceHeadingDeg, distanceM, doseAt, nextStop, o2At, passedTurnBack,
   positionAt, relativeBearingDeg, slopeAheadDeg, smoothHeadingDeg, stereoEyes, stormGuidance, walkSnapshot,
 } from '../js/views/geometry.js';
+
+test('fly-through mesh decimates both axes and covers the complete terrain extent', () => {
+  const grid = { width: 4, height: 2, cellSize: 5, layers: { elevation: [0, 0, 5, 5, 0, 0, 5, 5] } };
+  const mesh = decimateTerrain(grid, 3);
+  assert.equal(mesh.columns, 3);
+  assert.equal(mesh.rows, 3);
+  assert.deepEqual([mesh.points[0].x, mesh.points[0].y], [-0.5, -0.5]);
+  assert.deepEqual([mesh.points.at(-1).x, mesh.points.at(-1).y], [3.5, 1.5]);
+  assert.equal(mesh.highest, 5);
+  assert.equal(elevationAt(grid, 1.5, 0.5), 2.5);
+  assert.ok(mesh.points.some(({ slope }) => slope > 20));
+});
+
+test('fly-through camera follows route endpoints and handles a stationary plan', () => {
+  const frames = cameraKeyframes([[0, 0], [4, 0], [4, 4]], (x, z) => [x, 10, z]);
+  assert.deepEqual(cameraAt(frames, 0).walker, [0, 10, 0]);
+  assert.deepEqual(cameraAt(frames, 0.25).walker, [2, 10, 0]);
+  assert.deepEqual(cameraAt(frames, 1).walker, [4, 10, 4]);
+  assert.equal(cameraAt(frames, 0.25).eye[1], 110);
+  const stationary = cameraKeyframes([[3, 7]], (x, z) => [x, 2, z]);
+  assert.deepEqual(cameraAt(stationary, 0.5).walker, [3, 2, 7]);
+  assert.ok(cameraAt(stationary, 0.5).eye.every(Number.isFinite));
+});
 
 test('compass smoothing takes the short path across north', () => {
   assert.equal(smoothHeadingDeg(359, 1, 0.5), 0);

@@ -123,7 +123,7 @@ export function mountHelmet(walk) {
 
   const pointAt = (next) => {
     heading = wrapHeadingDeg(next);
-    for (const eye of eyes) drawHeading(eye, heading, frame.bearing);
+    for (const eye of eyes) drawHeading(eye, heading, frame.heading);
   };
   const playback = bindProgress(walk, (current, instruction) => {
     frame = current;
@@ -133,8 +133,8 @@ export function mountHelmet(walk) {
     const target = frame.upcoming ? `${frame.upcoming.id} · ${Math.round(frame.rangeM)} m direct` :
       frame.complete ? 'EVA complete' : `Habitat · ${Math.round(frame.rangeM)} m direct`;
     for (const eye of eyes) {
-      eye.arrow.toggleAttribute('hidden', frame.bearing === null);
-      if (frame.bearing !== null) eye.arrow.setAttribute('transform', `rotate(${relativeBearingDeg(frame.bearing, heading)})`);
+      eye.arrow.toggleAttribute('hidden', frame.heading === null);
+      if (frame.heading !== null) eye.arrow.setAttribute('transform', `rotate(${relativeBearingDeg(frame.heading, heading)})`);
       eye.warning.hidden = !warning;
       eye.warning.dataset.state = frame.turnBack ? 'active' : frame.storm ?? '';
       eye.warning.textContent = warning ?? '';

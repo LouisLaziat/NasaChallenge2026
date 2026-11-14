@@ -69,20 +69,20 @@ export async function loadWalk() {
   };
 }
 
-export function bindProgress(walk, draw, { autoplay = true } = {}) {
+export function bindProgress(walk, draw, { autoplay = true, startAt = walk.playMs ? 0 : walk.progress } = {}) {
   const slider = byId('progress');
   const output = byId('progress-value');
   let animation = null;
   let started = null;
-  let elapsed = 0;
+  let elapsed = startAt * walk.playMs;
   const canPlay = walk.playMs > 0 && walk.plan.totals.totalTimeS > 0;
-  slider.value = walk.playMs ? 0 : walk.progress;
+  slider.value = startAt;
   const update = (progress) => {
     output.value = `${Math.round(progress * 100)}%`;
     slider.setAttribute('aria-valuetext', output.value);
     const frame = walkSnapshot(walk.plan, walk.terrain, walk.habitat, progress);
     const instruction = frame.complete ? null : currentInstruction(walk.routeSteps, frame.routeIndex, walk.plan);
-    draw(frame, instruction);
+    draw(frame, instruction, progress);
   };
   const advance = (now) => {
     started ??= now;
@@ -106,11 +106,13 @@ export function bindProgress(walk, draw, { autoplay = true } = {}) {
     if (started !== null) elapsed += performance.now() - started;
     started = null;
   };
-  slider.addEventListener('input', () => {
+  const seek = (progress) => {
     pause();
+    slider.value = progress;
     elapsed = slider.valueAsNumber * walk.playMs;
     update(slider.valueAsNumber);
-  });
+  };
+  slider.addEventListener('input', () => seek(slider.valueAsNumber));
   // A committed slider change updates the shareable link without adding a history entry.
   slider.addEventListener('change', () => {
     walk.url.searchParams.set('p', slider.value);
@@ -119,7 +121,7 @@ export function bindProgress(walk, draw, { autoplay = true } = {}) {
   });
   update(slider.valueAsNumber);
   if (autoplay) play();
-  return { play, pause, isPlaying: () => animation !== null };
+  return { play, pause, seek, isPlaying: () => animation !== null };
 }
 
 export function instructionText(instruction) {
