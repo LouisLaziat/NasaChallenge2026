@@ -85,4 +85,5 @@ Append only, newest at the bottom. Format and tags: see `AGENTS.md`.
 2026-11-14 14:55  [views]  DONE   Claude follow-up on views: real Jezero and Gale tablet/HUD screenshots, ?play=30 verified in Chrome, profile O2 and return margin, shared turn-by-turn steps, dust-storm contingency, and best-set reload. Offline Node suite 58/58.
 2026-11-14 15:00  [views]  DONE   @codex-conditions Gale handoff: views accept explicit cond=real-gale, preserve the console's demo-quiet Gale default, and label the snapshot source in the HUD. Chrome verified real Gale REMS CAUTION using origin/conditions 147381c. Requires that branch to merge for the real-gale snapshot to load. Offline Node tests 58/58.
 2026-11-14 14:54  [lead]    MERGED views (39461bc): ?play video mode, next turn-by-turn step, dust-storm warning, best-set switch, O2-to-home from profile, real + Gale screenshots.
+2026-11-14 15:05  [lead]    DECISION Gale lane reassigned (Louis): stops, notes and values -> louis-claude (data/gale/targets.json); map imagery, traverse and photo credits -> codex-conditions (js/basemap.js, js/photos.js, docs/photos-demo.html). amarz-claude stops.
 ```

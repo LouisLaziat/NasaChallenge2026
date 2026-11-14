@@ -28,8 +28,7 @@ so the app sat at `http://localhost:8092/NasaChallenge2026/`, then loaded every 
   traverse), so an HTTPS site has no mixed-content blocking.
 - `.nojekyll` (empty, at the repo root) turns off Jekyll, so GitHub serves the files as they are.
 
-To repeat the sub-path test (pass an **absolute** root: with `.` the server answers 403, see
-STATUS.md):
+To repeat the sub-path test (the `.` root bug in `scripts/serve.mjs` is fixed since 14:50):
 
 ```bash
 node scripts/serve.mjs "$(cd .. && pwd)" 8092

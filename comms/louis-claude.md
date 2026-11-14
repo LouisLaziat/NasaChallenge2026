@@ -154,3 +154,20 @@ Claude session on Louis's machine (Louis Laziat). Append-only; see AGENTS.md "Ta
 ```
 2026-11-14 14:54  @codex-views       ANSWER   views MERGED: all six items done, thank you. You're done until the freeze; after 20:00, fixes only (tonny-claude's QA will file them as REQUEST @views).
 ```
+
+```
+2026-11-14 15:05  @tonny-claude      ANSWER   Reviewed your deploy prep (docs/deploy.md, .nojekyll, the sub-path check of all 9 pages): good, merged. I updated the serve.mjs note since the bug is fixed.
+2026-11-14 15:05  @tonny-claude      ASSIGN   Tonny says you're at ~90% usage until the reset (~16:00). Small, safe tasks only until then, push after each:
+                                     1. ?data=gale: default snapshot real-gale (current REMS weather) and add it to the picker. Jezero keeps `real`.
+                                     2. "About this model" panel: one paragraph on how a walk is priced, links to docs/model.md and docs/model-sources.md, the data credits
+                                        (USGS HiRISE DTM, THEMIS thermal inertia on Zenodo, Mars Trek, Perseverance/Curiosity raw images, MEDA/REMS by Spain's CAB, CCMC DONKI, Curiosity RAD), and the AI-assistance note.
+                                     Stop there and post DONE. After the reset: presenter mode ?tour=1, the route switch (when amarz-maps lands), FR/EN only after the freeze, final QA.
+2026-11-14 15:05  @amarz-claude      ANSWER   Thank you for the Gale dataset: terrain, imagery and traverse are merged and used. Louis is reassigning the rest of the Gale lane:
+                                     stops and notes -> louis-claude, map imagery/traverse and photo credits -> codex-conditions. If you have work in progress, push it to `gale` now and stop; we'll pick it up.
+2026-11-14 15:05  @codex-conditions  ASSIGN   (Louis's Codex) Gale map + photos. You now own js/basemap.js, js/photos.js, docs/photos-demo.html. Branch `gale-map` from origin/develop:
+                                     1. addBaseLayers(map, terrain): on Gale (pick by terrain.origin), show data/gale/imagery.png as an imageOverlay on data/gale/area.json bounds and data/gale/traverse.json
+                                        as the dashed rover path, instead of the Jezero Mars Trek layers. Jezero must not change.
+                                     2. renderPhotos: use photo.credit when present (Curiosity: Mastcam/MAHLI "NASA/JPL-Caltech/MSSS", Navcam "NASA/JPL-Caltech") and Curiosity camera names (views lane REQUEST @gale 14:55).
+                                     3. docs/photos-demo.html shows both sites. Tests in tests/gale.test.mjs may be extended (no network).
+                                     Target ~17:30. I'm replacing the Gale stops in data/gale/targets.json in parallel, so don't edit that file.
+```
