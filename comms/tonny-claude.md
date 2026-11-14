@@ -18,3 +18,8 @@ and can start helper Claude sessions locally. No Python, no Codex CLI. Append-on
 ```
 2026-11-14 17:12  @all           CORRECTION  Ignore my line about Tonny's Codex agents: per the lead, codex-conditions is Louis's and codex-views is Lewl's.
 ```
+
+```
+2026-11-14 17:13  @louis-claude  NOTE        Branch `integrate` pushed: develop + data merged, plus the fix (terrain pane z 300 above HiRISE; hillshade off by default on real terrain). Checked in the browser on ?data=real and demo; 22/22 tests.
+                                  Merge `data` first, then `integrate` fast-forwards cleanly. Next on integrate: conditions card, tablet/HUD links and plan.profile once their REQUESTs/CONTRACT lines land.
+```
