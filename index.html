@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Marswalk Budget — Jezero EVA planner</title>
+  <meta name="description" content="Plan a walk at Jezero Crater, Mars, priced in time, suit oxygen, radiation dose and science value.">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+        integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&display=swap">
+  <link rel="stylesheet" href="css/app.css">
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+          integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+  <script type="module" src="js/app.js"></script>
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <span class="brand-mark" aria-hidden="true"></span>
+      <div>
+        <h1>Marswalk Budget</h1>
+        <p class="tagline">Jezero Crater EVA planner · every route priced in O<sub>2</sub>, time, dose and science</p>
+      </div>
+    </div>
+    <div class="dataset" id="dataset-label">loading…</div>
+  </header>
+
+  <div class="banner" id="synthetic-banner" hidden>
+    <strong>Synthetic terrain.</strong> This demo grid is invented to exercise the planner; it is not a real
+    Jezero DTM. Load real data with <code>?data=real</code>.
+  </div>
+  <div class="banner banner-error" id="error-banner" hidden></div>
+
+  <main class="layout">
+    <section class="map-wrap" aria-label="Map">
+      <div id="map"></div>
+      <div class="map-hint" id="map-hint">Click the map to add a stop</div>
+      <div class="planning" id="planning" hidden><span class="spinner" aria-hidden="true"></span> planning…</div>
+    </section>
+
+    <aside class="panel" aria-label="Plan">
+      <section class="card verdict-card">
+        <div class="verdict" id="verdict">Planning…</div>
+        <div class="verdict-sub" id="verdict-sub"></div>
+        <button class="drop-btn" id="drop-btn" hidden></button>
+      </section>
+
+      <section class="card">
+        <h2>Budget</h2>
+        <div class="budget" id="budget"></div>
+        <p class="note" id="rad-note">
+          Dose rate: Curiosity RAD measurements at <em>Gale Crater</em> (Hassler et al. 2014, ~0.64 mSv/day),
+          used as a proxy for Jezero — no surface dosimeter has flown there.
+        </p>
+      </section>
+
+      <section class="card">
+        <h2>Conditions</h2>
+        <div class="conditions" id="conditions"></div>
+      </section>
+
+      <section class="card">
+        <h2>O<sub>2</sub> remaining along the walk</h2>
+        <div class="chart" id="chart"></div>
+      </section>
+
+      <section class="card">
+        <h2>Stops <span class="h2-sub">in visiting order</span></h2>
+        <ol class="stops" id="stops"></ol>
+      </section>
+
+      <section class="card" id="photo-card">
+        <h2 id="photo-title">Stop details</h2>
+        <div class="photo-meta" id="photo-meta"></div>
+        <div class="photos" id="photos"><p class="muted">Select a stop on the map or in the list.</p></div>
+      </section>
+
+      <section class="card">
+        <h2>Map layers</h2>
+        <div class="layers" id="layers"></div>
+      </section>
+
+      <footer class="credits" id="credits"></footer>
+    </aside>
+  </main>
+</body>
+</html>
