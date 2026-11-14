@@ -3,8 +3,8 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Marswalk Budget — Jezero EVA planner</title>
-  <meta name="description" content="Plan a walk at Jezero Crater, Mars, priced in time, suit oxygen, radiation dose and science value.">
+  <title>Marswalk Budget — Gale Crater EVA planner</title>
+  <meta name="description" content="Plan a walk at Gale Crater or Jezero Crater, Mars, priced in time, suit oxygen, radiation dose and science value.">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
         integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -21,10 +21,14 @@
       <span class="brand-mark" aria-hidden="true"></span>
       <div>
         <h1>Marswalk Budget</h1>
-        <p class="tagline"><span id="site-name">Jezero Crater</span> EVA planner · every route priced in O<sub>2</sub>, time, dose and science</p>
+        <p class="tagline"><span id="site-name">Gale Crater</span> EVA planner · every route priced in O<sub>2</sub>, time, dose and science</p>
       </div>
     </div>
     <div class="topbar-right">
+      <nav class="site-switch" aria-label="Site">
+        <a href="./" data-site="gale">Gale · Mount Sharp</a>
+        <a href="./?data=real" data-site="real">Jezero · delta front</a>
+      </nav>
       <div class="dataset" id="dataset-label">loading…</div>
       <button type="button" class="about-link" id="about-open" aria-haspopup="dialog">About this model</button>
     </div>
@@ -34,13 +38,14 @@
     <form method="dialog"><button class="about-link about-close" aria-label="Close">Close</button></form>
     <h2 id="about-title">About this model</h2>
     <p>
-      The walk area is a grid of 5 m cells built from real elevation and ground-hardness data. Each step between
+      The walk area is a grid of 5 m cells built from real elevation data (and, at Jezero, ground-hardness data). Each step between
       cells costs <strong>metabolic energy</strong>: walking speed follows a hiking law on the local slope and drops on
       loose sand and rough ground; power rises uphill, on sand and with a heavy kit; slopes over 20° are off limits.
       Energy becomes <strong>suit oxygen</strong> (about 20.1 kJ per litre of O<sub>2</sub>), with 20% of the tank held
       in reserve. The planner finds the least-effort path and the best order of stops, then adds
       <strong>radiation dose</strong> from the time spent outside, the <strong>point of no return</strong>, where to turn
-      back if a dust storm starts, and the best set of stops that fits. Every number is labelled as a published source,
+      back if a dust storm starts, a 6-hour EVA time limit, the stretches where the habitat's antenna can't see the
+      astronaut, and the best set of stops that fits. Every number is labelled as a published source,
       a proxy, an assumption or a design choice.
     </p>
     <ul>
@@ -51,13 +56,13 @@
     <h3>Data</h3>
     <ul>
       <li>Elevation: USGS Astrogeology HiRISE DTM mosaics,
-        <a href="https://astrogeology.usgs.gov/search/map/mars_2020_terrain_relative_navigation_hirise_dtm_mosaic" target="_blank" rel="noopener">Jezero (Mars 2020 TRN)</a> and
-        <a href="https://astrogeology.usgs.gov/search/map/mars_msl_gale_merged_dem_1m" target="_blank" rel="noopener">Gale (MSL)</a>.</li>
-      <li>Ground hardness: <a href="https://doi.org/10.5281/zenodo.4931348" target="_blank" rel="noopener">THEMIS-derived thermal inertia of Jezero Crater</a> (Zenodo, CC BY 4.0). Not available for Gale.</li>
+        <a href="https://astrogeology.usgs.gov/search/map/mars_msl_gale_merged_dem_1m" target="_blank" rel="noopener">Gale (MSL)</a> and
+        <a href="https://astrogeology.usgs.gov/search/map/mars_2020_terrain_relative_navigation_hirise_dtm_mosaic" target="_blank" rel="noopener">Jezero (Mars 2020 TRN)</a>.</li>
+      <li>Ground hardness (Jezero only): <a href="https://doi.org/10.5281/zenodo.4931348" target="_blank" rel="noopener">THEMIS-derived thermal inertia of Jezero Crater</a> (Zenodo, CC BY 4.0).</li>
       <li>Imagery: <a href="https://trek.nasa.gov/mars/" target="_blank" rel="noopener">NASA Mars Trek</a> (MRO HiRISE / CTX) and the USGS Gale HiRISE colour mosaic; rover traverses from NASA/JPL MMGIS.</li>
-      <li>Stop photos: <a href="https://mars.nasa.gov/mars2020/multimedia/raw-images/" target="_blank" rel="noopener">Perseverance</a> and
-        <a href="https://mars.nasa.gov/msl/multimedia/raw-images/" target="_blank" rel="noopener">Curiosity</a> raw images, NASA/JPL-Caltech; each photo shows its own credit.</li>
-      <li>Weather: Perseverance MEDA and Curiosity REMS, both led by Spain's Centro de Astrobiología (CAB), from the
+      <li>Stop photos: <a href="https://mars.nasa.gov/msl/multimedia/raw-images/" target="_blank" rel="noopener">Curiosity</a> and
+        <a href="https://mars.nasa.gov/mars2020/multimedia/raw-images/" target="_blank" rel="noopener">Perseverance</a> raw images, NASA/JPL-Caltech; each photo shows its own credit.</li>
+      <li>Weather: Curiosity REMS and Perseverance MEDA, both led by Spain's Centro de Astrobiología (CAB), from the
         <a href="https://mars.nasa.gov/rss/api/?feed=weather&amp;category=mars2020&amp;feedtype=json" target="_blank" rel="noopener">NASA weather feed</a>; dust optical depth from the Mars Climate Database (LMD / ESA / CNES) can be entered by hand (not filled in this snapshot).</li>
       <li>Solar particle events: <a href="https://ccmc.gsfc.nasa.gov/tools/DONKI/" target="_blank" rel="noopener">NASA CCMC DONKI</a>, detected near Earth and used as a proxy for Mars.</li>
       <li>Radiation: Curiosity RAD at Gale, <a href="https://doi.org/10.1126/science.1244797" target="_blank" rel="noopener">Hassler et al. 2014</a> (~0.64 mSv/day). Measured at Gale; used as a proxy at Jezero.</li>
@@ -73,13 +78,17 @@
 
   <div class="banner" id="synthetic-banner" hidden>
     <strong>Synthetic terrain.</strong> This demo grid is invented to exercise the planner; it is not a real
-    Jezero DTM. Load real data with <code>?data=real</code>.
+    Mars DTM. Remove <code>?data=demo</code> to load the real Gale site, or use <code>?data=real</code> for Jezero.
   </div>
   <div class="banner banner-error" id="error-banner" hidden></div>
 
   <main class="layout">
     <section class="map-wrap" aria-label="Map">
       <div id="map"></div>
+      <div class="map-legend" id="map-legend" hidden>
+        <svg width="26" height="8" aria-hidden="true"><line x1="0" y1="4" x2="26" y2="4" stroke="#ffcf6e" stroke-width="4"/><line x1="0" y1="4" x2="26" y2="4" stroke="#1a0f0a" stroke-width="4" stroke-dasharray="3 7"/></svg>
+        <span id="map-legend-text">Out of sight of the habitat</span>
+      </div>
       <div class="map-hint" id="map-hint">Click the map to add a stop</div>
       <div class="planning" id="planning" hidden><span class="spinner" aria-hidden="true"></span> planning…</div>
     </section>
@@ -96,6 +105,7 @@
         <div class="view-links">
           <a id="open-tablet" href="tablet.html" target="_blank" rel="noopener">Open field tablet</a>
           <a id="open-hud" href="hud.html" target="_blank" rel="noopener">Open helmet HUD</a>
+          <a id="open-vr" href="hud.html?vr=1" target="_blank" rel="noopener" title="Phone in a Cardboard-style headset: stereo HUD that follows your head">Open helmet view (VR)</a>
         </div>
         <p class="note" id="view-links-note" hidden>Stops you added on the map stay on this page; the tablet and HUD show the file's stops.</p>
       </section>
@@ -109,8 +119,7 @@
         <h2>Budget</h2>
         <div class="budget" id="budget"></div>
         <p class="note" id="rad-note">
-          Dose rate: Curiosity RAD measurements at <em>Gale Crater</em> (Hassler et al. 2014, ~0.64 mSv/day),
-          used as a proxy for Jezero — no surface dosimeter has flown there.
+          Dose rate: Curiosity RAD measured at Gale Crater (Hassler et al. 2014, ~0.64 mSv/day).
         </p>
       </section>
 
