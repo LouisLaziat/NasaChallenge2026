@@ -5,7 +5,7 @@ import { latLonToCell, planWalk } from './engine.js';
 import { CONFIG } from './config.js';
 import { renderPhotos } from './photos.js';
 import { addBaseLayers } from './basemap.js';
-import { loadConditions, toToggles, renderConditions as renderConditionsCard } from './conditions.js';
+import { loadConditions, toToggles, verdict as conditionsVerdict, renderConditions as renderConditionsCard } from './conditions.js';
 import {
   el, fmtClock, fmtDuration, fmtKg, fmtMSv, cellLatLng, terrainBounds,
   LAYER_INFO, rampCss, paintHillshade, paintSlope, paintScalar, imageLayer,
@@ -17,7 +17,23 @@ const $ = (id) => document.getElementById(id);
 
 // Page URL parameters shared by console, tablet and HUD (CONTRACTS §7).
 const PARAMS = new URLSearchParams(location.search);
-const DATASET = PARAMS.get('data') === 'real' ? 'real' : 'demo';
+const SITES = {
+  demo: {
+    label: 'Demo data', defaultCond: 'demo-quiet',
+    radNote: 'Dose rate: Curiosity RAD measurements at <em>Gale Crater</em> (Hassler et al. 2014, ~0.64 mSv/day), applied to this synthetic demo terrain.',
+  },
+  real: {
+    label: 'Real data · Jezero', defaultCond: 'real',
+    radNote: 'Dose rate: Curiosity RAD measurements at <em>Gale Crater</em> (Hassler et al. 2014, ~0.64 mSv/day), used as a proxy for Jezero — no surface dosimeter has flown there.',
+  },
+  gale: {
+    // The conditions snapshots describe Jezero (MEDA); a neutral demo snapshot is the honest default at Gale.
+    label: 'Real data · Gale', defaultCond: 'demo-quiet',
+    radNote: 'Dose rate: Curiosity RAD measured <em>here</em> at Gale Crater (Hassler et al. 2014, ~0.64 mSv/day on the surface).',
+  },
+};
+const DATASET = Object.hasOwn(SITES, PARAMS.get('data')) ? PARAMS.get('data') : 'demo';
+const SITE = SITES[DATASET];
 const DATA_DIR = new URL(`../data/${DATASET}/`, import.meta.url);
 
 const CONDITIONS = [
@@ -44,7 +60,7 @@ const state = {
   timeline: null,
   selectedId: null,
   customCount: 0,
-  condName: COND_SNAPSHOTS.some((s) => s.name === PARAMS.get('cond')) ? PARAMS.get('cond') : 'real',
+  condName: COND_SNAPSHOTS.some((s) => s.name === PARAMS.get('cond')) ? PARAMS.get('cond') : SITE.defaultCond,
   cond: null,             // loaded conditions snapshot, or null if it could not be loaded
   condError: null,
 };
@@ -115,7 +131,12 @@ const planner = (() => {
 // ---------------------------------------------------------------------------
 
 async function boot() {
-  $('dataset-label').textContent = DATASET === 'real' ? 'Real data · Jezero' : 'Demo data';
+  $('dataset-label').textContent = SITE.label;
+  $('rad-note').innerHTML = SITE.radNote;
+  if (DATASET === 'gale') {
+    $('site-name').textContent = 'Gale Crater';
+    document.title = 'Marswalk Budget — Gale EVA planner';
+  }
   let terrain, targetsFile;
   try {
     const terrainUrl = new URL('terrain.json', DATA_DIR).href;
@@ -127,7 +148,7 @@ async function boot() {
   } catch (err) {
     const hint = location.protocol === 'file:'
       ? 'Open the app over http (npm run serve), not file://.'
-      : DATASET === 'real' ? 'The real-data files may not be generated yet; try the demo (remove ?data=real).' : '';
+      : DATASET !== 'demo' ? `The ${DATASET} data files may not be generated yet; try the demo (remove ?data=${DATASET}).` : '';
     showError(`Could not load data/${DATASET}/ (${err.message}). ${hint}`);
     $('verdict').textContent = 'No data';
     return;
@@ -309,6 +330,15 @@ function drawMap() {
         { className: 'tip', direction: 'top', offset: [0, -18], permanent: false })
       .addTo(markerLayer);
   }
+
+  // Latest safe turn-around on a route that fits (CONTRACTS §4, feature-detected): softer than the red marker.
+  if (plan && !plan.turnBack && plan.turnBackLatest) {
+    const tl = plan.turnBackLatest;
+    L.marker(cellLatLng(t, tl.x, tl.y), { icon: turnBackIcon('soft'), zIndexOffset: 1500 })
+      .bindTooltip(`<b>Latest safe turn-around</b><br>${fmtClock(tl.elapsedS)} · ${fmtKg(tl.o2UsedKg)} kg O₂ used<br>Turning home here still keeps the full O₂ reserve.`,
+        { className: 'tip', direction: 'top', offset: [0, -16], permanent: false })
+      .addTo(markerLayer);
+  }
 }
 
 function nearestPathIndex(ll, p) {
@@ -368,6 +398,7 @@ function renderVerdict() {
   const p = state.plan;
   const v = $('verdict'), sub = $('verdict-sub'), btn = $('drop-btn');
   btn.hidden = true;
+  renderBestSubset(p);
   if (!p) return;
   const nStops = p.order.length;
   if (p.withinBudget) {
@@ -395,6 +426,27 @@ function renderVerdict() {
   }
 }
 
+/** Engine's best stop set that fits (CONTRACTS §4, feature-detected: absent until the engine lane lands it). */
+function renderBestSubset(p) {
+  const box = $('best-subset');
+  box.replaceChildren();
+  box.hidden = true;
+  const bs = p?.bestSubset;
+  if (!bs || !Array.isArray(bs.ids) || !bs.ids.length) return;
+  const byId = new Map(state.targets.map((t) => [t.id, t]));
+  const names = (bs.order?.length ? bs.order : bs.ids).map((id) => byId.get(id)?.name || id);
+  const same = bs.ids.length === state.included.size && bs.ids.every((id) => state.included.has(id));
+  if (same) return;
+  const use = el('button', { type: 'button', class: 'best-use' }, 'Use it');
+  use.onclick = () => { state.included = new Set(bs.ids); replan(); };
+  box.append(
+    el('div', { class: 'best-text' },
+      el('b', {}, 'Best set that fits: '), names.join(' → '),
+      el('small', {}, ` science ${bs.scienceValue} · ${fmtKg(bs.o2UsedKg)} kg O₂ · ${fmtMSv(bs.doseMSv)} mSv`)),
+    use);
+  box.hidden = false;
+}
+
 async function loadCondSnapshot(name) {
   state.condName = name;
   try {
@@ -412,6 +464,14 @@ async function loadCondSnapshot(name) {
 function renderGoNoGo() {
   const box = $('conditions-card');
   if (!box) return;
+  // Level badge next to the verdict, so GO / CAUTION / NO-GO is visible without scrolling.
+  const badge = $('go-badge');
+  try {
+    const { level } = conditionsVerdict(state.cond, state.plan);
+    badge.textContent = level;
+    badge.className = `go-badge go-${level.toLowerCase().replace(/[^a-z]/g, '')}`;
+    badge.hidden = false;
+  } catch { badge.hidden = true; }
   try {
     renderConditionsCard(box, state.cond, state.plan);
     if (state.condError) box.append(el('p', { class: 'note' }, `Conditions snapshot unavailable: ${state.condError}`));
@@ -428,7 +488,7 @@ function updateLinks() {
   const fileIds = state.targets.filter((t) => !t.custom && state.included.has(t.id)).map((t) => t.id);
   if (fileIds.length !== state.targets.filter((t) => !t.custom).length) q.set('stops', fileIds.join(','));
   for (const c of CONDITIONS) if (state.conditions[c.key]) q.set(c.param, '1');
-  q.set('cond', state.condName);
+  if (state.condName !== SITE.defaultCond) q.set('cond', state.condName);
   const qs = q.toString().replace(/%2C/g, ','); // readable stop lists; URLSearchParams accepts both
   $('open-tablet').href = `tablet.html?${qs}`;
   $('open-hud').href = `hud.html?${qs}`;
@@ -618,6 +678,6 @@ function esc(s) {
 }
 
 // Handle for debugging from the console.
-window.marswalk = { state, get map() { return map; }, get planner() { return planner.mode; }, replan };
+window.marswalk = { state, get map() { return map; }, get planner() { return planner.mode; }, replan, render: renderAll };
 
 boot();
