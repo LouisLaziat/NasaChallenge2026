@@ -4,7 +4,7 @@
     {
       "name": "marswalk",
       "runtimeExecutable": "node",
-      "runtimeArgs": ["C:/Users/super/AppData/Local/Temp/claude/1b94421639a22d3a/b4cb5053-0290-4902-8e1d-beaf01db4b93/scratchpad/serve.mjs", "C:/Users/super/Documents/VScodeProject/NasaHackathon/NasaChallenge2026", "8080"],
+      "runtimeArgs": ["scripts/serve.mjs", ".", "8080"],
       "port": 8080
     }
   ]
