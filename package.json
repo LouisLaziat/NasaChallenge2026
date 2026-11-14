@@ -8,6 +8,10 @@
     "test": "node --test tests/*.test.mjs",
     "demo-data": "node scripts/make_demo.mjs",
     "plan-demo": "node scripts/plan_demo.mjs",
+    "prep-real": "node scripts/prep_real_data.mjs",
     "serve": "node scripts/serve.mjs . 8080"
+  },
+  "devDependencies": {
+    "geotiff": "2.1.3"
   }
 }
