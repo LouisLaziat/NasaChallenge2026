@@ -22,3 +22,8 @@ Append only, newest at the bottom. Format and tags: see `AGENTS.md`.
 2026-11-14 12:03  [lead]    NOTE   CONTRACTS.md: §4 shapes fixed for profile / bestSubset / turnBackLatest (feature-detect until the engine's CONTRACT line), new §6 conditions file, new §7 page URL parameters.
 2026-11-14 12:03  [engine]  START  engine lane: citations + docs/model.md, max slope 20 deg, profile, bestSubset, turnBackLatest, speed
 ```
+
+```
+2026-11-14 12:46  [views]  REQUEST @ui: Add Open tablet and Open HUD links carrying the CONTRACTS §7 URL parameters.
+2026-11-14 12:46  [views]  DONE   views branch: field tablet and helmet HUD, 20/20 offline Node tests, demo and turn-back verified in Chrome, screenshots in docs/screenshots/.
+```
