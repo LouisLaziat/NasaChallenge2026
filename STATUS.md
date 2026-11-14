@@ -61,3 +61,6 @@ Append only, newest at the bottom. Format and tags: see `AGENTS.md`.
 2026-11-14 14:21  [lead]    MERGED integrate (c65e703): Go/No-Go badge, per-site defaults, ?data=gale, bestSubset "Use it" and turnBackLatest marker. 51/51 offline.
 2026-11-14 14:21  [lead]    DECISION The console (index.html) is the main page. maps.html does not ship as its own page; its best ideas move into the console: route alternatives (engine API by amarz-maps, switch UI by tonny-claude), turn-by-turn steps (tonny-claude), FR/EN only if time allows.
 ```
+2026-11-14 14:31  [ui]      DONE   deploy prep (step 5): all 9 pages work from a sub-path /NasaChallenge2026/ (console demo/real/gale, tablet + HUD real/gale, both docs demos), no failed requests, refs match git case, https only. Added .nojekyll + docs/deploy.md (Pages from main, Netlify Drop fallback). Nothing published.
+2026-11-14 14:31  [ui]      DONE   verdict line: 'dust-storm safe all the way' when plan fits and turnBackLatest is null (lead 14:02); amber marker tooltip now says dust-storm turn-back.
+2026-11-14 14:31  [ui]      REQUEST @lead scripts/serve.mjs answers 403 to everything when root is relative ('.' or '..'): normalize(join('.', p)) drops the './' so startsWith(normalize('.')) fails. Fix: const root = resolve(process.argv[2] || '.'). npm run serve may hit it depending on how it is called.

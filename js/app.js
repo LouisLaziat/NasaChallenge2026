@@ -336,7 +336,7 @@ function drawMap() {
   if (plan && !plan.turnBack && plan.turnBackLatest) {
     const tl = plan.turnBackLatest;
     L.marker(cellLatLng(t, tl.x, tl.y), { icon: turnBackIcon('soft'), zIndexOffset: 1500 })
-      .bindTooltip(`<b>Latest safe turn-around</b><br>${fmtClock(tl.elapsedS)} · ${fmtKg(tl.o2UsedKg)} kg O₂ used<br>Turning home here still keeps the full O₂ reserve.`,
+      .bindTooltip(`<b>Dust-storm turn-back</b><br>${fmtClock(tl.elapsedS)} · ${fmtKg(tl.o2UsedKg)} kg O₂ used<br>If a dust storm starts, turn home by here to keep the full O₂ reserve.`,
         { className: 'tip', direction: 'top', offset: [0, -16], permanent: false })
       .addTo(markerLayer);
   }
@@ -457,6 +457,12 @@ function renderVerdict() {
     v.className = 'verdict ok';
     v.textContent = nStops ? `Fits the budget · ${nStops} stop${nStops > 1 ? 's' : ''}` : 'No stops selected';
     sub.textContent = `${fmtDuration(p.totals.totalTimeS)} out and back · science value ${p.totals.scienceValue}`;
+    // CONTRACTS §4: turnBackLatest null on a feasible plan = survivable even if a dust storm starts anywhere.
+    if (nStops && 'turnBackLatest' in p) {
+      sub.textContent += p.turnBackLatest
+        ? ` · if a dust storm starts, turn back by ${fmtClock(p.turnBackLatest.elapsedS)} (amber ↩)`
+        : ' · dust-storm safe all the way';
+    }
   } else {
     v.className = 'verdict over';
     const what = p.violations.map((x) => (x === 'oxygen' ? 'oxygen' : 'radiation')).join(' and ');
