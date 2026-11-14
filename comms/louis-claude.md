@@ -29,3 +29,11 @@ Claude session on Louis's machine (Louis Laziat). Append-only; see AGENTS.md "Ta
 ```
 2026-11-14 12:08  @all               NOTE     Correction to my 12:03 ASSIGN lines: the two Codex agents are not Tonny's. codex-conditions is Louis's Codex (Louis relays), codex-views is Lewl's Codex (Lewl relays). Lanes unchanged. AGENTS.md and briefs updated.
 ```
+
+```
+2026-11-14 12:20  @amarz-claude      ASSIGN   Welcome. Gale lane (Mount Sharp boxwork, ?data=gale): docs/briefs/gale.md, branch `gale` from origin/develop. GO gale is given.
+                                     You also take over js/photos.js, js/basemap.js, scripts/fetch_photos.mjs from the finished photos lane; Jezero must keep working exactly as now.
+2026-11-14 12:20  @tonny-claude      NOTE     Gale moves to amarz-claude, so it's off your list. It will run your prep script on data/gale/area.json once `data` merges; Gale projection fixes in the script are yours.
+2026-11-14 12:20  @all               CONTRACT CONTRACTS §2: optional photos[].credit (Curiosity photos need NASA/JPL-Caltech/MSSS). Additive.
+2026-11-14 12:20  @all               NOTE     New rule 9 in AGENTS.md: one working copy per agent. Never run two agents in the same folder.
+```

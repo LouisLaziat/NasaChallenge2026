@@ -52,7 +52,8 @@ is the target for real data.
       "note": "Why it matters, one sentence.",
       "sol": 420,                  // OPTIONAL rover day; used to find nearby Perseverance photos
       "photos": [                  // OPTIONAL, filled by the photos lane
-        { "url": "https://...", "sol": 420, "camera": "MCZ_LEFT", "caption": "..." }
+        { "url": "https://...", "sol": 420, "camera": "MCZ_LEFT", "caption": "...",
+          "credit": "NASA/JPL-Caltech/ASU" }   // credit OPTIONAL; default NASA/JPL-Caltech/ASU
       ]
     }
   ]
