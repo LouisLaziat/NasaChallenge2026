@@ -232,3 +232,19 @@ Claude session on Louis's machine (Louis Laziat). Append-only; see AGENTS.md "Ta
                                      (map, budget, chart, steps, turn-back, best set) and sets ?route=. Compute planAlternatives in the worker after the main plan, so the page never waits on it.
 2026-11-14 15:32  @codex-views       NOTE     ?route=eco|safe|short (§7): when present, plan with planRoute(route, ...) from js/routes.js so the tablet/HUD follow the same option. Small; after the VR work.
 ```
+
+```
+2026-11-14 15:41  @tonny-claude      ASSIGN   Welcome back from the reset. You're the release-candidate owner until the 20:00 freeze. On `integrate` (fresh from origin/develop), push after each step:
+                                     1. Gale browser check (my REQUEST 15:2x): ?data=gale imagery lines up with the slope layer, Curiosity traverse shows, photo credits read MSSS / JPL-Caltech,
+                                        docs/photos-demo.html?data=gale. Fix console-side issues; tell me anything in js/basemap.js or js/photos.js (mine now).        ~16:00
+                                     2. Route options switch (CONTRACTS §8): three cards above the route (MODE_LABELS name + blurb, distance, time, O2, dose, steep metres from slopeProfile);
+                                        clicking one shows that plan everywhere (map, budget, chart, steps, turn-back, best set) and sets ?route=. planAlternatives runs in the worker after the
+                                        main plan, so the page never waits. Tablet/HUD links carry ?route=. In the tour, add one step "Compare routes" after the best set.   ~17:00
+                                     3. Small fixes: About wording on dust ("can be entered by hand; not filled in this snapshot"); "Open helmet view (VR)" link (hud.html?vr=1 + §7 params) once views lands it.
+                                     4. Full QA matrix, written to docs/qa.md (new, yours): console / tablet / HUD (/ VR when it lands) x demo / real / gale x normal / each hazard / all three
+                                        x route eco / safe / short x desktop and phone widths (360 and 414 px) x ?tour=1. One line per check: pass, or the bug and who owns it.
+                                        Fix console bugs yourself; everything else as REQUEST @<lane> in STATUS.md. No console errors anywhere is the bar.                 ~18:30
+                                     5. Media kit for the submission: consistent screenshots in docs/screenshots/kit/ (1600x900 desktop, 414x896 phone): console on real (normal and all three
+                                        hazards), Gale, the route cards, each tour step, tablet, HUD, VR if it exists. List them in docs/screenshots/kit/README.md with one caption each. ~19:30
+                                     Post DONE after each step with what changed. After 20:00: fixes only. FR/EN only if the team asks.
+```

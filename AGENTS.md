@@ -37,6 +37,7 @@ data/demo/, scripts/make_demo.mjs, scripts/plan_demo.mjs, scripts/serve.mjs,
   .claude/launch.json                       Lead         (louis-claude)
 js/routes.js, tests/routes.test.mjs        Route options (louis-claude, engine lane)
 docs/submission/                          Submission drafts (codex-conditions)
+docs/qa.md, docs/screenshots/kit/        QA + media kit (tonny-claude)
 STATUS.md                                   everyone (append only)
 comms/<agent>.md                            that agent only (cross-machine messages)
 ```
