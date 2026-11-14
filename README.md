@@ -1,50 +1,50 @@
 # Marswalk Budget
 
-NASA Space Apps Challenge 2026 — *Interplanetary Survival Guide: Martian Map*.
+NASA Space Apps 2026 — *Interplanetary Survival Guide: Martian Map*.
 
-A route planner for an astronaut on foot at Jezero Crater. Pick science stops; the tool finds the
-least-effort route over real Mars terrain and prices it in **walking time, suit oxygen, radiation
-dose and science value**, marks the **point of no return**, and replans when conditions change
-(dust storm, solar event, heavy sample kit). Each stop shows a Perseverance photo taken nearby.
+Pick science stops on real terrain at Jezero or Gale Crater. Compare routes by walking time, suit oxygen, radiation dose and science value, then replan for dust, solar activity or a heavy sample kit. The console, field tablet and helmet HUD make the trade-off between exploration and getting home visible.
 
-## Run it
+![Jezero terrain and route in the Marswalk Budget console](docs/screenshots/data-real.png)
+
+*Existing Jezero console capture. Imagery: NASA Mars Trek, MRO HiRISE/CTX; terrain: USGS / NASA. The current interface also includes route comparisons.*
+
+## Run
+
+From the repository root with **Node.js 20+**:
 
 ```bash
-npm test               # engine tests
-npm run plan-demo      # print the demo plan under each condition
-npm run serve          # then open http://localhost:8080
+npm run serve
+# Open http://localhost:8080/
 ```
 
-Requires Node ≥ 20. No build step.
+No build step or install is needed to serve the committed data. `npm test` runs the offline test suite without `node_modules`. Browser CDN assets, Jezero imagery and rover photos need internet.
 
-## How it decides the "best" route
-
-1. The walk area is a grid of 5 m cells built from elevation, thermal inertia (sand vs bedrock)
-   and roughness (boulders).
-2. Each step costs metabolic energy: walking speed falls on slopes, sand and rough ground;
-   power rises uphill, on sand and with a heavy kit. Slopes over 25° and boulder fields are
-   impassable.
-3. A* finds the least-energy path between every pair of stops; the planner picks the visiting
-   order with the lowest total energy.
-4. Energy → oxygen; time → radiation dose. A reverse search from the habitat gives the oxygen
-   needed to get home from any point, which gives the **point of no return**.
-
-Model numbers and their sources: `js/config.js` (and `docs/model.md` once written).
-
-## Team workflow
-
-Four agents work in parallel lanes. See [AGENTS.md](AGENTS.md) for lanes and rules,
-[CONTRACTS.md](CONTRACTS.md) for the shared data shapes, [STATUS.md](STATUS.md) for the live log,
-and [docs/briefs/](docs/briefs/) for each agent's brief.
-
-## Data
-
-| Layer | Source |
+| Try it | URL |
 |---|---|
-| Elevation | USGS Mars 2020 TRN HiRISE DTM mosaic (Jezero) |
-| Imagery | NASA JPL Mars Trek |
-| Thermal inertia | THEMIS-derived Jezero map (Zenodo, CC BY 4.0) |
-| Ground photos | Perseverance raw images, NASA/JPL-Caltech/ASU |
-| Radiation | Curiosity RAD, Hassler et al. 2014 — *Gale Crater, used as a proxy for Jezero* |
+| Synthetic demo | [Console](http://localhost:8080/) |
+| Real sites | [Jezero](http://localhost:8080/?data=real) · [Gale](http://localhost:8080/?data=gale) |
+| Route comparison | [Least oxygen](http://localhost:8080/?data=real&route=eco) · [safest terrain preference](http://localhost:8080/?data=real&route=safe) · [shortest](http://localhost:8080/?data=real&route=short) |
+| Presenter tour | [Seven steps](http://localhost:8080/?data=real&tour=1); Right Arrow to advance |
+| Field tablet | [Tablet](http://localhost:8080/tablet.html?data=real) |
+| Helmet display | [HUD](http://localhost:8080/hud.html?data=gale&cond=real-gale) · [30-second playback](http://localhost:8080/hud.html?data=gale&cond=real-gale&play=30) |
+| Split-eye helmet | [VR mode](http://localhost:8080/hud.html?data=real&vr=1) |
 
-`data/demo/` is **synthetic** terrain for development, not Mars data.
+Use the console's view links to carry selected stops, hazards and route choice. VR also supports drag/arrow controls; phone compass and fullscreen depend on HTTPS, permissions and browser support. Physical Android/iOS checks await a preview.
+
+## Model in five lines
+
+1. A 5 m grid combines elevation, derived roughness and Jezero's thermal-inertia ground proxy.
+2. Paths and visiting order account for terrain-dependent speed and metabolic energy; the slope limit is 20°.
+3. Energy becomes metabolic oxygen demand; walking and stop time contribute to historical-baseline radiation dose.
+4. Return costs mark the point of no return, a dust-storm contingency and the best set of stops within the search limits.
+5. Least-oxygen, gentler-terrain “safest” and shortest routes use the same resource model.
+
+[Model and assumptions](docs/model.md) · [source audit](docs/model-sources.md). This is an educational prototype: suit parameters and thresholds include team assumptions and Earth/lunar proxies. “Safest” is a terrain preference, and GO is a planning-model verdict.
+
+## Data, AI and team
+
+USGS / NASA elevation, NASA Mars Trek, THEMIS-derived Jezero thermal inertia, NASA/JPL rover positions and photos, CAB Spain's MEDA/REMS weather and NASA CCMC DONKI provide the context. [Full data links and credits](docs/submission/data.md) identify per-photo credits, licences and limits. Weather is archival; DONKI is a near-Earth proxy; Curiosity RAD was measured at Gale and is a proxy at Jezero. Gale has no sand layer. No MCD values were retrieved.
+
+Anthropic Claude and OpenAI Codex assisted with implementation, tests, data preparation and drafts. [AI contribution disclosure](docs/submission/ai-disclosure.md). The human team owns the ideas, science decisions, story and submission.
+
+Team: Louis, Tonny, Lewl and theamarz999-stack. [Roles](AGENTS.md) · [work log](STATUS.md) · [submission drafts](docs/submission/summary.md).

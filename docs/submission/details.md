@@ -10,7 +10,7 @@ The astronaut selects science stops. The console draws a route and visiting orde
 
 The route includes an oxygen profile, turn-by-turn steps and the point beyond which returning by the cheapest path would touch the oxygen reserve. A separate contingency marker asks when to turn back if a dust storm starts mid-walk. If the selected stops exceed the budget, the planner proposes a smaller set of stops that retains the highest modelled science value within its search limits. The same plan can open on a field tablet or helmet HUD; HUD playback can compress the walk into a video sequence.
 
-The route-options engine also computes least-oxygen, gentler-terrain “safest”, and shortest alternatives, all priced with the same model. At the draft baseline, the console switch and view integration are assigned work. The “safest” label describes the route's terrain preferences, rather than a validated safety assessment. Phone VR is likewise assigned work and should enter the final description only after it lands and is checked. See [status](../../STATUS.md) and [the route contract](../../CONTRACTS.md#8-route-options--jsroutesjs-engine-lane).
+The console compares least-oxygen, gentler-terrain “safest”, and shortest alternatives, all priced with the same model. Route cards show distance, time, oxygen, dose and steep-ground exposure; the chosen option also applies on the tablet, HUD and split-eye VR helmet view. The “safest” label describes the route's terrain preferences, rather than a validated safety assessment. VR has desktop drag/arrow controls and phone orientation support; physical Android/iOS checks await an HTTPS preview. See [status](../../STATUS.md) and [the route contract](../../CONTRACTS.md#8-route-options--jsroutesjs-engine-lane).
 
 ## How it works
 
