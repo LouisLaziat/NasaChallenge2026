@@ -3,9 +3,10 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import test from 'node:test';
 import { planWalk } from '../js/engine.js';
+import { buildSteps } from '../js/steps.js';
 import {
-  bearingDeg, distanceM, doseAt, nextStop, o2At, passedTurnBack,
-  positionAt, slopeAheadDeg, walkSnapshot,
+  bearingDeg, currentInstruction, distanceM, doseAt, nextStop, o2At, passedTurnBack,
+  positionAt, slopeAheadDeg, stormGuidance, walkSnapshot,
 } from '../js/views/geometry.js';
 
 const readDemo = (file) => JSON.parse(readFileSync(new URL(`../data/demo/${file}.json`, import.meta.url), 'utf8'));
@@ -72,7 +73,7 @@ test('turn-back fires just past the plan marker with all three toggles on', () =
   const { pathIndex } = stressed.turnBack;
   assert.equal(passedTurnBack(stressed, (pathIndex - 0.5) / end), false);
   assert.equal(passedTurnBack(stressed, (pathIndex + 0.5) / end), true);
-  assert.equal(passedTurnBack({ ...stressed, turnBackLatest: null }, 0.99), false);
+  assert.equal(passedTurnBack({ ...stressed, turnBackLatest: null }, 0.99), true);
   assert.equal(walkSnapshot(stressed, terrain, targets.habitat, (pathIndex + 1) / end).turnBack, true);
 });
 
@@ -85,7 +86,42 @@ test('sparse profile is interpolated by path index, including walkback oxygen', 
   assert.equal(positionAt(route, terrain, 0.5).elapsedS, 60);
   assert.equal(o2At(route, 0.5), 0.4);
   assert.equal(doseAt(route, 0.5), 0.02);
-  assert.equal(walkSnapshot(route, terrain, targets.habitat, 0.5).o2ToHomeKg, 0.05);
+  const frame = walkSnapshot(route, terrain, targets.habitat, 0.5);
+  assert.equal(frame.o2ToHomeKg, 0.05);
+  const reserve = route.totals.o2CapacityKg - route.totals.o2UsableKg;
+  assert.equal(frame.o2MarginKg, 0.4 - reserve - 0.05);
+});
+
+test('dust-storm guidance distinguishes approaching, passed, and safe routes', () => {
+  const route = {
+    path: Array.from({ length: 41 }, (_, x) => [x, 0]),
+    conditions: {},
+    withinBudget: true,
+    turnBack: null,
+    turnBackLatest: { pathIndex: 30 },
+    profile: [{ pathIndex: 0, distanceM: 0 }, { pathIndex: 40, distanceM: 200 }],
+  };
+  assert.equal(stormGuidance(route, { cellSize: 5 }, 19, false), null);
+  assert.equal(stormGuidance(route, { cellSize: 5 }, 21, false), 'approaching');
+  assert.equal(stormGuidance(route, { cellSize: 5 }, 31, false), 'past');
+  assert.equal(stormGuidance({ ...route, turnBackLatest: null }, { cellSize: 5 }, 31, false), 'safe');
+  assert.equal(stormGuidance({ ...route, conditions: { dustStorm: true } }, { cellSize: 5 }, 31, false), null);
+  assert.equal(passedTurnBack(route, 0.9), false);
+});
+
+test('instructions advance through engine steps and end at the habitat', () => {
+  const legs = buildSteps(plan, terrain);
+  assert.equal(currentInstruction(legs, 0, plan).destination, plan.order[0]);
+  for (const leg of legs) {
+    for (const step of leg.steps) {
+      const initial = currentInstruction(legs, step.startIndex, plan);
+      const middle = currentInstruction(legs, (step.startIndex + step.endIndex) / 2, plan);
+      assert.equal(initial.step, step);
+      assert.ok(middle.remainingM < initial.remainingM);
+    }
+  }
+  assert.equal(currentInstruction(legs, plan.path.length - 2, plan).destination, 'habitat');
+  assert.equal(currentInstruction(legs, plan.path.length - 1, plan), null);
 });
 
 test('slope ahead uses signed rise over the requested path distance', () => {

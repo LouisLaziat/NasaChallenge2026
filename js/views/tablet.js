@@ -1,10 +1,15 @@
 // Generated with AI assistance for NASA Space Apps 2026; reviewed by the team
 import { renderPhotos } from '../photos.js';
 import {
-  cellLatLng, fmtDuration, fmtKg, imageLayer, paintHillshade, terrainBounds,
+  cellLatLng, fmtDuration, imageLayer, paintHillshade, terrainBounds,
 } from '../render.js';
-import { turnBackPoint } from './geometry.js';
-import { bindProgress, byId, headingText, loadWalk, showLoadError } from './walk.js';
+import { bindProgress, byId, headingText, instructionText, loadWalk, showLoadError } from './walk.js';
+
+const stormMessages = {
+  approaching: 'If a dust storm starts, turn back by here.',
+  past: 'Past the dust-storm turn-back point.',
+  safe: 'Dust-storm safe on this route.',
+};
 
 function mountMap(walk) {
   const { L } = window;
@@ -24,7 +29,7 @@ function mountMap(walk) {
   imageLayer(paintHillshade(terrain), bounds, 0.82, 'overlayPane').addTo(map);
 
   const route = plan.path.map(([x, y]) => cellLatLng(terrain, x, y));
-  const turn = turnBackPoint(plan);
+  const turn = plan.turnBack;
   L.polyline(route, { color: '#24130f', weight: 7, opacity: 0.85 }).addTo(map);
   L.polyline(route, { color: '#ffc979', weight: 3, opacity: 1 }).addTo(map);
   if (turn && route.length > turn.pathIndex + 1) {
@@ -37,13 +42,17 @@ function mountMap(walk) {
   }).addTo(map);
   marker(habitat.x, habitat.y, 'H', 'habitat', 'Habitat');
   plan.stops.forEach((stop, index) => marker(stop.x, stop.y, String(index + 1), 'stop', stop.name));
+  const storm = plan.turnBackLatest;
+  if (storm && !plan.conditions.dustStorm) {
+    marker(storm.x, storm.y, '↩', 'stop', 'Dust-storm turn-back point');
+  }
   const astronaut = L.circleMarker(route[0], {
     radius: 6, color: '#fff', weight: 2, fillColor: '#00f0ca', fillOpacity: 1, interactive: false,
   }).addTo(map);
   return ({ lat, lon }) => astronaut.setLatLng([lat, lon]);
 }
 
-const oxygenText = (kg) => Number.isFinite(kg) ? `${fmtKg(kg)} kg` : '—';
+const oxygenText = (kg) => Number.isFinite(kg) ? `${kg.toFixed(3)} kg` : '—';
 
 async function start() {
   const walk = await loadWalk();
@@ -58,9 +67,22 @@ async function start() {
   const moveAstronaut = mountMap(walk);
   const hasProfile = Boolean(walk.plan.profile?.length);
   const oxygenNote = byId('oxygen-note');
+  const storm = byId('storm-guidance');
+  const maneuver = byId('next-maneuver');
+  const bestSet = byId('best-set');
+  const subset = walk.plan.bestSubset;
+  if (!walk.plan.withinBudget && subset?.ids.length) {
+    const subsetUrl = new URL(walk.url);
+    subsetUrl.searchParams.set('stops', subset.ids.join(','));
+    subsetUrl.searchParams.delete('p');
+    subsetUrl.searchParams.delete('play');
+    bestSet.href = subsetUrl.href;
+    bestSet.textContent = `Switch to best set (value ${subset.scienceValue})`;
+    bestSet.hidden = false;
+  }
   let shownStopId;
 
-  bindProgress(walk, (frame) => {
+  bindProgress(walk, (frame, instruction) => {
     moveAstronaut(frame.position);
     byId('destination-label').textContent = frame.complete ? 'EVA complete' : frame.returning ? 'Return to habitat' : 'Next stop';
     byId('destination').textContent = frame.complete || frame.returning ? 'Habitat' : frame.destination.name;
@@ -79,6 +101,12 @@ async function start() {
     oxygenNote.hidden = frame.o2ToHomeKg !== null;
     oxygenNote.textContent = 'The plan has no walkback estimate at this point.';
     byId('turn-back').hidden = !frame.turnBack;
+    const stormMessage = frame.turnBack ? '' : stormMessages[frame.storm] ?? '';
+    if (storm.textContent !== stormMessage) storm.textContent = stormMessage;
+    storm.hidden = !stormMessage;
+    storm.dataset.state = frame.storm ?? '';
+    maneuver.hidden = !instruction;
+    maneuver.textContent = instructionText(instruction);
 
     const stopId = frame.complete ? null : frame.upcoming?.id;
     if (stopId !== shownStopId) {

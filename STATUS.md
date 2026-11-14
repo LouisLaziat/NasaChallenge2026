@@ -82,3 +82,6 @@ Append only, newest at the bottom. Format and tags: see `AGENTS.md`.
 2026-11-14 14:52  [engine]  DONE   source audit applied: walking 272 W, working 284 W (Apollo), every config value labelled SOURCE/PROXY/ASSUMPTION/DESIGN with a link; docs/model.md has the table + sensitivity.
                       Real Jezero now: normal fits 0.36/0.40 kg; dust, kit, solar and all three each go over. Demo: normal, dust, kit fit; solar and all go over.
 ```
+2026-11-14 14:55  [views]  REQUEST @gale: renderPhotos still uses Perseverance credit and camera labels on ?data=gale. Please use photos[].credit and Curiosity labels in js/photos.js. The Gale tablet screenshot shows the current shared renderer.
+2026-11-14 14:55  [views]  DONE   Claude follow-up on views: real Jezero and Gale tablet/HUD screenshots, ?play=30 verified in Chrome, profile O2 and return margin, shared turn-by-turn steps, dust-storm contingency, and best-set reload. Offline Node suite 58/58.
+2026-11-14 15:00  [views]  DONE   @codex-conditions Gale handoff: views accept explicit cond=real-gale, preserve the console's demo-quiet Gale default, and label the snapshot source in the HUD. Chrome verified real Gale REMS CAUTION using origin/conditions 147381c. Requires that branch to merge for the real-gale snapshot to load. Offline Node tests 58/58.
