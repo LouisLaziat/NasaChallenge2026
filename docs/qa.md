@@ -28,11 +28,13 @@ for the background route options), the harness recorded:
 
 | # | Finding | Owner | Status |
 |---|---|---|---|
-| 1 | Tablet and HUD ignore `?route=safe` / `?route=short` and plan the least-oxygen route, so a link from the console on another route shows a different path. | views (`codex-views`) | Already assigned by the lead (15:32 NOTE); REQUEST @views filed in STATUS.md |
+| 1 | Tablet and HUD ignore `?route=safe` / `?route=short` and plan the least-oxygen route, so a link from the console on another route shows a different path. | views (`codex-views`) | **Fixed** by views (8a0e8c7). Rechecked 16:20: `tablet.html?data=real` 4 h 22 min, `&route=safe` 4 h 25 min with a different first stop, and the HUD matches |
 | 2 | `npm run serve` sends `.md` as `application/octet-stream`, so the About panel's links to `docs/model.md` and `docs/model-sources.md` download a file instead of showing it. GitHub Pages sends Markdown as text, so this only affects the local server. | lead (`scripts/serve.mjs`) | REQUEST @lead filed: add `'.md': 'text/plain; charset=utf-8'` |
 | 3 | Tour caption read "0.40 of 0.40 kg O₂: fits" on the demo best set (0.396 rounds up). | ui (me) | **Fixed**: shows 3 decimals when the two would round to the same value |
 | 4 | A "403 Forbidden" seen earlier in the console. | — | **Not reproducible.** Left over from a temporary sub-path test server; none of the 84 checks saw it |
-| 5 | Helmet view (VR) `hud.html?vr=1` not on `develop` yet. | views | Not tested; add the console link and check when it lands |
+| 5 | Helmet view (VR) `hud.html?vr=1` not on `develop` yet. | views | **Landed.** Console now has "Open helmet view (VR)", carrying site, stops, conditions and route. Stereo view checked headless at 896 × 414 for Jezero and Gale (media kit `vr-01`, `vr-02`) |
+| 6 | HUD and helmet view name the next stop by id ("toward R3", "R6 · 68 m direct"), while the tablet heading shows the name. `walk.js` calls `buildSteps(plan, terrain)` without the names map. | views | REQUEST @views filed: pass `new Map(targets.map(t => [t.id, t.name]))` |
+| 7 | Helmet chevron vs "Head NW" text (lead's question): the chevron is the straight-line bearing to the next **stop**, shown relative to the current path heading; the text is the current path **step**. They differ wherever the path bends. | views | Answered in STATUS.md; suggest pointing the chevron along the step, or labelling it "stop" |
 
 Things that work as designed, noted for the story:
 - **Weather is old:** real Jezero and Gale show **CAUTION** even with no hazard, because both weather
@@ -112,8 +114,8 @@ Things that work as designed, noted for the story:
 | `/tablet.html?data=gale&dust=1&solar=1&kit=1` | 1280 px | pass | Marswalk Budget Gale Crater Field tablet Simulate EVA progress 0% Depa |
 | `/hud.html?data=gale` | 1280 px | pass | Helmet HUD Marswalk Budget GALE CRATER CAUTION Gale · REMS ROUTE HEADI |
 | `/hud.html?data=gale&dust=1&solar=1&kit=1` | 1280 px | pass | Helmet HUD Marswalk Budget GALE CRATER NO-GO Gale · REMS ROUTE HEADING |
-| `/tablet.html?data=real&route=safe` | 1280 px | pass (loads; plans eco, finding 1) | Marswalk Budget Jezero Crater Field tablet Simulate EVA progress 0% De |
-| `/hud.html?data=real&route=safe` | 1280 px | pass (loads; plans eco, finding 1) | Helmet HUD Marswalk Budget JEZERO CRATER CAUTION Jezero · MEDA ROUTE H |
+| `/tablet.html?data=real&route=safe` | 1280 px | pass (plans the safe route; finding 1 fixed) | Marswalk Budget Jezero Crater Field tablet Simulate EVA progress 0% De |
+| `/hud.html?data=real&route=safe` | 1280 px | pass (plans the safe route; finding 1 fixed) | Helmet HUD Marswalk Budget JEZERO CRATER CAUTION Jezero · MEDA ROUTE H |
 | `/hud.html?data=real&play=10` | 1280 px | pass | Helmet HUD Marswalk Budget JEZERO CRATER CAUTION Jezero · MEDA ROUTE H |
 | `/?data=demo` | 360 px | pass | plan eco, GO |
 | `/tablet.html?data=demo` | 360 px | pass | Marswalk Budget Synthetic demo terrain Field tablet Simulate EVA progr |
@@ -163,7 +165,7 @@ Things that work as designed, noted for the story:
 
 ## Not covered yet
 
-- **Helmet view (VR):** `hud.html?vr=1` is not on `develop` yet.
+- **Helmet view (VR) on a real headset:** checked only in headless Chrome (stereo layout and numbers); head tracking needs a phone over https.
 - **Real phones:** compass and fullscreen need https, so they wait until the site is online.
 - **Other browsers:** Firefox and Safari not tested; only the in-app Chromium.
 - **Tour step 7:** it opens `hud.html` with `&play=30`. Checked by hand, not by the harness.

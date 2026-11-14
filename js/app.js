@@ -644,6 +644,7 @@ function updateLinks() {
   const qs = q.toString().replace(/%2C/g, ','); // readable stop lists; URLSearchParams accepts both
   $('open-tablet').href = `tablet.html?${qs}`;
   $('open-hud').href = `hud.html?${qs}`;
+  $('open-vr').href = `hud.html?${[qs, 'vr=1'].filter(Boolean).join('&')}`; // views lane: Cardboard helmet mode
   const hasCustom = state.targets.some((t) => t.custom && state.included.has(t.id));
   $('view-links-note').hidden = !hasCustom;
   const own = TOUR ? [qs, 'tour=1'].filter(Boolean).join('&') : qs; // presenter mode survives a reload
