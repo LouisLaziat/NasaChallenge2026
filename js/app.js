@@ -851,7 +851,11 @@ const tourHazSet = (included) => tourSet({ cond: 'demo-dusty', conditions: TOUR_
 
 const tourFileIds = () => state.targets.filter((t) => !t.custom).map((t) => t.id);
 const tourStops = (p) => `${p.order.length} stop${p.order.length === 1 ? '' : 's'}`;
-const tourO2 = (p) => `${fmtKg(p.totals.o2UsedKg)} of ${fmtKg(p.totals.o2UsableKg)} kg O₂`;
+const tourO2 = (p) => {
+  const { o2UsedKg: u, o2UsableKg: a } = p.totals;
+  const d = fmtKg(u) === fmtKg(a) && u !== a ? 3 : 2; // "0.40 of 0.40" would hide whether it fits
+  return `${u.toFixed(d)} of ${a.toFixed(d)} kg O₂`;
+};
 
 async function tourSet({ cond, conditions, included }) {
   if (state.condName !== cond) await loadCondSnapshot(cond);
