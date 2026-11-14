@@ -99,6 +99,27 @@ code { background: #00000055; padding: 0 4px; border-radius: 3px; }
 .drop-btn:hover { background: #f2b862; }
 .drop-btn small { display: block; font-weight: 500; opacity: .8; }
 
+/* ---------- Go/No-Go badge and best-subset suggestion ---------- */
+.verdict-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
+.go-badge {
+  flex: none; margin-top: 2px; padding: 3px 8px; border-radius: 4px; font: 700 12px var(--font);
+  letter-spacing: .06em; border: 1px solid currentColor;
+}
+.go-badge.go-go { color: var(--ok); }
+.go-badge.go-caution { color: var(--amber); }
+.go-badge.go-nogo { color: #1a0f0a; background: var(--red); border-color: var(--red); }
+.best-subset {
+  display: flex; align-items: center; gap: 8px; margin-top: 8px; padding: 8px 10px;
+  border: 1px solid var(--line); border-radius: 6px; font-size: 13px;
+}
+.best-subset[hidden], .go-badge[hidden] { display: none; }
+.best-text { flex: 1; }
+.best-text small { display: block; color: var(--muted); }
+.best-use {
+  flex: none; padding: 6px 10px; font: 600 13px var(--font); color: #1a0f0a;
+  background: var(--ok); border: 0; border-radius: 6px; cursor: pointer;
+}
+
 /* ---------- Tablet / HUD links and conditions snapshot ---------- */
 .view-links { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
 .view-links a {
@@ -231,6 +252,10 @@ code { background: #00000055; padding: 0 4px; border-radius: 3px; }
   box-shadow: 0 0 0 6px #ef4b3f55, 0 2px 8px #000; animation: pulse 1.6s ease-in-out infinite;
 }
 @keyframes pulse { 50% { box-shadow: 0 0 0 12px #ef4b3f22, 0 2px 8px #000; } }
+.mk-turn.soft {
+  width: 28px; height: 28px; font-size: 15px; color: var(--amber); background: #1a0f0acc;
+  border: 2px dashed var(--amber); box-shadow: 0 2px 6px #000; animation: none;
+}
 .leaflet-tooltip.tip {
   background: #1b1411; color: var(--text); border: 1px solid var(--line); font: 13px var(--font);
   box-shadow: 0 2px 8px #000a;

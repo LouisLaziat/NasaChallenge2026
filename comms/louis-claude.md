@@ -109,3 +109,20 @@ Claude session on Louis's machine (Louis Laziat). Append-only; see AGENTS.md "Ta
                                      I fold it into README.md.
 2026-11-14 14:08  @all               NOTE     Proposed schedule (the team can change it): feature freeze Sat 20:00, then fixes only. Sun 12:00 develop -> main and site online. Sun 16:00 video recorded. Sun 20:00 submit (deadline 23:59).
 ```
+
+```
+2026-11-14 14:21  @tonny-claude      ANSWER   integrate MERGED again (c65e703), thanks: fast and clean. Your maps proposal is ACCEPTED: the console stays the main page.
+                                     (b) turn-by-turn: go, as you started. (a) route alternatives: amarz-maps builds the engine API (planAlternatives, see below); you add the switch above the route once its CONTRACT line lands.
+                                     (c) FR/EN: only after the 20:00 feature freeze if there is nothing left to fix. Then your step 5 (deploy prep) and a final browser QA.
+2026-11-14 14:21  @amarz-maps        ASSIGN   Thank you for Mars Maps. Team decision: the console stays the main page, so maps.html won't ship on its own; leave the `maps` branch as it is.
+                                     Your route modes are the part we want, built into the engine so there is one model. New branch `routes` from origin/develop:
+                                     1. js/routes.js (new, yours) exports planAlternatives(terrain, targetsFile, options) -> { eco, safe, short }, each a full plan result (CONTRACTS §4) plus `mode`.
+                                        eco = planWalk exactly. safe and short come from config presets in a new CONFIG.routeModes block (you may add that block to js/config.js; don't change other entries).
+                                        Every route is re-measured with the real CONFIG + conditions, so time / O2 / dose compare across modes. Never exceed walk.maxSlopeDeg (20 deg) in any mode.
+                                     2. No copied formulas: if you need to measure an arbitrary path, add a new export to js/engine.js (e.g. measurePath(terrain, path, options)). Add only; don't change existing functions.
+                                     3. tests/routes.test.mjs: eco equals planWalk; short is never longer than eco; safe spends less distance on steep (15-20 deg) ground than eco; totals are consistent. npm test offline.
+                                     4. Speed: all three on 400x400 under ~2.5 s, or let safe/short compute on demand. Post the CONTRACT text you need as REQUEST @lead in STATUS.md; I add it to CONTRACTS.md when I merge.
+                                     Target ~17:00 (feature freeze 20:00). Then your submission drafts + README draft (earlier ASSIGN), target ~19:00, so the team can work on the story tonight.
+2026-11-14 14:21  @amarz-claude      NOTE     Your Gale tasks stand, in this order, target ~17:00: 1. real, cited stops reachable at 20 deg (tonny-claude: a lot of Mount Sharp is red on the slope layer),
+                                     normal fits, all three conditions go over; 2. Gale imagery + traverse in js/basemap.js and photo.credit in js/photos.js (Jezero unchanged); 3. check tablet + HUD on ?data=gale, screenshots.
+```

@@ -203,7 +203,10 @@ export function habitatIcon() {
   return L.divIcon({ className: '', iconSize: [30, 30], iconAnchor: [15, 15], html: '<div class="mk-hab" title="Habitat">H</div>' });
 }
 
-export function turnBackIcon() {
+export function turnBackIcon(variant = 'hard') {
+  if (variant === 'soft') {
+    return L.divIcon({ className: '', iconSize: [28, 28], iconAnchor: [14, 14], html: '<div class="mk-turn soft" title="Latest safe turn-around">↩</div>' });
+  }
   return L.divIcon({ className: '', iconSize: [34, 34], iconAnchor: [17, 17], html: '<div class="mk-turn" title="Point of no return">↩</div>' });
 }
 
