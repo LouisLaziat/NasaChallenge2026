@@ -156,7 +156,8 @@ function initMap() {
   map.setMaxBounds(bounds.pad(0.6));
   L.control.scale({ imperial: false, position: 'bottomleft' }).addTo(map);
 
-  map.createPane('terrain'); map.getPane('terrain').style.zIndex = 250;
+  // 300: above the NASA imagery pane from basemap.js (pbBasemap, 250), below vector overlays (400).
+  map.createPane('terrain'); map.getPane('terrain').style.zIndex = 300;
   map.createPane('route'); map.getPane('route').style.zIndex = 450;
 
   // NASA base layers from the photos lane (empty stub on develop).
@@ -175,7 +176,11 @@ function initMap() {
   if (ti) overlays.thermalInertia = imageLayer(ti, bounds, LAYER_INFO.thermalInertia.opacity, 'terrain');
   const ro = paintScalar(t, 'roughness', LAYER_INFO.roughness.ramp, [0, 1]);
   if (ro) overlays.roughness = imageLayer(ro, bounds, LAYER_INFO.roughness.opacity, 'terrain');
-  for (const [k, layer] of Object.entries(overlays)) if (LAYER_INFO[k].defaultOn) layer.addTo(map);
+  // On real terrain the HiRISE imagery is the base map, so the opaque hillshade starts off.
+  for (const [k, layer] of Object.entries(overlays)) {
+    if (k === 'hillshade' && !t.synthetic) continue;
+    if (LAYER_INFO[k].defaultOn) layer.addTo(map);
+  }
   L.rectangle(bounds, { color: '#e0a14a', weight: 1, fill: false, dashArray: '4 4', interactive: false, pane: 'terrain' }).addTo(map);
 
   routeLayer = L.layerGroup().addTo(map);
