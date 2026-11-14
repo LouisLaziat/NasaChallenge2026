@@ -677,6 +677,7 @@ function updateLinks() {
   $('open-hud').href = `hud.html?${qs}`;
   $('open-vr').href = `hud.html?${[qs, 'vr=1'].filter(Boolean).join('&')}`; // views lane: Cardboard helmet mode
   $('open-flyover').href = `flyover.html?${qs}`; // views lane: 3D fly-through, same §7 params
+  $('open-checklist').href = `checklist.html?${qs}`; // EVA cuff checklist (js/checklist.js)
   const hasCustom = state.targets.some((t) => t.custom && state.included.has(t.id));
   $('view-links-note').hidden = !hasCustom;
   updateSiteSwitch();
@@ -1007,7 +1008,7 @@ const TOUR_STEPS = [
   {
     run: async () => {},
     after: () => setTimeout(() => { location.href = `${$('open-hud').href}&play=30`; }, 1800),
-    caption: () => 'Same plan in the helmet: the HUD the astronaut follows on the walk.',
+    caption: () => 'Same plan in the helmet HUD the astronaut follows, and on a one-page cuff checklist (Print EVA checklist).',
   },
 ];
 
