@@ -5,6 +5,7 @@ import { latLonToCell, planWalk } from './engine.js';
 import { CONFIG } from './config.js';
 import { renderPhotos } from './photos.js';
 import { addBaseLayers } from './basemap.js';
+import { buildSteps } from './steps.js';
 import { loadConditions, toToggles, verdict as conditionsVerdict, renderConditions as renderConditionsCard } from './conditions.js';
 import {
   el, fmtClock, fmtDuration, fmtKg, fmtMSv, cellLatLng, terrainBounds,
@@ -65,7 +66,7 @@ const state = {
   condError: null,
 };
 
-let map, overlays = {}, routeLayer, markerLayer;
+let map, overlays = {}, routeLayer, markerLayer, stepHighlight = null;
 
 // ---------------------------------------------------------------------------
 // Planner: Web Worker (module worker from a Blob that imports engine.js), with
@@ -387,7 +388,58 @@ function renderAll() {
     renderChart($('chart'), state.plan, state.timeline);
   }
   renderStops();
+  renderSteps();
   renderSelected();
+}
+
+/** Turn-by-turn card (js/steps.js): one group per leg, click a step to highlight it on the map. */
+function renderSteps() {
+  const box = $('steps');
+  box.replaceChildren();
+  if (stepHighlight) { stepHighlight.remove(); stepHighlight = null; }
+  const p = state.plan;
+  if (!p?.legs?.length || !p.order.length) {
+    $('steps-count').textContent = '';
+    box.append(el('p', { class: 'muted' }, 'Select at least one stop to get directions.'));
+    return;
+  }
+  const legs = buildSteps(p, state.terrain, new Map(state.targets.map((t) => [t.id, t.name])));
+  const n = legs.reduce((a, l) => a + l.steps.length, 0);
+  $('steps-count').textContent = `${n} steps`;
+  let clock = 0;
+  legs.forEach((leg, li) => {
+    const list = el('ol', { class: 'steps-list' });
+    for (const s of leg.steps) {
+      const climb = Math.abs(s.climbM) >= 1 ? ` · ${s.climbM > 0 ? '↑' : '↓'} ${Math.abs(s.climbM).toFixed(0)} m` : '';
+      const row = el('li', { class: 'step', tabindex: '0' },
+        el('span', { class: 'step-text' }, s.text),
+        el('span', { class: 'step-meta' }, `${s.distanceM.toFixed(0)} m · ${fmtDuration(s.timeS)}${climb}`),
+        s.sandy ? el('span', { class: 'step-tag' }, 'loose sand') : null);
+      const show = () => highlightStep(s, row);
+      row.addEventListener('click', show);
+      row.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); show(); } });
+      list.append(row);
+    }
+    clock += leg.timeS;
+    const arrive = leg.to === 'habitat'
+      ? `Back at the habitat · ${fmtClock(clock)}`
+      : `Arrive at ${leg.toName} · ${fmtClock(clock)} · work ${leg.dwellMin} min`;
+    clock += (leg.dwellMin || 0) * 60;
+    box.append(el('div', { class: 'steps-leg' },
+      el('div', { class: 'steps-leg-head' }, `${li + 1}. To ${leg.toName}`, el('small', {}, ` ${(leg.distanceM / 1000).toFixed(2)} km`)),
+      list,
+      el('div', { class: 'steps-arrive' }, arrive)));
+  });
+}
+
+function highlightStep(s, row) {
+  if (stepHighlight) stepHighlight.remove();
+  document.querySelectorAll('.step.on').forEach((r) => r.classList.remove('on'));
+  row.classList.add('on');
+  const ll = state.plan.path.slice(s.startIndex, s.endIndex + 1).map(([x, y]) => cellLatLng(state.terrain, x, y));
+  stepHighlight = L.polyline(ll, { pane: 'route', color: '#7fd3ff', weight: 7, opacity: 0.95, interactive: false }).addTo(map);
+  const b = stepHighlight.getBounds();
+  if (!map.getBounds().contains(b)) map.fitBounds(b, { padding: [60, 60], maxZoom: map.getZoom() });
 }
 
 // ---------------------------------------------------------------------------

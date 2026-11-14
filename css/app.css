@@ -99,6 +99,27 @@ code { background: #00000055; padding: 0 4px; border-radius: 3px; }
 .drop-btn:hover { background: #f2b862; }
 .drop-btn small { display: block; font-weight: 500; opacity: .8; }
 
+/* ---------- Turn-by-turn ---------- */
+.steps-card > summary { cursor: pointer; list-style: none; }
+.steps-card > summary::-webkit-details-marker { display: none; }
+.steps-card > summary h2 { display: inline; margin: 0; }
+.steps-card > summary h2::before { content: '▸ '; color: var(--muted); }
+.steps-card[open] > summary h2::before { content: '▾ '; }
+.steps-leg { margin-top: 10px; }
+.steps-leg-head { font-weight: 700; font-size: 14px; }
+.steps-leg-head small { color: var(--muted); font-weight: 500; }
+.steps-list { list-style: none; margin: 4px 0 0; padding: 0; }
+.step {
+  display: grid; grid-template-columns: 1fr auto; gap: 0 8px; padding: 5px 8px; margin: 2px 0;
+  border-left: 2px solid var(--line); cursor: pointer; font-size: 13px;
+}
+.step:hover, .step:focus-visible { background: #ffffff0d; outline: none; }
+.step.on { border-left-color: #7fd3ff; background: #7fd3ff14; }
+.step-text { font-weight: 600; }
+.step-meta { color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.step-tag { grid-column: 1 / -1; font-size: 11px; color: var(--amber); }
+.steps-arrive { margin: 2px 0 0 10px; font-size: 12px; color: var(--ochre); }
+
 /* ---------- Go/No-Go badge and best-subset suggestion ---------- */
 .verdict-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
 .go-badge {
