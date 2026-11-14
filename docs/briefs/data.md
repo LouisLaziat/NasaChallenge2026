@@ -87,4 +87,5 @@ Tests pass offline; `data/real/terrain.json` committed (< 5 MB); screenshot save
    `turnBackLatest` once the engine posts its `CONTRACT` line.
 2. **Browser QA** of every merged build: `?data=demo` and `?data=real`, each condition,
    click-to-add, photos, tablet, HUD. Report bugs as `REQUEST @<lane>` in STATUS.md.
-3. **Gale dataset** (`gale` lane, `data/gale/`) only after the lead posts `GO gale`.
+3. **Help the Gale lane** (`amarz-claude`, `docs/briefs/gale.md`): it will run your script on
+   `data/gale/area.json`. If Gale's DEM projection needs a fix in your script, that's yours to make.
