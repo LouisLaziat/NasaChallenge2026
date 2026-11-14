@@ -181,7 +181,8 @@ code { background: #00000055; padding: 0 4px; border-radius: 3px; }
 #conditions-card { margin-bottom: 10px; }
 .cond-source-row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; font-size: 13px; color: var(--muted); }
 .cond-source {
-  flex: 1; padding: 4px 6px; font: inherit; color: inherit; background: var(--card);
+  flex: 1; min-width: 0; max-width: 100%; text-overflow: ellipsis;
+  padding: 4px 6px; font: inherit; color: inherit; background: var(--card);
   border: 1px solid var(--line); border-radius: 4px;
 }
 
@@ -322,7 +323,7 @@ code { background: #00000055; padding: 0 4px; border-radius: 3px; }
 /* ---------- Small screens ---------- */
 @media (max-width: 860px) {
   body { height: auto; }
-  .layout { grid-template-columns: 1fr; }
+  .layout { grid-template-columns: minmax(0, 1fr); }
   .map-wrap { height: 58vh; }
   .panel { border-left: 0; border-top: 1px solid var(--line); overflow: visible; }
   .tagline { display: none; }
