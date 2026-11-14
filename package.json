@@ -1,0 +1,13 @@
+{
+  "name": "marswalk-budget",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Mars EVA route planner that prices every path in oxygen, time, radiation and science.",
+  "type": "module",
+  "scripts": {
+    "test": "node --test tests/*.test.mjs",
+    "demo-data": "node scripts/make_demo.mjs",
+    "plan-demo": "node scripts/plan_demo.mjs",
+    "serve": "npx --yes http-server@14.1.1 -c-1 -p 8080 ."
+  }
+}
