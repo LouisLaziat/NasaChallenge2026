@@ -1,4 +1,4 @@
-# Brief — Codex 2: Engine and model (branch `engine`)
+# Brief — Engine and model (branch `engine`) — `louis-claude` (also the lead)
 
 You are the engine agent on Marswalk Budget, a NASA Space Apps 2026 route planner for an
 astronaut walking at Jezero Crater, Mars. Read `AGENTS.md`, `CONTRACTS.md`, `STATUS.md` first.
@@ -6,7 +6,7 @@ Three other agents build on your output in parallel; you are the only one allowe
 contracts.
 
 **Branch:** `engine`, from `develop`. **You own:** `js/engine.js`, `js/config.js`,
-`tests/engine.test.mjs`, `CONTRACTS.md`.
+`tests/engine.test.mjs`, `CONTRACTS.md`, `docs/model.md`.
 **Do not edit:** UI, photos, data-pipeline files, `data/`.
 
 ## What exists
@@ -24,6 +24,8 @@ single-stop drop suggestion. 13 tests pass (`npm test`). `npm run plan-demo` pri
    limits). Replace with the cited value or keep it with a one-line justification. Add a
    `docs/model.md` table: parameter, value, source, link. Mark Gale-Crater-as-Jezero proxy clearly.
    Keep the demo interesting: normal conditions fit; all three conditions together go over.
+   **Max walkable slope: 20°** (accepted 2026-11-14), cited to NASA's exploration EVA concept,
+   NTRS 20210000827. Re-check the demo still behaves as above after the change.
 2. **`profile` in the plan result** (additive): per path point `{ elapsedS, o2RemainingKg,
    o2ToHomeKg, doseMSv, elevationM }`, downsampled to ≤ 300 points, for the UI chart.
 3. **`bestSubset`** (additive): when over budget, the highest total-`value` set of stops whose
@@ -45,4 +47,4 @@ Additive only. Update `CONTRACTS.md` §4 *in the same commit*, and add a `CONTRA
 ## Done when
 
 `npm test` passes; `npm run plan-demo` shows the new outputs; `docs/model.md` cites every number.
-Commit small, prefix `engine:`. You merge first (with the data lane); the coordinator merges.
+Commit small, prefix `engine:`. Merges first (with the data lane); the lead merges.

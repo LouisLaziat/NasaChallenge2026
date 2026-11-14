@@ -1,7 +1,7 @@
 # Shared contracts
 
-These shapes let the four lanes work in parallel. **Only the engine lane (Codex 2) may change
-them.** Any change must be written here and announced in `STATUS.md` *before* it is merged.
+These shapes let the four lanes work in parallel. **Only the engine lane (`louis-claude`, also the
+lead) may change them.** Any change must be written here and announced in `STATUS.md` *before* it is merged.
 
 Conventions used everywhere:
 
@@ -97,8 +97,29 @@ The one shared decision about *where* the real walk happens. The data lane crops
 `turnBack` is the last point on the route from which the astronaut can still walk home on the
 cheapest path without dipping into the O2 reserve. It is `null` when the whole route fits.
 
-**Planned additions (engine lane, additive only):** `profile` — O2 remaining and dose along the
-path for a chart; `bestSubset` — the highest-value set of stops that fits the budget.
+**Coming from the engine lane (additive; shapes fixed now so other lanes can build against
+them).** Until the engine posts a `CONTRACT` line in `STATUS.md`, these fields are missing:
+feature-detect (`if (plan.profile) ...`) and fall back to the fields above.
+
+```jsonc
+{
+  "profile": [                         // ≤ 300 points along `path`, in order, first = habitat
+    { "pathIndex": 0, "elapsedS": 0, "distanceM": 0,
+      "o2RemainingKg": 0.5,            // O2 left in the suit (capacity − used so far)
+      "o2ToHomeKg": 0.0,               // O2 needed to walk home from here on the cheapest path
+      "doseMSv": 0.0,                  // dose so far
+      "elevationM": -2549.3 }
+  ],
+  "bestSubset": {                      // highest total value that fits the budget; null when
+    "ids": ["R1", "R3"],               // the chosen stops already fit, or nothing fits
+    "order": ["R3", "R1"],
+    "scienceValue": 13, "o2UsedKg": 0.31, "doseMSv": 0.02, "totalTimeS": 9000 },
+  "turnBackLatest": { "pathIndex", "x", "y", "elapsedS", "o2UsedKg" }
+                                       // last point where turning home still keeps the full
+                                       // reserve, also on a feasible route; null if that is
+                                       // the end of the route
+}
+```
 
 ## 5. UI ↔ photos hook
 
@@ -117,3 +138,44 @@ export function photoMarkerIcon(stop) {}   // OPTIONAL: thumbnail icon for the m
 ```js
 export function addBaseLayers(map /* L.Map */, terrain) {}  // returns { layers, control }
 ```
+
+## 6. Conditions file — `data/conditions/<name>.json` (owned by the conditions lane)
+
+`<name>` is `real` (fetched by `scripts/fetch_conditions.mjs`) or `demo-quiet`, `demo-dusty`,
+`demo-solar` (hand-made, `"synthetic": true`). Unknown values are `null`, never invented.
+
+```jsonc
+{
+  "asOf": "2026-11-14T17:00:00Z",           // when it was fetched / written
+  "site": "jezero",
+  "synthetic": false,
+  "sol": 2050,                              // latest weather sol, or null
+  "tempC": { "min": -80, "max": -20 },      // MEDA air temperature, or null
+  "pressurePa": 720,                        // or null
+  "dustTau": 0.6,                           // dust optical depth (MCD, manual), or null
+  "doseRateMSvDay": 0.64,                   // read from CONFIG.radiation, not copied by hand
+  "sep": { "status": "quiet", "lastEvent": null },   // quiet | watch | alert (DONKI)
+  "evaWindowLocal": { "start": "09:00", "end": "15:00" },  // manual, or null
+  "sources": [ { "name": "DONKI SEP (NASA CCMC)", "url": "https://...", "retrieved": "2026-11-14T17:00:00Z",
+                 "note": "Earth-side detection used as a proxy for Mars" } ],
+  "manual": ["dustTau", "evaWindowLocal"]   // fields a human filled in by hand
+}
+```
+
+`js/conditions.js` exports `loadConditions(name)`, `toToggles(cond)` →
+`{ dustStorm, solarEvent }`, `verdict(cond, plan)` → `{ level: "GO"|"CAUTION"|"NO-GO",
+reasons: [{ code, text, source }] }` and `renderConditions(container, cond, plan)`. Rules in
+`docs/briefs/conditions.md`.
+
+## 7. Page URL parameters (console, tablet, HUD)
+
+All three pages read and write the same parameters, so a link carries the whole plan:
+
+| Param | Values | Meaning |
+|---|---|---|
+| `data` | `demo` (default), `real`, later `gale` | data set folder under `data/` |
+| `stops` | `R1,R3,R5` | chosen stop ids; omitted = the page's default |
+| `dust`, `solar`, `kit` | `1` | condition switches on (`dustStorm`, `solarEvent`, `heavyKit`) |
+| `cond` | `real`, `demo-quiet`, `demo-dusty`, `demo-solar` | conditions file to load (§6) |
+| `p` | `0` … `1` | EVA progress along the route (tablet and HUD only) |
+

@@ -18,4 +18,7 @@ Append only, newest at the bottom. Format and tags: see `AGENTS.md`.
 2026-11-14 12:10  [ui]      START  building index.html, css/app.css, js/app.js, js/render.js on claude/ui-d3da9f
 2026-11-14 13:05  [ui]      DONE   branch claude/ui-d3da9f: index.html, css/app.css, js/app.js, js/render.js. Leaflet 1.9.4 (unpkg+SRI), planner in a module Web Worker (main-thread fallback), terrain layers, route+turn-back, budget bars, O2 chart (uses plan.profile if engine adds it, else interpolates between stops), drop button, conditions, click-to-add, ?data=real. Verified on demo: normal fits; all 3 -> red bars + turn-back + drop D2 -> fits. npm test 13/13.
 2026-11-14 13:05  [ui]      NOTE   @photos: app.js calls addBaseLayers(map, terrain) once after map creation (default EPSG:3857 CRS); if you return a control I add it unless already on the map, else I add your layers directly. renderPhotos(container, target) gets the full target object incl. photos/sol.
+2026-11-14 12:03  [lead]    NOTE   louis-claude is the lead (Tonny's call). Lanes: data = tonny-claude (Node), engine = louis-claude, conditions = codex-conditions, views = codex-views; gale on hold. Briefs in docs/briefs/.
+2026-11-14 12:03  [lead]    NOTE   CONTRACTS.md: §4 shapes fixed for profile / bestSubset / turnBackLatest (feature-detect until the engine's CONTRACT line), new §6 conditions file, new §7 page URL parameters.
+2026-11-14 12:03  [engine]  START  engine lane: citations + docs/model.md, max slope 20 deg, profile, bestSubset, turnBackLatest, speed
 ```
