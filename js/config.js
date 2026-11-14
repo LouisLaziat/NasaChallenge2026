@@ -89,4 +89,17 @@ export const CONFIG = {
     sepAlertDays: 2, // DESIGN: Earth-catalogue recency policy; not a Mars all-clear. — NASA CCMC DONKI https://ccmc.gsfc.nasa.gov/tools/DONKI/
     sepWatchDays: 7, // DESIGN: Earth-catalogue recency policy. — NASA CCMC DONKI https://ccmc.gsfc.nasa.gov/tools/DONKI/
   },
+
+  // ---------- Route options (js/routes.js) ----------
+  // Paths and order are chosen with these preferences; time, O2 and dose are always measured with
+  // the real model above, so the three options compare fairly.
+  routeModes: {
+    safe: {
+      maxSlopeDeg: [15, 18], // DESIGN: avoid ground over 15°, relaxed to 18° then the suit limit if a stop becomes unreachable.
+      gradeCostFactor: 3, // DESIGN: uphill and downhill surcharges x3, so the route prefers gentle ground.
+      sandMetabolicFactor: 2.5, // DESIGN: treat loose sand as much costlier than the walking model does.
+      roughnessSpeedPenalty: 0.9, // DESIGN: steer around rough ground.
+    },
+    short: {}, // DESIGN: every metre costs the same, so the path is the shortest walkable one.
+  },
 };
