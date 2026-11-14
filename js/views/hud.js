@@ -2,6 +2,7 @@
 import { PHOTO_CREDIT } from '../photos.js';
 import { fmtDuration, fmtMSv } from '../render.js';
 import { compassTicks, relativeBearingDeg } from './geometry.js';
+import { mountHelmet } from './helmet.js';
 import { bindProgress, byId, headingText, instructionText, loadWalk, showLoadError } from './walk.js';
 
 const svgNS = 'http://www.w3.org/2000/svg';
@@ -45,6 +46,11 @@ function drawConditions({ verdict, conditionsSnapshot }) {
 
 async function start() {
   const walk = await loadWalk();
+  if (walk.url.searchParams.get('vr') === '1') {
+    mountHelmet(walk);
+    byId('load-status').hidden = true;
+    return;
+  }
   const overlay = byId('hud-overlay');
   const controls = byId('hud-controls');
   const photo = byId('hud-photo');
@@ -124,6 +130,7 @@ async function start() {
   });
   controls.hidden = false;
   overlay.removeAttribute('hidden');
+  byId('hud-rotate').hidden = false;
   byId('load-status').hidden = true;
   drawConditions(walk);
 }

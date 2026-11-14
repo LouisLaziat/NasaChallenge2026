@@ -1,5 +1,6 @@
 // Generated with AI assistance for NASA Space Apps 2026; reviewed by the team
-import { planWalk, resolveTargets } from '../engine.js';
+import { resolveTargets } from '../engine.js';
+import { ROUTE_MODES, planRoute } from '../routes.js';
 import { buildSteps } from '../steps.js';
 import { clampProgress, currentInstruction, walkSnapshot } from './geometry.js';
 
@@ -52,7 +53,9 @@ export async function loadWalk() {
     heavyKit: enabled('kit'),
   };
   const { habitat, targets } = resolveTargets(terrain, targetsFile);
-  const plan = planWalk(terrain, { habitat, targets }, { stopIds, conditions });
+  const requestedRoute = params.get('route');
+  const mode = ROUTE_MODES.includes(requestedRoute) ? requestedRoute : 'eco';
+  const plan = planRoute(mode, terrain, { habitat, targets }, { stopIds, conditions });
   const playSeconds = Number(params.get('play'));
   return {
     url, dataset, terrain, habitat, plan,
@@ -66,11 +69,13 @@ export async function loadWalk() {
   };
 }
 
-export function bindProgress(walk, draw) {
+export function bindProgress(walk, draw, { autoplay = true } = {}) {
   const slider = byId('progress');
   const output = byId('progress-value');
-  let animation;
-  let started;
+  let animation = null;
+  let started = null;
+  let elapsed = 0;
+  const canPlay = walk.playMs > 0 && walk.plan.totals.totalTimeS > 0;
   slider.value = walk.playMs ? 0 : walk.progress;
   const update = (progress) => {
     output.value = `${Math.round(progress * 100)}%`;
@@ -79,8 +84,31 @@ export function bindProgress(walk, draw) {
     const instruction = frame.complete ? null : currentInstruction(walk.routeSteps, frame.routeIndex, walk.plan);
     draw(frame, instruction);
   };
-  slider.addEventListener('input', () => {
+  const advance = (now) => {
+    started ??= now;
+    const progress = clampProgress((elapsed + now - started) / walk.playMs);
+    slider.value = progress;
+    update(progress);
+    animation = progress < 1 ? requestAnimationFrame(advance) : null;
+    if (progress === 1) {
+      elapsed = walk.playMs;
+      started = null;
+    }
+  };
+  const play = () => {
+    if (!canPlay || elapsed >= walk.playMs || animation !== null) return;
+    animation = requestAnimationFrame(advance);
+  };
+  const pause = () => {
+    if (animation === null) return;
     cancelAnimationFrame(animation);
+    animation = null;
+    if (started !== null) elapsed += performance.now() - started;
+    started = null;
+  };
+  slider.addEventListener('input', () => {
+    pause();
+    elapsed = slider.valueAsNumber * walk.playMs;
     update(slider.valueAsNumber);
   });
   // A committed slider change updates the shareable link without adding a history entry.
@@ -90,14 +118,8 @@ export function bindProgress(walk, draw) {
     history.replaceState(history.state, '', walk.url);
   });
   update(slider.valueAsNumber);
-  const advance = (now) => {
-    started ??= now;
-    const progress = clampProgress((now - started) / walk.playMs);
-    slider.value = progress;
-    update(progress);
-    if (progress < 1) animation = requestAnimationFrame(advance);
-  };
-  if (walk.playMs && walk.plan.totals.totalTimeS > 0) animation = requestAnimationFrame(advance);
+  if (autoplay) play();
+  return { play, pause, isPlaying: () => animation !== null };
 }
 
 export function instructionText(instruction) {
