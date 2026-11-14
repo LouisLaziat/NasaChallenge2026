@@ -5,6 +5,7 @@ import { latLonToCell, planWalk } from './engine.js';
 import { CONFIG } from './config.js';
 import { renderPhotos } from './photos.js';
 import { addBaseLayers } from './basemap.js';
+import { loadConditions, toToggles, verdict as conditionsVerdict, renderConditions as renderConditionsCard } from './conditions.js';
 import {
   el, fmtClock, fmtDuration, fmtKg, fmtMSv, cellLatLng, terrainBounds,
   LAYER_INFO, rampCss, paintHillshade, paintSlope, paintScalar, imageLayer,
@@ -14,13 +15,39 @@ import {
 const L = window.L;
 const $ = (id) => document.getElementById(id);
 
-const DATASET = new URLSearchParams(location.search).get('data') === 'real' ? 'real' : 'demo';
+// Page URL parameters shared by console, tablet and HUD (CONTRACTS §7).
+const PARAMS = new URLSearchParams(location.search);
+const SITES = {
+  demo: {
+    label: 'Demo data', defaultCond: 'demo-quiet',
+    radNote: 'Dose rate: Curiosity RAD measurements at <em>Gale Crater</em> (Hassler et al. 2014, ~0.64 mSv/day), applied to this synthetic demo terrain.',
+  },
+  real: {
+    label: 'Real data · Jezero', defaultCond: 'real',
+    radNote: 'Dose rate: Curiosity RAD measurements at <em>Gale Crater</em> (Hassler et al. 2014, ~0.64 mSv/day), used as a proxy for Jezero — no surface dosimeter has flown there.',
+  },
+  gale: {
+    // The conditions snapshots describe Jezero (MEDA); a neutral demo snapshot is the honest default at Gale.
+    label: 'Real data · Gale', defaultCond: 'demo-quiet',
+    radNote: 'Dose rate: Curiosity RAD measured <em>here</em> at Gale Crater (Hassler et al. 2014, ~0.64 mSv/day on the surface).',
+  },
+};
+const DATASET = Object.hasOwn(SITES, PARAMS.get('data')) ? PARAMS.get('data') : 'demo';
+const SITE = SITES[DATASET];
 const DATA_DIR = new URL(`../data/${DATASET}/`, import.meta.url);
 
 const CONDITIONS = [
-  { key: 'dustStorm', name: 'Dust storm' },
-  { key: 'solarEvent', name: 'Solar particle event' },
-  { key: 'heavyKit', name: 'Heavy sample kit' },
+  { key: 'dustStorm', name: 'Dust storm', param: 'dust' },
+  { key: 'solarEvent', name: 'Solar particle event', param: 'solar' },
+  { key: 'heavyKit', name: 'Heavy sample kit', param: 'kit' },
+];
+
+// Conditions snapshots (CONTRACTS §6), loaded by js/conditions.js.
+const COND_SNAPSHOTS = [
+  { name: 'real', label: 'Latest real data' },
+  { name: 'demo-quiet', label: 'Demo: quiet sol' },
+  { name: 'demo-dusty', label: 'Demo: dust storm' },
+  { name: 'demo-solar', label: 'Demo: solar alert' },
 ];
 
 const state = {
@@ -33,6 +60,9 @@ const state = {
   timeline: null,
   selectedId: null,
   customCount: 0,
+  condName: COND_SNAPSHOTS.some((s) => s.name === PARAMS.get('cond')) ? PARAMS.get('cond') : SITE.defaultCond,
+  cond: null,             // loaded conditions snapshot, or null if it could not be loaded
+  condError: null,
 };
 
 let map, overlays = {}, routeLayer, markerLayer;
@@ -101,7 +131,12 @@ const planner = (() => {
 // ---------------------------------------------------------------------------
 
 async function boot() {
-  $('dataset-label').textContent = DATASET === 'real' ? 'Real data · Jezero' : 'Demo data';
+  $('dataset-label').textContent = SITE.label;
+  $('rad-note').innerHTML = SITE.radNote;
+  if (DATASET === 'gale') {
+    $('site-name').textContent = 'Gale Crater';
+    document.title = 'Marswalk Budget — Gale EVA planner';
+  }
   let terrain, targetsFile;
   try {
     const terrainUrl = new URL('terrain.json', DATA_DIR).href;
@@ -113,7 +148,7 @@ async function boot() {
   } catch (err) {
     const hint = location.protocol === 'file:'
       ? 'Open the app over http (npm run serve), not file://.'
-      : DATASET === 'real' ? 'The real-data files may not be generated yet; try the demo (remove ?data=real).' : '';
+      : DATASET !== 'demo' ? `The ${DATASET} data files may not be generated yet; try the demo (remove ?data=${DATASET}).` : '';
     showError(`Could not load data/${DATASET}/ (${err.message}). ${hint}`);
     $('verdict').textContent = 'No data';
     return;
@@ -127,6 +162,18 @@ async function boot() {
     if (!(Number.isInteger(t.x) && Number.isInteger(t.y)) && t.lat != null) Object.assign(t, latLonToCell(terrain, t.lat, t.lon));
   }
   state.included = new Set(state.targets.map((t) => t.id));
+  if (PARAMS.get('stops')) {
+    const wanted = new Set(PARAMS.get('stops').split(','));
+    state.included = new Set(state.targets.filter((t) => wanted.has(t.id)).map((t) => t.id));
+  }
+
+  // Conditions snapshot pre-sets dust/solar; explicit ?dust= / ?solar= / ?kit= win. Kit is never suggested.
+  await loadCondSnapshot(state.condName);
+  const suggested = state.cond ? toToggles(state.cond) : {};
+  for (const c of CONDITIONS) {
+    const v = PARAMS.get(c.param);
+    if (v === '1' || (v !== '0' && suggested[c.key])) state.conditions[c.key] = true;
+  }
 
   $('synthetic-banner').hidden = !terrain.synthetic;
   if (terrain.name) $('dataset-label').textContent += ` · ${terrain.name}`;
@@ -156,7 +203,8 @@ function initMap() {
   map.setMaxBounds(bounds.pad(0.6));
   L.control.scale({ imperial: false, position: 'bottomleft' }).addTo(map);
 
-  map.createPane('terrain'); map.getPane('terrain').style.zIndex = 250;
+  // 300: above the NASA imagery pane from basemap.js (pbBasemap, 250), below vector overlays (400).
+  map.createPane('terrain'); map.getPane('terrain').style.zIndex = 300;
   map.createPane('route'); map.getPane('route').style.zIndex = 450;
 
   // NASA base layers from the photos lane (empty stub on develop).
@@ -175,7 +223,11 @@ function initMap() {
   if (ti) overlays.thermalInertia = imageLayer(ti, bounds, LAYER_INFO.thermalInertia.opacity, 'terrain');
   const ro = paintScalar(t, 'roughness', LAYER_INFO.roughness.ramp, [0, 1]);
   if (ro) overlays.roughness = imageLayer(ro, bounds, LAYER_INFO.roughness.opacity, 'terrain');
-  for (const [k, layer] of Object.entries(overlays)) if (LAYER_INFO[k].defaultOn) layer.addTo(map);
+  // On real terrain the HiRISE imagery is the base map, so the opaque hillshade starts off.
+  for (const [k, layer] of Object.entries(overlays)) {
+    if (k === 'hillshade' && !t.synthetic) continue;
+    if (LAYER_INFO[k].defaultOn) layer.addTo(map);
+  }
   L.rectangle(bounds, { color: '#e0a14a', weight: 1, fill: false, dashArray: '4 4', interactive: false, pane: 'terrain' }).addTo(map);
 
   routeLayer = L.layerGroup().addTo(map);
@@ -278,6 +330,15 @@ function drawMap() {
         { className: 'tip', direction: 'top', offset: [0, -18], permanent: false })
       .addTo(markerLayer);
   }
+
+  // Latest safe turn-around on a route that fits (CONTRACTS §4, feature-detected): softer than the red marker.
+  if (plan && !plan.turnBack && plan.turnBackLatest) {
+    const tl = plan.turnBackLatest;
+    L.marker(cellLatLng(t, tl.x, tl.y), { icon: turnBackIcon('soft'), zIndexOffset: 1500 })
+      .bindTooltip(`<b>Latest safe turn-around</b><br>${fmtClock(tl.elapsedS)} · ${fmtKg(tl.o2UsedKg)} kg O₂ used<br>Turning home here still keeps the full O₂ reserve.`,
+        { className: 'tip', direction: 'top', offset: [0, -16], permanent: false })
+      .addTo(markerLayer);
+  }
 }
 
 function nearestPathIndex(ll, p) {
@@ -319,6 +380,8 @@ async function replan() {
 function renderAll() {
   drawMap();
   renderVerdict();
+  renderGoNoGo();
+  updateLinks();
   if (state.plan) {
     renderBudget($('budget'), state.plan);
     renderChart($('chart'), state.plan, state.timeline);
@@ -335,6 +398,7 @@ function renderVerdict() {
   const p = state.plan;
   const v = $('verdict'), sub = $('verdict-sub'), btn = $('drop-btn');
   btn.hidden = true;
+  renderBestSubset(p);
   if (!p) return;
   const nStops = p.order.length;
   if (p.withinBudget) {
@@ -362,9 +426,99 @@ function renderVerdict() {
   }
 }
 
+/** Engine's best stop set that fits (CONTRACTS §4, feature-detected: absent until the engine lane lands it). */
+function renderBestSubset(p) {
+  const box = $('best-subset');
+  box.replaceChildren();
+  box.hidden = true;
+  const bs = p?.bestSubset;
+  if (!bs || !Array.isArray(bs.ids) || !bs.ids.length) return;
+  const byId = new Map(state.targets.map((t) => [t.id, t]));
+  const names = (bs.order?.length ? bs.order : bs.ids).map((id) => byId.get(id)?.name || id);
+  const same = bs.ids.length === state.included.size && bs.ids.every((id) => state.included.has(id));
+  if (same) return;
+  const use = el('button', { type: 'button', class: 'best-use' }, 'Use it');
+  use.onclick = () => { state.included = new Set(bs.ids); replan(); };
+  box.append(
+    el('div', { class: 'best-text' },
+      el('b', {}, 'Best set that fits: '), names.join(' → '),
+      el('small', {}, ` science ${bs.scienceValue} · ${fmtKg(bs.o2UsedKg)} kg O₂ · ${fmtMSv(bs.doseMSv)} mSv`)),
+    use);
+  box.hidden = false;
+}
+
+async function loadCondSnapshot(name) {
+  state.condName = name;
+  try {
+    state.cond = await loadConditions(name);
+    state.condError = null;
+  } catch (err) {
+    // Never invent "quiet": the card shows CAUTION / unknown data instead.
+    state.cond = null;
+    state.condError = err.message;
+    console.warn('conditions snapshot unavailable', err);
+  }
+}
+
+/** GO / CAUTION / NO-GO card from the conditions lane, refreshed after every plan. */
+function renderGoNoGo() {
+  const box = $('conditions-card');
+  if (!box) return;
+  // Level badge next to the verdict, so GO / CAUTION / NO-GO is visible without scrolling.
+  const badge = $('go-badge');
+  try {
+    const { level } = conditionsVerdict(state.cond, state.plan);
+    badge.textContent = level;
+    badge.className = `go-badge go-${level.toLowerCase().replace(/[^a-z]/g, '')}`;
+    badge.hidden = false;
+  } catch { badge.hidden = true; }
+  try {
+    renderConditionsCard(box, state.cond, state.plan);
+    if (state.condError) box.append(el('p', { class: 'note' }, `Conditions snapshot unavailable: ${state.condError}`));
+  } catch (err) {
+    box.textContent = `Go/No-Go unavailable: ${err.message}`;
+  }
+}
+
+/** Links to the tablet and HUD (CONTRACTS §7), and keep this page's URL in sync so a reload keeps the plan. */
+function updateLinks() {
+  const q = new URLSearchParams();
+  if (DATASET !== 'demo') q.set('data', DATASET);
+  // Stops the user added on the map exist only in this page, so they can't travel in a link.
+  const fileIds = state.targets.filter((t) => !t.custom && state.included.has(t.id)).map((t) => t.id);
+  if (fileIds.length !== state.targets.filter((t) => !t.custom).length) q.set('stops', fileIds.join(','));
+  for (const c of CONDITIONS) if (state.conditions[c.key]) q.set(c.param, '1');
+  if (state.condName !== SITE.defaultCond) q.set('cond', state.condName);
+  const qs = q.toString().replace(/%2C/g, ','); // readable stop lists; URLSearchParams accepts both
+  $('open-tablet').href = `tablet.html?${qs}`;
+  $('open-hud').href = `hud.html?${qs}`;
+  const hasCustom = state.targets.some((t) => t.custom && state.included.has(t.id));
+  $('view-links-note').hidden = !hasCustom;
+  try { history.replaceState(null, '', `?${qs}`); } catch { /* sandboxed previews */ }
+}
+
 function renderConditions() {
   const box = $('conditions');
   box.replaceChildren();
+  // Which conditions snapshot drives the Go/No-Go card and the suggested switches.
+  const select = el('select', { 'aria-label': 'Conditions snapshot', class: 'cond-source' });
+  for (const s of COND_SNAPSHOTS) {
+    const o = el('option', { value: s.name }, s.label);
+    if (s.name === state.condName) o.selected = true;
+    select.append(o);
+  }
+  select.addEventListener('change', async () => {
+    await loadCondSnapshot(select.value);
+    const sug = state.cond ? toToggles(state.cond) : {};
+    // A new snapshot re-applies its suggestions for dust and solar; the kit switch stays as the astronaut set it.
+    for (const key of ['dustStorm', 'solarEvent']) {
+      if (sug[key]) state.conditions[key] = true; else delete state.conditions[key];
+    }
+    renderConditions();
+    refreshSlopeLayer();
+    replan();
+  });
+  box.append(el('label', { class: 'cond-source-row' }, el('span', {}, 'Snapshot'), select));
   for (const c of CONDITIONS) {
     const cfg = CONFIG.conditions[c.key] || {};
     const fx = [];
@@ -524,6 +678,6 @@ function esc(s) {
 }
 
 // Handle for debugging from the console.
-window.marswalk = { state, get map() { return map; }, get planner() { return planner.mode; }, replan };
+window.marswalk = { state, get map() { return map; }, get planner() { return planner.mode; }, replan, render: renderAll };
 
 boot();

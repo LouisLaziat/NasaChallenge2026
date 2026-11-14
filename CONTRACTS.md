@@ -52,7 +52,8 @@ is the target for real data.
       "note": "Why it matters, one sentence.",
       "sol": 420,                  // OPTIONAL rover day; used to find nearby Perseverance photos
       "photos": [                  // OPTIONAL, filled by the photos lane
-        { "url": "https://...", "sol": 420, "camera": "MCZ_LEFT", "caption": "..." }
+        { "url": "https://...", "sol": 420, "camera": "MCZ_LEFT", "caption": "...",
+          "credit": "NASA/JPL-Caltech/ASU" }   // credit OPTIONAL; default NASA/JPL-Caltech/ASU
       ]
     }
   ]
@@ -97,29 +98,31 @@ The one shared decision about *where* the real walk happens. The data lane crops
 `turnBack` is the last point on the route from which the astronaut can still walk home on the
 cheapest path without dipping into the O2 reserve. It is `null` when the whole route fits.
 
-**Coming from the engine lane (additive; shapes fixed now so other lanes can build against
-them).** Until the engine posts a `CONTRACT` line in `STATUS.md`, these fields are missing:
-feature-detect (`if (plan.profile) ...`) and fall back to the fields above.
+**Added by the engine lane (2026-11-14, additive).** Every plan result now also has:
 
 ```jsonc
 {
-  "profile": [                         // ≤ 300 points along `path`, in order, first = habitat
-    { "pathIndex": 0, "elapsedS": 0, "distanceM": 0,
+  "profile": [                         // ≤ 300 points along `path`, in order, first = habitat.
+    { "pathIndex": 0, "elapsedS": 0,   // Each stop appears twice (arrival, then after the dwell),
+      "distanceM": 0,                  // so a chart shows the O2 used while working there.
       "o2RemainingKg": 0.5,            // O2 left in the suit (capacity − used so far)
       "o2ToHomeKg": 0.0,               // O2 needed to walk home from here on the cheapest path
       "doseMSv": 0.0,                  // dose so far
       "elevationM": -2549.3 }
   ],
-  "bestSubset": {                      // highest total value that fits the budget; null when
-    "ids": ["R1", "R3"],               // the chosen stops already fit, or nothing fits
-    "order": ["R3", "R1"],
+  "bestSubset": {                      // null when the chosen stops already fit, or nothing fits.
+    "ids": ["R1", "R3"],               // highest total value that fits O2 AND dose (exact up to
+    "order": ["R3", "R1"],             // 10 stops, greedy above); ties -> least O2
     "scienceValue": 13, "o2UsedKg": 0.31, "doseMSv": 0.02, "totalTimeS": 9000 },
   "turnBackLatest": { "pathIndex", "x", "y", "elapsedS", "o2UsedKg" }
-                                       // last point where turning home still keeps the full
-                                       // reserve, also on a feasible route; null if that is
-                                       // the end of the route
 }
 ```
+
+`turnBackLatest` is the "turn back by here" point for a surprise: the last point from which the
+astronaut could still get home without touching the O2 reserve **if a dust storm started right
+there** (the contingency is `CONFIG.planner.contingency`). `null` means a storm starting anywhere
+on the route is still survivable. When the dust-storm switch is already on, it equals `turnBack`.
+Pass `options.contingency = false` to skip it (saves one reverse search, ~150 ms on 400 × 400).
 
 ## 5. UI ↔ photos hook
 

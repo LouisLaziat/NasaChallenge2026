@@ -1,0 +1,86 @@
+<!-- Generated with AI assistance for NASA Space Apps 2026; reviewed by the team -->
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Helmet HUD | Marswalk Budget</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="css/views.css">
+  <script type="module" src="js/views/hud.js"></script>
+</head>
+<body class="hud">
+  <main class="hud-stage">
+    <h1 class="visually-hidden">Helmet HUD</h1>
+    <img id="hud-photo" class="hud-photo" alt="" hidden>
+    <p id="load-status" class="hud-status" role="status">Loading EVA plan…</p>
+    <svg id="hud-overlay" viewBox="0 0 1280 720" role="group" aria-label="Helmet display" hidden>
+      <g class="hud-header">
+        <text x="60" y="62" class="hud-title">Marswalk Budget</text>
+        <text id="hud-dataset" x="60" y="89" class="hud-label"></text>
+        <g id="conditions-badge" hidden>
+          <rect x="1030" y="38" width="190" height="56" rx="6" fill="var(--hud-panel)" stroke="currentColor"/>
+          <text id="conditions-level" x="1125" y="74" text-anchor="middle"></text>
+        </g>
+      </g>
+
+      <g id="compass" text-anchor="middle" aria-label="Heading along the planned path">
+        <rect x="412" y="30" width="456" height="114" rx="8" class="hud-panel"/>
+        <text x="640" y="55" class="hud-label">Route heading</text>
+        <g id="compass-ticks" transform="translate(640 101)"></g>
+        <path d="M633 111h14l-7 8z" class="hud-accent"/>
+        <text id="heading-value" x="640" y="135" class="hud-compass-value"></text>
+      </g>
+
+      <g id="hud-warning" class="hud-warning" text-anchor="middle" hidden>
+        <rect x="484" y="162" width="312" height="52" rx="6"/>
+        <text x="640" y="195">TURN BACK · O₂ RESERVE</text>
+      </g>
+
+      <g class="hud-target" text-anchor="middle">
+        <path d="M589 302v-30h30 M661 272h30v30 M691 323v30h-30 M619 353h-30v-30"
+              class="hud-reticle" aria-hidden="true"/>
+        <g id="chevron" transform="translate(640 312)" aria-hidden="true">
+          <path d="M-18 10 0-13 18 10 0 3Z"/>
+        </g>
+        <text id="hud-destination-label" x="640" y="388" class="hud-label"></text>
+        <text id="hud-destination" x="640" y="426" class="hud-target-name"></text>
+        <text id="hud-distance" x="640" y="459" class="hud-range"></text>
+      </g>
+
+      <text id="hud-photo-credit" x="1220" y="516" text-anchor="end" class="hud-credit" hidden></text>
+      <g transform="translate(60 534)">
+        <rect width="425" height="112" rx="8" class="hud-panel"/>
+        <text id="hud-oxygen-label" x="20" y="30" class="hud-label">O₂ margin above reserve</text>
+        <text id="hud-oxygen" x="20" y="66" class="hud-value"></text>
+        <rect x="20" y="83" width="385" height="8" rx="4" class="hud-gauge-track"/>
+        <rect id="hud-oxygen-bar" x="20" y="83" width="0" height="8" rx="4" class="hud-accent"/>
+      </g>
+      <g transform="translate(500 534)">
+        <rect width="213" height="112" rx="8" class="hud-panel"/>
+        <text x="20" y="30" class="hud-label">Time left</text>
+        <text id="hud-time" x="20" y="76" class="hud-value"></text>
+      </g>
+      <g transform="translate(728 534)">
+        <rect width="181" height="112" rx="8" class="hud-panel"/>
+        <text x="20" y="30" class="hud-label">Slope ahead</text>
+        <text id="hud-slope" x="20" y="66" class="hud-value"></text>
+        <text x="20" y="94" class="hud-credit">Next 30 m</text>
+      </g>
+      <g transform="translate(924 534)">
+        <rect width="296" height="112" rx="8" class="hud-panel"/>
+        <text x="20" y="30" class="hud-label">Dose so far</text>
+        <text id="hud-dose" x="20" y="66" class="hud-value"></text>
+        <text id="hud-dose-note" x="20" y="94" class="hud-credit"></text>
+      </g>
+    </svg>
+    <p id="turn-back-alert" class="visually-hidden" role="alert"></p>
+    <div id="hud-controls" class="hud-controls" hidden>
+      <label for="progress">Simulate EVA progress</label>
+      <input id="progress" type="range" min="0" max="1" step="0.001" value="0">
+      <output id="progress-value" for="progress">0%</output>
+      <span class="hud-shortcut"><kbd>H</kbd> Hide controls</span>
+    </div>
+  </main>
+</body>
+</html>
