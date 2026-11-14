@@ -1,0 +1,84 @@
+# Marswalk Budget — rules for every agent
+
+Read this whole file, then `CONTRACTS.md` and `STATUS.md`, before you change anything.
+(Codex reads this file automatically; Claude reads it through `CLAUDE.md`.)
+
+## What we are building
+
+A route planner for an astronaut on foot at Jezero Crater, Mars (NASA Space Apps 2026,
+"Interplanetary Survival Guide: Martian Map"). The astronaut picks science stops; the tool finds
+the least-effort route and prices it in **walking time, suit oxygen, radiation dose and science
+value**, marks the **point of no return**, and replans when conditions change (dust storm, solar
+event, heavy sample kit). Each stop shows a real Perseverance photo taken nearby.
+
+Stack: plain HTML + ES modules + Leaflet. **No build step, no framework, no bundler.**
+Node ≥ 20 for tests and scripts. Python 3 + numpy + rasterio for the data pipeline only.
+
+```
+index.html, css/, js/app.js, js/render.js   UI           (Claude 1)
+js/photos.js, js/basemap.js, data/real/targets.json, data/real/area.json,
+  scripts/fetch_photos.mjs                  Photos/NASA  (Claude 2)
+scripts/prep_real_data.py, tests/test_prep.py,
+  data/real/terrain.json, requirements.txt  Real data    (Codex 1)
+js/engine.js, js/config.js, tests/engine.test.mjs,
+  CONTRACTS.md                              Engine/model (Codex 2)
+data/demo/, scripts/make_demo.mjs, scripts/plan_demo.mjs, package.json,
+  AGENTS.md, CLAUDE.md, README.md           Coordinator  (main Claude session)
+STATUS.md                                   everyone (append only)
+```
+
+## The four lanes
+
+| Agent | Branch | Owns | Done when |
+|---|---|---|---|
+| Claude 1 — UI | `ui` | `index.html`, `css/`, `js/app.js`, `js/render.js` | Map shows terrain layers, route, numbered stops, turn-back marker; side panel shows O2, time, radiation bars; the three condition toggles and click-to-add-stop replan the route. Works on `data/demo`. |
+| Claude 2 — Photos & NASA layers | `photos` | `js/photos.js`, `js/basemap.js`, `scripts/fetch_photos.mjs`, `data/real/targets.json`, `data/real/area.json` | Each real stop shows a Perseverance photo taken nearby; Mars Trek imagery loads as a base layer; real stops chosen along the rover traverse with sol numbers. |
+| Codex 1 — Real data | `data` | `scripts/prep_real_data.py`, `tests/test_prep.py`, `requirements.txt`, `data/real/terrain.json` | Script crops the USGS HiRISE DTM and the Zenodo thermal-inertia map to `data/real/area.json`, computes roughness, writes the terrain contract. Tested on small synthetic GeoTIFFs. |
+| Codex 2 — Engine & model | `engine` | `js/engine.js`, `js/config.js`, `tests/engine.test.mjs`, `CONTRACTS.md` | Every `ASSUMPTION` in config either cited or kept and justified; adds `profile` (O2/dose along route) and `bestSubset` (best stops that fit); tests pass. |
+
+## Hard rules
+
+1. **Only edit files your lane owns.** Need a change in someone else's file? Write a request in
+   `STATUS.md` (`REQUEST @lane: ...`) and work around it until it lands.
+2. **Contracts are frozen** except by the engine lane, and only additively unless every lane
+   agrees in `STATUS.md`. Never rename or remove a field another lane reads.
+3. **Branch from `develop`, merge back into `develop`.** Rebase or merge `develop` into your
+   branch at least every couple of hours and before you open a merge. Never push to `main`.
+4. **Merge order:** `engine` and `data` first, then `ui`, then `photos`. Whoever merges after a
+   contract change re-runs all tests.
+5. **Tests must pass before merging:** `npm test` (and `python -m pytest tests/` once it exists).
+6. **No secrets or large files in git.** Raw GeoTIFFs and downloads go in `raw/` (git-ignored).
+   Anything committed under `data/` stays under ~5 MB per file.
+7. **Be honest about data.** Synthetic data is labelled `synthetic: true`. Numbers we invented
+   are tagged `ASSUMPTION` in `js/config.js`. Curiosity RAD dose rates are from Gale Crater, used
+   as a proxy for Jezero — say so wherever dose is shown.
+8. **Unverified endpoints.** Mars Trek tile URLs and the Perseverance raw-image feed have not been
+   tested by anyone yet. Load one of each by hand before building on it, and record the working
+   URL in `STATUS.md`.
+
+## STATUS.md protocol
+
+Append a line (newest at the bottom), never rewrite others' lines:
+
+```
+2026-11-14 14:05  [engine]  DONE   profile[] added to plan result (additive, see CONTRACTS §4)
+2026-11-14 14:20  [ui]      BLOCKED need turnBack even when within budget? -> REQUEST @engine
+2026-11-14 14:30  [photos]  NOTE   raw image feed works: https://... (CORS: no, use manifest)
+```
+
+Tags: `START`, `DONE`, `NOTE`, `REQUEST @lane`, `BLOCKED`, `CONTRACT` (engine lane only),
+`MERGED`.
+
+## Commands
+
+```bash
+npm test                     # engine tests (Node built-in runner)
+npm run plan-demo            # print demo plans under each condition
+npm run demo-data            # regenerate data/demo/terrain.json
+npm run serve                # static server on http://localhost:8080 (fetch needs http, not file://)
+```
+
+## Commit style
+
+Small commits, imperative subject, lane prefix: `ui: draw turn-back marker`,
+`engine: add O2 profile to plan result`.
