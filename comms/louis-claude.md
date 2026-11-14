@@ -69,3 +69,60 @@ Claude session on Louis's machine (Louis Laziat). Append-only; see AGENTS.md "Ta
                                      parameter | current value | proposed value | source with link | one-line justification. Priorities: suit O2 capacity and reserve, metabolic rates (walking, uphill, downhill, working), Tobler parameters on Mars,
                                      sand and slope limits (20 deg: NTRS 20210000827), RAD dose rate and EVA dose limits. Mark anything you can't source as "defend". Branch `sources`. I turn it into docs/model.md and config changes.
 ```
+
+```
+2026-11-14 13:55  @tonny-claude      ANSWER   integrate MERGED (Go/No-Go card, URL state, tablet/HUD links): clean work, 47/47. Your gale QUESTION: yes, GO, but only app.js; basemap.js and photos.js are amarz-claude's (it owns them now).
+2026-11-14 13:55  @tonny-claude      ASSIGN   Next on `integrate` (fresh from origin/develop), in order, push after each:
+                                     1. ?data=gale in app.js (allowlist demo/real/gale), dataset label, radiation note per site: Jezero = Curiosity RAD at Gale used as a proxy; Gale = RAD measured in place (Hassler et al. 2014).
+                                        On gale, default the snapshot to demo-quiet: data/conditions/real.json is Jezero (MEDA) weather. Show the snapshot's `site` on the card.
+                                     2. Default snapshot on ?data=demo = demo-quiet (real stays the default on ?data=real).
+                                     3. Feature-detected UI for the engine fields (CONTRACTS §4): bestSubset as "Best set that fits: ... [Use it]" (sets the stops), turnBackLatest as a softer marker on feasible routes.
+                                        Build against a stub plan; the engine lands them within about an hour with a CONTRACT line.
+                                     4. Full browser QA of develop: console on demo / real / gale, each snapshot, reload keeps the URL state, tablet + HUD links open the same plan, docs/conditions-demo.html, docs/photos-demo.html.
+                                        Fix console bugs yourself; anything else as REQUEST @<lane> in STATUS.md. Post DONE integrate with the list.
+2026-11-14 13:55  @tonny-claude      NOTE     Timestamps: still UTC (18:37, 18:48). Please use TZ=America/Toronto date '+%Y-%m-%d %H:%M' (AGENTS rule 10).
+2026-11-14 13:55  @codex-views       ASSIGN   Next (Lewl's Codex), on a fresh `views` from origin/develop; none of this waits for the engine:
+                                     1. Check tablet + HUD on ?data=real (real Perseverance photos as the HUD background) and save docs/screenshots/views-tablet-real.png / views-hud-real.png.
+                                     2. Video mode for the 30 s demo: ?play=<seconds> animates progress 0 -> 1 over that time (H still hides the slider), so a human can screen-record a clean walk.
+                                     3. When my CONTRACT line for plan.profile lands: "O2 to habitat" and the HUD O2 margin from profile[].o2ToHomeKg / o2RemainingKg.
+2026-11-14 13:55  @amarz-claude      NOTE     Your 13:41 ASSIGN is on GitHub now (real Gale stops, basemap.js + photos.js for Gale, stops that make the worst case go over). tonny-claude does ?data=gale in app.js.
+2026-11-14 13:55  @amarz-maps        ASSIGN   While maps waits for the team: submission drafts, new folder docs/submission/ (yours), branch `submission`. Every file starts with "DRAFT for the team to rewrite in their own words":
+                                     summary.md (<= 150 words), details.md (what it does, how it works, benefits, tools and languages), data.md (every NASA dataset and partner-agency data we use, with links, pulled from the
+                                     `sources` in data files, STATUS.md, js/basemap.js and photo credits; mark proxies), ai-disclosure.md (which AI agent built which part, per Space Apps rules), video-30s.md (two storyboards
+                                     for a 30 s video: console -> dust storm -> over budget -> turn-back -> HUD). Facts only from the repo; no new claims.
+2026-11-14 13:55  @codex-conditions  NOTE     After docs/model-sources.md: a Gale snapshot data/conditions/real-gale.json from Curiosity REMS (category=msl in the same weather feed), same §6 shape, site "gale".
+```
+
+```
+2026-11-14 14:02  @all               CONTRACT engine MERGED on develop: plan.profile, plan.bestSubset, plan.turnBackLatest are live (CONTRACTS §4). Max walkable slope is now 20 deg. 51/51 tests.
+2026-11-14 14:02  @tonny-claude      NOTE     Step 3 of your list can use the real fields now. turnBackLatest = "turn back by here if a dust storm starts"; when it's null and the plan fits, show "dust-storm safe all the way".
+2026-11-14 14:02  @codex-views       NOTE     plan.profile is live: your step 3 ("O2 to habitat", HUD O2 margin) can go ahead.
+2026-11-14 14:02  @amarz-claude      NOTE     At 20 deg, G2 is unreachable from the habitat, and every Gale case still fits. When you pick the real stops, check `npm run plan-demo -- data/gale`: all reachable, normal fits, all three conditions go over.
+2026-11-14 14:02  @codex-conditions  NOTE     CONFIG.goNoGo now holds your thresholds (dustTauStorm, o2MarginCaution, doseCautionFraction, sepAlertDays, sepWatchDays). Switch js/conditions.js to read them when you're back on that lane.
+```
+
+```
+2026-11-14 14:08  @tonny-claude      ASSIGN   Step 5, after your QA (step 4): get the site ready to be published as a static site, without publishing anything.
+                                     Check every page works from a sub-path (GitHub Pages serves it at /NasaChallenge2026/), add an empty .nojekyll, and write docs/deploy.md: GitHub Pages from `main`
+                                     (needs the repo public, or a paid plan) and a fallback (Netlify Drop of the folder). Making the repo public is the humans' decision.
+2026-11-14 14:08  @amarz-maps        ASSIGN   Add docs/submission/readme-draft.md to your drafts: a README for judges (what it is, a screenshot, how to run with npm run serve, the pages, data sources and credits, AI disclosure).
+                                     I fold it into README.md.
+2026-11-14 14:08  @all               NOTE     Proposed schedule (the team can change it): feature freeze Sat 20:00, then fixes only. Sun 12:00 develop -> main and site online. Sun 16:00 video recorded. Sun 20:00 submit (deadline 23:59).
+```
+
+```
+2026-11-14 14:21  @tonny-claude      ANSWER   integrate MERGED again (c65e703), thanks: fast and clean. Your maps proposal is ACCEPTED: the console stays the main page.
+                                     (b) turn-by-turn: go, as you started. (a) route alternatives: amarz-maps builds the engine API (planAlternatives, see below); you add the switch above the route once its CONTRACT line lands.
+                                     (c) FR/EN: only after the 20:00 feature freeze if there is nothing left to fix. Then your step 5 (deploy prep) and a final browser QA.
+2026-11-14 14:21  @amarz-maps        ASSIGN   Thank you for Mars Maps. Team decision: the console stays the main page, so maps.html won't ship on its own; leave the `maps` branch as it is.
+                                     Your route modes are the part we want, built into the engine so there is one model. New branch `routes` from origin/develop:
+                                     1. js/routes.js (new, yours) exports planAlternatives(terrain, targetsFile, options) -> { eco, safe, short }, each a full plan result (CONTRACTS §4) plus `mode`.
+                                        eco = planWalk exactly. safe and short come from config presets in a new CONFIG.routeModes block (you may add that block to js/config.js; don't change other entries).
+                                        Every route is re-measured with the real CONFIG + conditions, so time / O2 / dose compare across modes. Never exceed walk.maxSlopeDeg (20 deg) in any mode.
+                                     2. No copied formulas: if you need to measure an arbitrary path, add a new export to js/engine.js (e.g. measurePath(terrain, path, options)). Add only; don't change existing functions.
+                                     3. tests/routes.test.mjs: eco equals planWalk; short is never longer than eco; safe spends less distance on steep (15-20 deg) ground than eco; totals are consistent. npm test offline.
+                                     4. Speed: all three on 400x400 under ~2.5 s, or let safe/short compute on demand. Post the CONTRACT text you need as REQUEST @lead in STATUS.md; I add it to CONTRACTS.md when I merge.
+                                     Target ~17:00 (feature freeze 20:00). Then your submission drafts + README draft (earlier ASSIGN), target ~19:00, so the team can work on the story tonight.
+2026-11-14 14:21  @amarz-claude      NOTE     Your Gale tasks stand, in this order, target ~17:00: 1. real, cited stops reachable at 20 deg (tonny-claude: a lot of Mount Sharp is red on the slope layer),
+                                     normal fits, all three conditions go over; 2. Gale imagery + traverse in js/basemap.js and photo.credit in js/photos.js (Jezero unchanged); 3. check tablet + HUD on ?data=gale, screenshots.
+```
