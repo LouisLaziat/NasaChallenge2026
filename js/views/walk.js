@@ -15,7 +15,7 @@ async function loadSnapshot(name) {
   try {
     const { loadConditions, toToggles, verdict } = await import('../conditions.js');
     const snapshot = await loadConditions(name);
-    return { suggested: toToggles(snapshot), verdict: (plan) => verdict(snapshot, plan) };
+    return { snapshot, suggested: toToggles(snapshot), verdict: (plan) => verdict(snapshot, plan) };
   } catch {
     return { suggested: {}, verdict: () => null };
   }
@@ -27,8 +27,9 @@ export async function loadWalk() {
   const requestedData = params.get('data');
   const dataset = ['real', 'gale'].includes(requestedData) ? requestedData : 'demo';
   const directory = new URL(`../../data/${dataset}/`, import.meta.url);
-  const allowedSnapshots = ['real', 'demo-quiet', 'demo-dusty', 'demo-solar'];
+  const allowedSnapshots = ['real', 'real-gale', 'demo-quiet', 'demo-dusty', 'demo-solar'];
   const requestedSnapshot = params.get('cond');
+  // Match the console defaults. Gale REMS is available by explicit selection.
   const conditionFile = allowedSnapshots.includes(requestedSnapshot)
     ? requestedSnapshot : dataset === 'real' ? 'real' : 'demo-quiet';
   const snapshot = loadSnapshot(conditionFile);
@@ -43,7 +44,7 @@ export async function loadWalk() {
     const hint = dataset === 'demo' ? ' Open this page through the project’s local server.' : ' Try ?data=demo.';
     throw new Error(`Could not load ${dataset} data. ${error.message}.${hint}`);
   }
-  const { suggested, verdict } = await snapshot;
+  const { snapshot: conditionsSnapshot, suggested, verdict } = await snapshot;
   const enabled = (param, fallback) => params.get(param) === '1' || (params.get(param) !== '0' && fallback === true);
   const conditions = {
     dustStorm: enabled('dust', suggested.dustStorm),
@@ -60,6 +61,7 @@ export async function loadWalk() {
     progress: clampProgress(Number(params.get('p'))),
     playMs: Number.isFinite(playSeconds * 1000) && playSeconds > 0 ? playSeconds * 1000 : 0,
     verdict: verdict(plan),
+    conditionsSnapshot,
     label: terrain.synthetic ? 'Synthetic demo terrain' : dataset === 'gale' ? 'Gale Crater' : 'Jezero Crater',
   };
 }

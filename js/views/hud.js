@@ -32,11 +32,14 @@ function drawCompass(heading) {
   byId('compass-ticks').replaceChildren(...ticks);
 }
 
-function drawConditions(verdict) {
+function drawConditions({ verdict, conditionsSnapshot }) {
   if (!verdict) return;
   const badge = byId('conditions-badge');
   badge.dataset.level = verdict.level;
   byId('conditions-level').textContent = verdict.level;
+  byId('conditions-source').textContent = conditionsSnapshot.synthetic
+    ? 'Simulated conditions'
+    : conditionsSnapshot.site === 'gale' ? 'Gale · REMS' : 'Jezero · MEDA';
   badge.removeAttribute('hidden');
 }
 
@@ -122,7 +125,7 @@ async function start() {
   controls.hidden = false;
   overlay.removeAttribute('hidden');
   byId('load-status').hidden = true;
-  drawConditions(walk.verdict);
+  drawConditions(walk);
 }
 
 start().catch(showLoadError);
