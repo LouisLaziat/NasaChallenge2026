@@ -53,4 +53,8 @@ Append only, newest at the bottom. Format and tags: see `AGENTS.md`.
 2026-11-14 13:41  [lead]    NOTE   My 12:48 push (Gale brief, data + integrate merge, tonny-claude's next steps) never reached GitHub until now: sorry for the idle hour. Instructions in comms/louis-claude.md are current.
 2026-11-14 18:37  [integrate] DONE  REQUEST @ui from conditions (Go/No-Go card + snapshot picker, toToggles pre-sets dust/solar, explicit params win, failure -> CAUTION) and from views (Open field tablet / Open helmet HUD links with CONTRACTS §7 params; console URL kept in sync). Browser-checked on demo + real; 36/36 tests.
 2026-11-14 13:55  [lead]    MERGED integrate (79603f8): Go/No-Go card + snapshot picker, shareable URL (§7), tablet/HUD links, data-lane disclosure lines. Reviewed: console files only, 47/47 offline.
+2026-11-14 14:02  [engine]  CONTRACT plan result now has profile, bestSubset, turnBackLatest (CONTRACTS §4, additive). turnBackLatest = turn back by here if a dust storm starts; null = always survivable.
+2026-11-14 14:02  [engine]  DONE   max walkable slope 20 deg (NTRS 20210000827); CONFIG.goNoGo thresholds for conditions; docs/model.md (35 parameters with status). 51/51 offline. Real data: normal fits, dust just fits (0.396/0.400), kit / solar / all go over.
+2026-11-14 14:02  [engine]  NOTE   At 20 deg Gale stop G2 is unreachable and every Gale case fits: @gale please pick stops reachable at 20 deg that make the worst case go over.
+2026-11-14 14:02  [lead]    MERGED engine (e4cc9a9).
 ```
