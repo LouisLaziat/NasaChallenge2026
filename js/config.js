@@ -4,7 +4,7 @@
 //   SOURCE      — a published value, with the citation next to it
 //   ASSUMPTION  — a placeholder we chose; must be cited or defended before the pitch
 //
-// Owner: engine lane (Codex 2). Other lanes read this file but do not edit it.
+// Owner: engine lane (louis-claude). Other lanes read this file but do not edit it.
 
 export const CONFIG = {
   // ---------- Walking speed ----------
@@ -14,7 +14,7 @@ export const CONFIG = {
     vFlatMps: 1.0, // ASSUMPTION: Apollo EVA traverses averaged roughly 0.7–1.1 m/s on foot.
     toblerK: 3.5, // SOURCE: Tobler (1993) hiking function exponent (Earth).
     toblerG0: 0.05, // SOURCE: Tobler (1993) optimum grade offset (Earth).
-    maxSlopeDeg: 25, // ASSUMPTION: steeper cells are impassable on foot in a suit.
+    maxSlopeDeg: 20, // SOURCE: NASA exploration EVA concept, suited walking limited to 20° slopes (NTRS 20210000827). Being re-checked in docs/model-sources.md.
   },
 
   // ---------- Metabolic cost ----------
@@ -58,7 +58,7 @@ export const CONFIG = {
     dustStorm: {
       speedFactor: 0.7, // ASSUMPTION: reduced visibility slows walking.
       metabolicFactor: 1.1, // ASSUMPTION
-      maxSlopeDeg: 20, // ASSUMPTION: avoid steeper ground when you can't see footing.
+      maxSlopeDeg: 20, // Same as the suit limit: tried 15°, but it cut off half the demo stops. Dust slows you instead.
     },
     solarEvent: {
       doseFactor: 10, // ASSUMPTION: a moderate solar particle event raises surface dose ~10x.
@@ -66,12 +66,24 @@ export const CONFIG = {
     heavyKit: {
       speedFactor: 0.85, // ASSUMPTION: carrying a sample kit.
       metabolicFactor: 1.25, // ASSUMPTION
-      maxSlopeDeg: 20, // ASSUMPTION
+      maxSlopeDeg: 20, // Same as the suit limit (see dustStorm).
     },
   },
 
   // ---------- Planner ----------
   planner: {
     bruteForceMaxStops: 7, // Exact best order up to this many stops; heuristic above.
+    subsetExactMaxStops: 10, // bestSubset tries every subset up to this many stops; greedy above.
+    // turnBackLatest assumes these conditions could start at any moment of the walk.
+    contingency: ['dustStorm'], // ASSUMPTION: a dust storm is the likeliest surprise on foot.
+  },
+
+  // ---------- Go/No-Go thresholds (read by js/conditions.js) ----------
+  goNoGo: {
+    dustTauStorm: 1.0, // ASSUMPTION: dust optical depth above which the dust-storm switch is suggested.
+    o2MarginCaution: 0.10, // ASSUMPTION: CAUTION when less than 10% of usable O2 is left at the end.
+    doseCautionFraction: 0.8, // ASSUMPTION: CAUTION above 80% of the per-walk dose budget.
+    sepAlertDays: 2, // ASSUMPTION: a solar particle event in the last 2 days = alert (NO-GO).
+    sepWatchDays: 7, // ASSUMPTION: within 7 days = watch (CAUTION).
   },
 };

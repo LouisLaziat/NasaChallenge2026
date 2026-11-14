@@ -1,7 +1,7 @@
 // Marswalk Budget — route engine.
 //
 // Pure functions, no DOM, no network. Runs in the browser and in Node (tests).
-// Owner: engine lane (Codex 2). See CONTRACTS.md for the data shapes.
+// Owner: engine lane (louis-claude). See CONTRACTS.md for the data shapes.
 //
 // Model in one paragraph:
 //   The walk area is a grid. Moving between neighbouring cells costs metabolic
@@ -411,6 +411,9 @@ export function resolveTargets(terrain, targetsFile) {
  *   turnBack,           // null if O2 is fine, else { pathIndex, x, y, elapsedS, o2UsedKg }:
  *                       //   the last point on the route from which you can still get home
  *   dropSuggestion,     // null if within budget, else { id, name, value, o2SavedKg, doseSavedMSv, makesFeasible }
+ *   profile,            // <= 300 points: { pathIndex, elapsedS, distanceM, o2RemainingKg, o2ToHomeKg, doseMSv, elevationM }
+ *   bestSubset,         // null if within budget or nothing fits, else { ids, order, scienceValue, o2UsedKg, doseMSv, totalTimeS }
+ *   turnBackLatest,     // last point you can turn back from if the contingency (a dust storm) starts there; null if always OK
  * }
  */
 export function planWalk(terrain, targetsFile, options = {}) {
@@ -521,36 +524,88 @@ export function planWalk(terrain, targetsFile, options = {}) {
     last = j;
   }
 
-  // Timeline along the path, and the point of no return.
-  const toHome = search(g, hCell, { reverse: true }).dist;
+  // Timeline along the path: state on arrival at each point and after any dwell there.
+  const L = path.length;
   const stopAt = new Map(stops.map((s) => [s.pathIndex, s]));
-  let elapsedS = 0, energyJ = 0, turnBack = null, firstBad = -1;
-  for (let k = 0; k < path.length; k++) {
-    if (k > 0) {
-      const a = path[k - 1], b = path[k];
-      const diag = (a % W) !== (b % W) && Math.floor(a / W) !== Math.floor(b / W);
-      energyJ += edgeEnergy(g, a, b, diag);
-      elapsedS += lastEdgeTimeS;
+  const arrE = new Float64Array(L), arrT = new Float64Array(L), arrD = new Float64Array(L);
+  const depE = new Float64Array(L), depT = new Float64Array(L);
+  {
+    let e = 0, t = 0, d = 0;
+    for (let k = 0; k < L; k++) {
+      if (k > 0) {
+        const a = path[k - 1], b = path[k];
+        const diag = (a % W) !== (b % W) && Math.floor(a / W) !== Math.floor(b / W);
+        e += edgeEnergy(g, a, b, diag); t += lastEdgeTimeS; d += lastEdgeDistM;
+      }
+      arrE[k] = e; arrT[k] = t; arrD[k] = d;
+      const s = stopAt.get(k);
+      if (s) {
+        s.arriveS = t; s.arriveO2Kg = energyToO2Kg(e, config);
+        e += s.dwellMin * 60 * dwellPowerW; t += s.dwellMin * 60;
+      }
+      depE[k] = e; depT[k] = t;
     }
-    const s = stopAt.get(k);
-    if (s) { s.arriveS = elapsedS; s.arriveO2Kg = energyToO2Kg(energyJ, config); }
-    if (firstBad < 0 && energyToO2Kg(energyJ + toHome[path[k]], config) > usable) firstBad = k;
-    if (s) { energyJ += s.dwellMin * 60 * dwellPowerW; elapsedS += s.dwellMin * 60; }
-    // Also check after the dwell: you can run out of air while working at a stop.
-    if (firstBad < 0 && s && energyToO2Kg(energyJ + toHome[path[k]], config) > usable) firstBad = k + 1;
   }
-  if (firstBad >= 0) {
-    const k = Math.max(0, firstBad - 1);
-    // Recompute elapsed/O2 at k by replaying (cheap; path is short).
-    let e = 0, t = 0;
-    for (let q = 1; q <= k; q++) {
-      const a = path[q - 1], b = path[q];
-      const diag = (a % W) !== (b % W) && Math.floor(a / W) !== Math.floor(b / W);
-      e += edgeEnergy(g, a, b, diag); t += lastEdgeTimeS;
-      const s = stopAt.get(q);
-      if (s && q < k) { e += s.dwellMin * 60 * dwellPowerW; t += s.dwellMin * 60; }
+
+  // Point of no return for a given "energy to get home from each cell" field: the last point
+  // from which walking home on the cheapest path still leaves the O2 reserve untouched.
+  const noReturn = (homeJ) => {
+    let firstBad = -1;
+    for (let k = 0; k < L; k++) {
+      if (energyToO2Kg(arrE[k] + homeJ[path[k]], config) > usable) { firstBad = k; break; }
+      // You can also run out of air while working at a stop.
+      if (stopAt.has(k) && energyToO2Kg(depE[k] + homeJ[path[k]], config) > usable) { firstBad = k + 1; break; }
     }
-    turnBack = { pathIndex: k, x: path[k] % W, y: Math.floor(path[k] / W), elapsedS: t, o2UsedKg: energyToO2Kg(e, config) };
+    if (firstBad < 0) return null;
+    const k = Math.max(0, firstBad - 1);
+    return { pathIndex: k, x: path[k] % W, y: Math.floor(path[k] / W), elapsedS: arrT[k], o2UsedKg: energyToO2Kg(arrE[k], config) };
+  };
+
+  const toHome = search(g, hCell, { reverse: true }).dist;
+  const turnBack = noReturn(toHome);
+
+  // turnBackLatest: same test, but as if the contingency conditions (default: a dust storm) began
+  // at that point. Gives the astronaut a "turn back by here" marker even on a feasible route.
+  let turnBackLatest = null;
+  const contingency = (config.planner.contingency ?? []).filter((c) => !conditions[c]);
+  if (contingency.length && options.contingency !== false) {
+    const worst = { ...conditions };
+    for (const c of contingency) worst[c] = true;
+    const gw = buildCostGrid(terrain, config, worst);
+    const homeW = search(gw, hCell, { reverse: true }).dist;
+    // O2 is spent under today's conditions up to the point, then under the contingency on the way home.
+    turnBackLatest = noReturn(homeW);
+  } else {
+    turnBackLatest = turnBack;
+  }
+
+  // Profile for charts: O2 left, O2 needed to get home, dose and elevation along the route.
+  const capacity = config.suit.o2CapacityKg;
+  const raw = [];
+  const point = (k, e, t) => ({
+    pathIndex: k, elapsedS: t, distanceM: arrD[k],
+    o2RemainingKg: capacity - energyToO2Kg(e, config),
+    o2ToHomeKg: energyToO2Kg(toHome[path[k]], config),
+    doseMSv: doseMSv(t, config, p.doseFactor),
+    elevationM: g.elev[path[k]],
+  });
+  const keep = new Set([0]);
+  for (let k = 0; k < L; k++) {
+    raw.push(point(k, arrE[k], arrT[k]));
+    if (stopAt.has(k)) {
+      keep.add(raw.length - 1);
+      raw.push(point(k, depE[k], depT[k]));
+      keep.add(raw.length - 1);
+    }
+  }
+  keep.add(raw.length - 1);
+  const MAX_PROFILE = 300;
+  let profile = raw;
+  if (raw.length > MAX_PROFILE) {
+    const room = Math.max(0, MAX_PROFILE - keep.size);
+    const step = raw.length / Math.max(1, room);
+    for (let i = 0; i < room; i++) keep.add(Math.min(raw.length - 1, Math.round(i * step)));
+    profile = [...keep].sort((a, b) => a - b).slice(0, MAX_PROFILE).map((i) => raw[i]);
   }
 
   // If over budget, which single stop is best to drop?
@@ -581,6 +636,63 @@ export function planWalk(terrain, targetsFile, options = {}) {
     dropSuggestion = best;
   }
 
+  // If over budget, the highest-value set of stops that fits (exact up to 10 stops, greedy above).
+  let bestSubset = null;
+  if (!withinBudget && reachable.length > 0) {
+    const fits = (r) => r.o2UsedKg <= usable && r.doseMSv <= doseLimit;
+    const pack = (subset) => {
+      const o = bestOrder(E, subset, config.planner.bruteForceMaxStops);
+      return { o, r: evaluate(o) };
+    };
+    let pick = null;
+    const m = reachable.length;
+    if (m <= (config.planner.subsetExactMaxStops ?? 10)) {
+      const masks = [];
+      for (let mask = 1; mask < (1 << m) - 1; mask++) {
+        let v = 0;
+        for (let b = 0; b < m; b++) if (mask & (1 << b)) v += nodes[reachable[b]].value;
+        masks.push([v, mask]);
+      }
+      masks.sort((a, b) => b[0] - a[0]);
+      let bestValue = -Infinity;
+      for (const [v, mask] of masks) {
+        if (v < bestValue) break;
+        const subset = reachable.filter((_, b) => mask & (1 << b));
+        const c = pack(subset);
+        if (!fits(c.r)) continue;
+        if (!pick || c.r.o2UsedKg < pick.r.o2UsedKg) pick = c;
+        bestValue = v;
+      }
+    } else {
+      let subset = reachable.slice();
+      let c = pack(subset);
+      while (subset.length > 1 && !fits(c.r)) {
+        // Drop the stop that gives the least value per kg of O2 it costs.
+        let worst = null;
+        for (const j of subset) {
+          const rest = pack(subset.filter((q) => q !== j));
+          const saved = Math.max(1e-9, c.r.o2UsedKg - rest.r.o2UsedKg);
+          const score = nodes[j].value / saved;
+          if (!worst || score < worst.score) worst = { j, score, rest };
+        }
+        subset = subset.filter((q) => q !== worst.j);
+        c = worst.rest;
+      }
+      if (fits(c.r)) pick = c;
+    }
+    if (pick && pick.o.length) {
+      const inSet = new Set(pick.o);
+      bestSubset = {
+        ids: reachable.filter((j) => inSet.has(j)).map((j) => nodes[j].id),
+        order: pick.o.map((j) => nodes[j].id),
+        scienceValue: pick.r.scienceValue,
+        o2UsedKg: pick.r.o2UsedKg,
+        doseMSv: pick.r.doseMSv,
+        totalTimeS: pick.r.totalTimeS,
+      };
+    }
+  }
+
   return {
     ok: true,
     conditions: { ...conditions },
@@ -594,5 +706,8 @@ export function planWalk(terrain, targetsFile, options = {}) {
     violations,
     turnBack,
     dropSuggestion,
+    profile,
+    bestSubset,
+    turnBackLatest,
   };
 }
