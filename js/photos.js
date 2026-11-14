@@ -1,11 +1,23 @@
-// Real Perseverance photos for a science stop. Owner: photos lane (Claude 2).
+// Generated with AI assistance for NASA Space Apps 2026; reviewed by the team
+// Real Perseverance or Curiosity photos for a science stop.
 // Contract: CONTRACTS.md §5. `stop.photos` is filled by scripts/fetch_photos.mjs (CONTRACTS §2).
 //
 // The image files are loaded straight from mars.nasa.gov with <img>, which needs no CORS.
 // Styles are injected once and scoped under `.pb-` so they don't touch the UI lane's CSS.
 
 const CREDIT = 'NASA/JPL-Caltech/ASU';
+const CURIOSITY_CAMERAS = {
+  MAST_LEFT: 'Mastcam (left)',
+  MAST_RIGHT: 'Mastcam (right)',
+  MAHLI: 'MAHLI',
+  MARDI: 'MARDI',
+  NAV_LEFT_A: 'Navcam (left)',
+  NAV_LEFT_B: 'Navcam (left)',
+  NAV_RIGHT_A: 'Navcam (right)',
+  NAV_RIGHT_B: 'Navcam (right)',
+};
 const CAMERA_NAMES = {
+  ...CURIOSITY_CAMERAS,
   MCZ_LEFT: 'Mastcam-Z (left)',
   MCZ_RIGHT: 'Mastcam-Z (right)',
   NAVCAM_LEFT: 'Navcam (left)',
@@ -57,13 +69,18 @@ const validPhotos = (stop) =>
   (Array.isArray(stop?.photos) ? stop.photos : []).filter((p) => p && typeof p.url === 'string');
 
 function captionText(p) {
-  const cam = CAMERA_NAMES[p.camera] || p.camera || 'Perseverance';
+  const cam = CAMERA_NAMES[p.camera] || p.camera || roverName(p);
   const where = Number.isFinite(p.distanceM) ? `, rover ${p.distanceM} m from stop` : '';
   return `Sol ${p.sol ?? '?'} · ${cam}${where}`;
 }
 
+function roverName(p) {
+  return Object.hasOwn(CURIOSITY_CAMERAS, p.camera) || p.url.includes('/msl-raw-images/')
+    ? 'Curiosity' : 'Perseverance';
+}
+
 /**
- * Show a stop's Perseverance photos (1 large + thumbnails) and its note in `container`.
+ * Show a stop's rover photos (1 large + thumbnails) and its note in `container`.
  * Works with stops that have no photos (demo data): shows the note and a placeholder.
  */
 export function renderPhotos(container, stop) {
@@ -86,8 +103,8 @@ export function renderPhotos(container, stop) {
   const img = el('img', { alt: '', loading: 'lazy', decoding: 'async' });
   const link = el('a', { target: '_blank', rel: 'noopener' }, img);
   const capMain = el('span');
-  const caption = el('figcaption', {}, capMain, el('br'),
-    el('span', { class: 'pb-credit' }, `Credit: ${CREDIT}`));
+  const credit = el('span', { class: 'pb-credit' });
+  const caption = el('figcaption', {}, capMain, el('br'), credit);
   const figure = el('figure', { class: 'pb-main' }, link, caption);
   const thumbs = el('div', { class: 'pb-thumbs', role: 'group', 'aria-label': 'Photos near this stop' });
   const buttons = [];
@@ -98,10 +115,11 @@ export function renderPhotos(container, stop) {
     current = i;
     const p = photos[i];
     img.src = p.url;
-    img.alt = `Perseverance ${CAMERA_NAMES[p.camera] || p.camera || ''} image, sol ${p.sol}, near ${stop.name}`;
+    img.alt = `${roverName(p)} ${CAMERA_NAMES[p.camera] || p.camera || ''} image, sol ${p.sol}, near ${stop.name}`;
     link.href = p.link || p.full || p.url;
     link.title = 'Open the original on mars.nasa.gov';
     capMain.textContent = captionText(p);
+    credit.textContent = `Credit: ${p.credit || CREDIT}`;
     buttons.forEach((b, j) => b.setAttribute('aria-pressed', String(j === i)));
   }
 
