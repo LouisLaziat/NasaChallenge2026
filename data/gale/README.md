@@ -1,7 +1,7 @@
 <!-- Generated with AI assistance for NASA Space Apps 2026; reviewed by the team -->
 # Gale Crater dataset — Mount Sharp boxwork (`?data=gale`)
 
-Second site for Marswalk Budget (gale lane, `amarz-claude`). Same contracts as `data/real/`
+Second site for Marswalk Budget (gale lane: data by `amarz-claude`, stops by `louis-claude`). Same contracts as `data/real/`
 (CONTRACTS.md §1–§3). Jezero stays the primary site; nothing here changes the Jezero files.
 
 | File | What | Source |
@@ -14,13 +14,18 @@ Second site for Marswalk Budget (gale lane, `amarz-claude`). Same contracts as `
 
 ## Honest caveats
 
-- **Placeholders:** each stop's science objective (`"TEAM TO DEFINE"`), `value` (5) and `dwellMin`
-  (30) are placeholders, tagged `placeholder: true`. The humans choose them; only the positions,
-  sols and photos are real.
+- **Stops (updated by `louis-claude`, 2026-11-14):** four real Curiosity stops of the boxwork
+  campaign, each with a one-sentence note and a link to the NASA Curiosity blog post for those sols:
+  G1 boxwork trough (sol 4578), G2 Río Frío ridge wall (sol 4636), G3 the Nevado Sajama / Valle de
+  la Luna drill pair (sols 4709-4722), G4 the exit to the polygonal sulfate unit (sol 4851). Values
+  (5-10) and work times (30-70 min) are the team's choice. G2 is moved 5 m from the rover's spot
+  because the ridge wall itself is steeper than the 20° suit limit.
+- **Demo outcome:** a normal walk fits (0.27 of 0.40 kg O₂); dust, heavy kit or a solar event alone
+  still fit; all three together go over on oxygen and dose, and the planner offers the best set.
 - **No sand layer:** no thermal-inertia map was prepared for Gale, so the engine treats every cell
   as firm ground. Ripples and sand patches are **not** priced on this site.
 - **Steep site:** 26 % of the cells are steeper than 20° (Mount Sharp buttes and scarps), against
-  4.8 % at Jezero. With a dust storm or heavy kit (max slope 20°) G2 becomes unreachable.
+  4.8 % at Jezero.
 - **Elevation datum:** the DEM is relative to the MOLA areoid; MMGIS `elev_geoid` values sit on a
   different datum, so do not compare the two directly.
 - **Dose:** Curiosity RAD measured 0.64 mSv/day here, in Gale itself, so it is not a proxy on this site.
