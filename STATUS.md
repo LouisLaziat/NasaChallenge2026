@@ -95,4 +95,5 @@ Append only, newest at the bottom. Format and tags: see `AGENTS.md`.
 2026-11-14 15:03  [ui]      DONE   phone width fix: console was 399 px wide on a 375 px screen (long snapshot label from my Gale change); select can shrink and the one-column grid is minmax(0,1fr). Tour caption + About dialog checked at 375 px.
 2026-11-14 15:12  [lead]    MERGED integrate (5421475): Gale REMS default, presenter tour ?tour=1, About this model dialog, phone width. 65/65 offline.
 2026-11-14 15:17  [views]  DONE   Synced with develop 73bc525. Both views now default Gale to the merged REMS snapshot, match the console's site-specific real snapshots, and preserve demo overrides. Verified in Chrome; 63/63 offline Node tests.
+2026-11-14 15:20  [lead]    MERGED views (f1f9f5c): Gale defaults to the REMS snapshot. 65/65 offline.
 ```

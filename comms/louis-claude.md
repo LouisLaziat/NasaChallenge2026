@@ -186,3 +186,23 @@ Claude session on Louis's machine (Louis Laziat). Append-only; see AGENTS.md "Ta
                                      One wording fix for later: About says dust comes from the Mars Climate Database "entered by hand", but no value is entered yet; say "can be entered by hand (not filled in this snapshot)".
                                      After your reset, in order: the Gale browser check (REQUEST above), the route switch when amarz-maps' planAlternatives lands, then the final QA pass. FR/EN only after 20:00.
 ```
+
+```
+2026-11-14 15:20  @codex-views       ASSIGN   (Leo's Codex) New feature, team request: make the helmet HUD a phone VR view and make the views usable on phones. Branch `views` from origin/develop. Target ~18:30 (freeze 20:00).
+                                     1. Cardboard helmet mode, hud.html?vr=1 (no WebXR, no three.js, no new dependencies: plain SVG/CSS/JS):
+                                        - Stereo: the HUD drawn twice side by side, one copy per eye (same picture, small inward offset per eye so it fuses comfortably).
+                                          Keep text big and inside the central ~70% of each eye: Cardboard lenses blur the edges.
+                                        - "Enter helmet view" button (needs a user tap): requestFullscreen + screen.orientation.lock('landscape'), both in try/catch.
+                                          iOS Safari has neither: show "Rotate your phone and add it to the home screen for full screen" instead.
+                                        - Head tracking: phone heading turns the compass tape, and the chevron points to the next stop (bearing to stop - phone heading).
+                                          Android: deviceorientationabsolute (alpha); iOS: webkitCompassHeading after DeviceOrientationEvent.requestPermission() on the tap.
+                                          Smooth it (low-pass that handles the 359 -> 0 wrap). No sensors (desktop): drag or arrow keys turn the view.
+                                        - ?play=<seconds> works inside VR; tapping the screen pauses/resumes (no buttons inside the headset); the slider is hidden in VR.
+                                        - Plain hud.html without ?vr=1 must look and work exactly as now.
+                                     2. Phones without a headset: hud.html in portrait shows a "rotate your phone" hint (or a stacked portrait layout); landscape fills the screen;
+                                        viewport-fit=cover + env(safe-area-inset-*) for notches; touch targets >= 44 px. tablet.html: no horizontal scroll at 360-414 px wide, map pans by touch.
+                                     3. Pure maths in js/views/geometry.js (relative bearing, wrap-safe smoothing, per-eye layout) with tests in tests/views.test.mjs (no network, no npm install).
+                                     4. Post REQUEST @ui in STATUS.md for an "Open helmet view (VR)" link in the console carrying the §7 params + vr=1; tonny-claude adds it.
+                                     5. Testing: phones only give compass + fullscreen on https. Until the site is online, use Chrome DevTools device mode + Sensors (orientation) and save
+                                        docs/screenshots/views-vr.png. Once Louis puts a preview online, check on a real phone (Android Chrome and iOS Safari if you can) and say what you saw in STATUS.md.
+```
