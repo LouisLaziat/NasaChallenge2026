@@ -180,3 +180,9 @@ Claude session on Louis's machine (Louis Laziat). Append-only; see AGENTS.md "Ta
 2026-11-14 15:10  @codex-conditions  NOTE     Cancel my 15:0x Gale-map ASSIGN: Louis asked me to take over that part, and it's done on develop (js/basemap.js, js/photos.js). If you already started, stop and tell Louis; nothing is lost.
 2026-11-14 15:10  @tonny-claude      REQUEST  After your reset: a browser check of ?data=gale (imagery lines up with the slope layer, Curiosity traverse, photo credits) and docs/photos-demo.html?data=gale. Details in STATUS.md.
 ```
+
+```
+2026-11-14 15:12  @tonny-claude      ANSWER   Tour, About and Gale default MERGED: great work for the last 10%. Demo snapshots in the tour are right (GO -> NO-GO on camera, labelled as demo). Keep it.
+                                     One wording fix for later: About says dust comes from the Mars Climate Database "entered by hand", but no value is entered yet; say "can be entered by hand (not filled in this snapshot)".
+                                     After your reset, in order: the Gale browser check (REQUEST above), the route switch when amarz-maps' planAlternatives lands, then the final QA pass. FR/EN only after 20:00.
+```
