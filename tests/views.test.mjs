@@ -5,9 +5,33 @@ import test from 'node:test';
 import { planWalk } from '../js/engine.js';
 import { buildSteps } from '../js/steps.js';
 import {
-  bearingDeg, currentInstruction, distanceM, doseAt, nextStop, o2At, passedTurnBack,
-  positionAt, slopeAheadDeg, stormGuidance, walkSnapshot,
+  bearingDeg, currentInstruction, deviceHeadingDeg, distanceM, doseAt, nextStop, o2At, passedTurnBack,
+  positionAt, relativeBearingDeg, slopeAheadDeg, smoothHeadingDeg, stereoEyes, stormGuidance, walkSnapshot,
 } from '../js/views/geometry.js';
+
+test('compass smoothing takes the short path across north', () => {
+  assert.equal(smoothHeadingDeg(359, 1, 0.5), 0);
+  assert.equal(smoothHeadingDeg(1, 359, 0.5), 0);
+  assert.equal(smoothHeadingDeg(null, -5, 0.5), 355);
+  assert.equal(relativeBearingDeg(5, 355), 10);
+  assert.equal(relativeBearingDeg(350, 0), -10);
+});
+
+test('absolute orientation projects the viewing direction in both landscape poses', () => {
+  assert.equal(deviceHeadingDeg(90), 270);
+  assert.equal(deviceHeadingDeg(270, 90, 0), 90);
+  assert.equal(deviceHeadingDeg(270, 0, 90), 0);
+  assert.equal(deviceHeadingDeg(90, 0, -90), 0);
+  assert.equal(deviceHeadingDeg(null, 0, 90), null);
+});
+
+test('each stereo eye takes half the width and the readout offsets are symmetric', () => {
+  const [left, right] = stereoEyes(844);
+  assert.deepEqual([left.left, left.width, right.left, right.width], [0, 422, 422, 422]);
+  assert.ok(left.offset > 0 && left.offset < 7);
+  assert.equal(left.offset, -right.offset);
+  assert.ok(stereoEyes(640)[0].offset < left.offset);
+});
 
 const readDemo = (file) => JSON.parse(readFileSync(new URL(`../data/demo/${file}.json`, import.meta.url), 'utf8'));
 const terrain = readDemo('terrain');

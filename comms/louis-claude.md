@@ -252,3 +252,31 @@ Claude session on Louis's machine (Louis Laziat). Append-only; see AGENTS.md "Ta
 ```
 2026-11-14 15:42  @tonny-claude      NOTE     Saw your 15:29 push after writing the list: steps 1 and the About fix are done and MERGED, thanks. Start at step 2 (route switch).
 ```
+
+```
+2026-11-14 15:56  @tonny-claude      ANSWER   Route switch MERGED: quick and clean. Carry on with your list: VR link when views lands it, the QA matrix (docs/qa.md, ~18:30), then the media kit (~19:30).
+2026-11-14 15:56  @codex-conditions  ANSWER   Submission drafts MERGED: very good, especially the care about proxies and synthetic scenarios.
+2026-11-14 15:56  @codex-conditions  ASSIGN   (Louis's Codex) Next, on a new branch `readme` from origin/develop, in order:
+                                     1. README.md (yours for this task): turn docs/submission/readme-draft.md into the real README for judges. Keep it short: what it is (2-3 lines), one screenshot,
+                                        how to run (npm run serve, then the pages and useful URLs: ?data=real|gale, ?tour=1, tablet, hud, ?play=30, ?vr=1 once it lands), the model in 5 lines with a link to
+                                        docs/model.md, data and credits (link data.md), AI assistance (link ai-disclosure.md), team. No DRAFT banner on the README itself; it describes the code.
+                                     2. Link check: every URL in README.md, docs/*.md, docs/submission/*.md, data/*/README.md, the `source`/`sources` fields in data/**/*.json and the About panel in index.html.
+                                        Write docs/submission/link-check.md: url, where it's used, HTTP status. Fix broken links in files you own; list the rest as REQUEST @<owner> in STATUS.md.
+                                     3. docs/submission/slides-7.md: a 7-slide outline (title + 3 bullets + which screenshot) as a fallback if the team prefers slides to video (Space Apps allows either).
+                                     Target ~18:30. Then the 19:30 snapshot refresh as planned.
+```
+
+```
+2026-11-14 16:04  @codex-views       ANSWER   VR helmet mode, phone layouts and route follow MERGED (72/72). Impressive turnaround, thank you.
+2026-11-14 16:04  @codex-views       ASSIGN   (Leo's Codex) Stretch feature, hard stop 19:30 (not merged if it isn't solid by then). Branch `views` from origin/develop:
+                                     0. First, any REQUEST @views from tonny-claude's QA (docs/qa.md) beats this.
+                                     1. flyover.html: a 3D fly-through of the planned walk for the video. New files only: flyover.html, js/views/flyover.js, styles in css/views.css.
+                                        - three.js from unpkg as an ES module (pinned version, import map; no build step, no npm dependency).
+                                        - Terrain mesh from data/<site>/terrain.json (decimate to ~200x200 for speed), vertical exaggeration 2x labelled on screen.
+                                          Gale: drape data/gale/imagery.png (exact area bounds). Jezero: shaded relief coloured by elevation, slope cells over 20° tinted (no external tiles).
+                                        - Route from planRoute(route, ...) as a bright line slightly above the ground, stop pins with names, habitat marker, turn-back point if any.
+                                        - ?play=<seconds>: the camera follows the walker along the path; paused = orbit/drag. Same §7 params as tablet/HUD (data, stops, dust, solar, kit, route).
+                                        - No WebGL: a clear message and a link to hud.html. Aim for smooth motion on a laptop.
+                                     2. tests/views.test.mjs: the pure parts (path -> camera keyframes, decimation) without WebGL.
+                                     3. Screenshot docs/screenshots/views-flyover.png (real and gale), REQUEST @ui for an "Open 3D fly-through" link, DONE in STATUS.md.
+```

@@ -199,9 +199,195 @@ input[type="range"] { width: 100%; margin: 0; accent-color: #ffc98a; cursor: poi
 .hud-controls input { accent-color: var(--hud-accent); }
 .hud-shortcut { color: var(--hud-muted); }
 kbd { padding: .05rem .25rem; border: 1px solid var(--hud-line); border-radius: .15rem; }
+.hud-rotate { display: none; }
 
 @media (max-width: 32rem) {
   .hud-controls { grid-template-columns: minmax(0, 1fr) 3ch; }
   .hud-controls label { grid-column: 1 / -1; }
   .hud-shortcut { display: none; }
+}
+
+.helmet-mode {
+  overflow: hidden;
+  padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+}
+
+.helmet-stereo {
+  position: relative;
+  width: 100%;
+  height: calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+  touch-action: none;
+  user-select: none;
+  cursor: grab;
+}
+.helmet-stereo:active { cursor: grabbing; }
+.helmet-eye {
+  position: absolute;
+  inset-block: 0;
+  overflow: hidden;
+  isolation: isolate;
+  display: grid;
+  place-items: center;
+  container-type: inline-size;
+  background: radial-gradient(ellipse at 50% 60%, #382821, #0d1817 95%);
+}
+.helmet-stereo::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  width: 1px;
+  background: #090f0e;
+  pointer-events: none;
+}
+.helmet-eye::after, .helmet-photo {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+.helmet-eye::after {
+  content: "";
+  z-index: -1;
+  background: radial-gradient(ellipse at center, #0d161550, #0d1615d9);
+}
+.helmet-photo { object-fit: cover; z-index: -2; }
+.helmet-readout {
+  display: grid;
+  align-content: center;
+  gap: clamp(3px, 1.3dvh, 10px);
+  width: 70%;
+  text-align: center;
+  transform: translateX(var(--eye-offset, 0px));
+  color: #f7fff8;
+  text-shadow: 0 1px 4px #070c0b, 0 0 4px #070c0b;
+  font-size: clamp(11px, 3.5cqw, 20px);
+}
+.helmet-compass {
+  position: relative;
+  padding-block: .15em .35em;
+  border-radius: .3em;
+  border: 1px solid var(--hud-line);
+  background: var(--hud-panel);
+  color: var(--hud-accent);
+}
+.helmet-compass svg { display: block; width: 100%; height: clamp(28px, 9dvh, 53px); }
+.helmet-compass svg line { stroke: currentColor; opacity: .75; }
+.helmet-compass svg text { font-size: 14px; text-anchor: middle; font-weight: 700; }
+.helmet-compass b { font-size: .95em; }
+.helmet-compass b::before {
+  display: inline-block;
+  content: "▾";
+  margin-right: .35em;
+}
+.helmet-target { min-width: 0; }
+.helmet-target svg { display: block; margin: 0 auto .22em; width: clamp(32px, 12dvh, 76px); }
+.helmet-target b { font-size: 1.28em; }
+.helmet-target p { margin-top: .12em; color: var(--hud-accent); font-weight: 650; overflow-wrap: anywhere; }
+.helmet-warning {
+  padding: .28em;
+  border-radius: .3em;
+  background: var(--hud-panel);
+  border: 1px solid currentColor;
+  color: #ffd18b;
+  font-weight: 700;
+}
+.helmet-warning[data-state="active"] { color: var(--hud-danger); }
+.helmet-warning[data-state="safe"] { color: var(--hud-accent); }
+.helmet-metrics {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  row-gap: .25em;
+  border: 1px solid var(--hud-line);
+  border-radius: .3em;
+  padding: .35em .25em;
+  background: var(--hud-panel);
+}
+.helmet-metrics dt { color: var(--hud-muted); font-size: .83em; }
+.helmet-metrics dd { font-weight: 750; font-size: 1.1em; }
+.helmet-critical { color: var(--hud-danger); }
+.helmet-gauge { height: .22em; border-radius: 1em; overflow: hidden; background: #526360; }
+.helmet-gauge span { display: block; height: 100%; background: var(--hud-accent); }
+.helmet-gauge .helmet-critical { background: var(--hud-danger); }
+.helmet-meta, .helmet-credit {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: .1em .75em;
+  line-height: 1.2;
+  font-size: .82em;
+  color: var(--hud-muted);
+}
+.helmet-meta { font-weight: 700; }
+.helmet-entry {
+  display: grid;
+  justify-items: center;
+  gap: .8rem;
+  text-align: center;
+  max-width: 27rem;
+  padding: 1.2rem;
+}
+.helmet-entry button {
+  padding: .65rem 1.2rem;
+  min-height: 44px;
+  border-radius: .5rem;
+  border: 1px solid var(--hud-accent);
+  background: var(--hud-panel);
+  color: var(--hud-accent);
+  font: inherit;
+  font-weight: 700;
+}
+
+@media (pointer: coarse) {
+  .tablet-header {
+    padding-inline: max(1rem, env(safe-area-inset-left)) max(1rem, env(safe-area-inset-right));
+    padding-top: max(.85rem, env(safe-area-inset-top));
+  }
+  .tablet-header a, .best-set { min-height: 44px; display: inline-flex; align-items: center; }
+  .tablet-main {
+    padding-inline: max(1rem, env(safe-area-inset-left)) max(1rem, env(safe-area-inset-right));
+    padding-bottom: max(2rem, env(safe-area-inset-bottom));
+  }
+  .progress-card input { min-height: 44px; }
+  .hud-controls input { min-height: 44px; }
+  #map .leaflet-control-zoom a { width: 44px; height: 44px; line-height: 44px; }
+  .hud-stage:not(.helmet-mode) {
+    padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+  }
+  .hud-controls {
+    bottom: max(.25rem, env(safe-area-inset-bottom));
+    width: min(44rem, calc(100% - max(2rem, env(safe-area-inset-left) + env(safe-area-inset-right))));
+  }
+}
+
+@media (orientation: landscape) and (pointer: coarse) {
+  .hud-stage:not(.helmet-mode) #hud-overlay {
+    height: calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+  }
+  .hud-stage:has(.hud-controls:not([hidden])) #hud-overlay {
+    height: calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 62px);
+    align-self: start;
+  }
+}
+
+@media (orientation: portrait) {
+  .helmet-mode .helmet-stereo { display: none; }
+  .helmet-mode .hud-rotate:not([hidden]) { display: block; }
+}
+
+@media (orientation: landscape) and (max-height: 375px) {
+  .helmet-readout { gap: 4px; font-size: clamp(10px, 3cqw, 15px); }
+}
+
+@media (orientation: portrait) and (pointer: coarse) {
+  .hud-rotate:not([hidden]) {
+    display: block;
+    position: absolute;
+    top: calc(1.5rem + env(safe-area-inset-top));
+    width: min(20rem, 100% - 2rem);
+    text-align: center;
+    font-weight: 700;
+    color: var(--hud-accent);
+  }
 }
