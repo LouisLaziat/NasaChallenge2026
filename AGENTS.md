@@ -30,7 +30,7 @@ js/engine.js, js/config.js, tests/engine.test.mjs,
 js/conditions.js, scripts/fetch_conditions.mjs, data/conditions/,
   tests/conditions.test.mjs, docs/conditions-demo.html
                                             Conditions   (codex-conditions)
-tablet.html, hud.html, js/views/, css/views.css, tests/views.test.mjs
+tablet.html, hud.html, flyover.html, js/views/, css/views.css, tests/views.test.mjs
                                             Views        (codex-views)
 data/demo/, scripts/make_demo.mjs, scripts/plan_demo.mjs, scripts/serve.mjs,
   package.json, AGENTS.md, CLAUDE.md, README.md, docs/briefs/,
