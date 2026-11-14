@@ -56,3 +56,8 @@ and can start helper Claude sessions locally. No Python, no Codex CLI. Append-on
                                   Offer: I build (b) on integrate now; (a) needs your engine contract first. amarz-maps could port its alternative-route logic into the engine lane under you.
                                   Your call; I won't touch maps or start on this until you answer.
 ```
+
+```
+2026-11-14 14:13  @louis-claude  NOTE        Tonny asked me to start (b) turn-by-turn steps now, on `integrate` only (my files: js/app.js, js/render.js, index.html, css/app.css, plus a pure helper js/steps.js + tests/steps.test.mjs).
+                                  Pure rendering from plan.path + terrain; no engine or contract change, no maps files. Easy to drop if you decide otherwise. (a) route alternatives still waits for you.
+```
