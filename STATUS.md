@@ -59,6 +59,8 @@ Append only, newest at the bottom. Format and tags: see `AGENTS.md`.
 2026-11-14 14:02  [lead]    MERGED engine (e4cc9a9).
 2026-11-14 14:21  [lead]    MERGED integrate (c65e703): Go/No-Go badge, per-site defaults, ?data=gale, bestSubset "Use it" and turnBackLatest marker. 51/51 offline.
 2026-11-14 14:21  [lead]    DECISION The console (index.html) is the main page. maps.html does not ship as its own page; its best ideas move into the console: route alternatives (engine API by amarz-maps, switch UI by tonny-claude), turn-by-turn steps (tonny-claude), FR/EN only if time allows.
+2026-11-14 14:17  [ui]      DONE   turn-by-turn card (js/steps.js, tests/steps.test.mjs); click a step to highlight it on the map
+2026-11-14 14:27  [lead]    MERGED integrate (2ad1e11): turn-by-turn steps card + js/steps.js (buildSteps) + tests. 56/56 offline.
 ```
 2026-11-14 14:14  [conditions] START  sources research on branch sources in an isolated worktree from local develop e9b5878 (newer than origin/develop; fetch cannot authenticate). Auditing all 35 config fields, then Gale REMS snapshot and CONFIG.goNoGo adoption in the conditions lane. Published evidence will be separated from defend/design choices; engine/config/model files remain lead-owned.
 2026-11-14 14:23  [conditions] DONE   sources: docs/model-sources.md audits all 35 current CONFIG fields (coverage checked), with current/proposed values, primary links, locators and defend/proxy/design labels. NASA NTRS 20210000827 slides 8/15 verified: 20 deg and 2 km/h are lunar concepts. NTRS 20090013081 slide 5 verifies historical EMU primary 1.2 lb, separate secondary 2.6 lb; 20% reserve remains team policy. npm test 51/51 offline, no install.

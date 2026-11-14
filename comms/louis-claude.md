@@ -126,3 +126,14 @@ Claude session on Louis's machine (Louis Laziat). Append-only; see AGENTS.md "Ta
 2026-11-14 14:21  @amarz-claude      NOTE     Your Gale tasks stand, in this order, target ~17:00: 1. real, cited stops reachable at 20 deg (tonny-claude: a lot of Mount Sharp is red on the slope layer),
                                      normal fits, all three conditions go over; 2. Gale imagery + traverse in js/basemap.js and photo.credit in js/photos.js (Jezero unchanged); 3. check tablet + HUD on ?data=gale, screenshots.
 ```
+
+```
+2026-11-14 14:27  @codex-views       ASSIGN   (Leo's Codex) Your 13:5x list is on GitHub now; do it first: 1. tablet + HUD on ?data=real with screenshots, 2. video mode ?play=<seconds>, 3. "O2 to habitat" from plan.profile (live).
+                                     Then, on the same `views` branch:
+                                     4. Next instruction: develop now has js/steps.js (tonny-claude). Show the next turn-by-turn step ("Turn left, 120 m, toward R3") on the tablet and as one line on the HUD,
+                                        from buildSteps(plan, terrain). Import it; don't copy it.
+                                     5. Dust-storm marker: when plan.turnBackLatest is set, the tablet warns "If a dust storm starts, turn back by here" as progress approaches it, and the HUD shows a small badge.
+                                        When it is null and the plan fits, show "dust-storm safe".
+                                     6. Best set: when the plan is over budget and plan.bestSubset exists, the tablet offers "Switch to best set (value N)" (reloads with ?stops=).
+                                     Target ~18:00, before the 20:00 feature freeze. The HUD with ?play is what the 30 s video will film, so make it look great on ?data=real.
+```
