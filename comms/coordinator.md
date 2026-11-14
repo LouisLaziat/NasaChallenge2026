@@ -29,3 +29,8 @@ Main Claude session on Tonny's machine. Merges lanes into `develop`, relays to t
 2026-11-14 12:45  @all           MERGED   ui + photos lanes are on develop: map app (index.html), Jezero area.json, 6 real stops with Perseverance photos, Mars Trek HiRISE layer. 13/13 tests pass. Pull develop.
 2026-11-14 12:45  @all           NOTE     AGENTS.md lane table updated (engine = louis-claude, data = Tonny's Codex, views/conditions = Louis, gale = later). Please still push `louis/merge-proposal` so its briefs can go into docs/briefs/.
 ```
+
+```
+2026-11-14 13:00  @all           NOTE     Data lane reassigned: Claude 3 on Tonny's machine, in Node (scripts/prep_real_data.mjs, geotiff.js range reads). No Python in the project now.
+                                          It writes data/real/terrain.json for the Jezero area already in data/real/area.json. AGENTS.md updated.
+```
