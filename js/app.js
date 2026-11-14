@@ -21,20 +21,22 @@ const $ = (id) => document.getElementById(id);
 const PARAMS = new URLSearchParams(location.search);
 const SITES = {
   demo: {
-    label: 'Demo data', defaultCond: 'demo-quiet',
+    label: 'Demo data', defaultCond: 'demo-quiet', siteName: 'Demo terrain',
     radNote: 'Dose rate: Curiosity RAD measurements at <em>Gale Crater</em> (Hassler et al. 2014, ~0.64 mSv/day), applied to this synthetic demo terrain.',
   },
   real: {
-    label: 'Real data · Jezero', defaultCond: 'real',
+    label: 'Real data · Jezero', defaultCond: 'real', siteName: 'Jezero Crater',
     radNote: 'Dose rate: Curiosity RAD measurements at <em>Gale Crater</em> (Hassler et al. 2014, ~0.64 mSv/day), used as a proxy for Jezero — no surface dosimeter has flown there.',
   },
   gale: {
     // Gale has its own real snapshot (Curiosity REMS, by Spain's CAB); Jezero (MEDA) weather is never shown here.
-    label: 'Real data · Gale', defaultCond: 'real-gale',
+    label: 'Real data · Gale', defaultCond: 'real-gale', siteName: 'Gale Crater',
     radNote: 'Dose rate: Curiosity RAD measured <em>here</em> at Gale Crater (Hassler et al. 2014, ~0.64 mSv/day on the surface).',
   },
 };
-const DATASET = Object.hasOwn(SITES, PARAMS.get('data')) ? PARAMS.get('data') : 'demo';
+// Gale is the front door (CONTRACTS §7, 2026-11-14 16:11): no ?data= means Gale; Jezero is ?data=real.
+const DEFAULT_DATASET = 'gale';
+const DATASET = Object.hasOwn(SITES, PARAMS.get('data')) ? PARAMS.get('data') : DEFAULT_DATASET;
 const SITE = SITES[DATASET];
 const DATA_DIR = new URL(`../data/${DATASET}/`, import.meta.url);
 
@@ -140,9 +142,10 @@ const planner = (() => {
 async function boot() {
   $('dataset-label').textContent = SITE.label;
   $('rad-note').innerHTML = SITE.radNote;
-  if (DATASET === 'gale') {
-    $('site-name').textContent = 'Gale Crater';
-    document.title = 'Marswalk Budget — Gale EVA planner';
+  $('site-name').textContent = SITE.siteName;
+  document.title = `Marswalk Budget — ${SITE.siteName} EVA planner`;
+  for (const a of document.querySelectorAll('.site-switch a')) {
+    if (a.dataset.site === DATASET) a.setAttribute('aria-current', 'page');
   }
   let terrain, targetsFile;
   try {
@@ -155,7 +158,7 @@ async function boot() {
   } catch (err) {
     const hint = location.protocol === 'file:'
       ? 'Open the app over http (npm run serve), not file://.'
-      : DATASET !== 'demo' ? `The ${DATASET} data files may not be generated yet; try the demo (remove ?data=${DATASET}).` : '';
+      : DATASET !== 'demo' ? `The ${DATASET} data files may not be generated yet; try the default site (remove ?data=${DATASET}).` : '';
     showError(`Could not load data/${DATASET}/ (${err.message}). ${hint}`);
     $('verdict').textContent = 'No data';
     return;
@@ -276,6 +279,7 @@ function addStopAt(latlng) {
 function drawMap() {
   const { terrain: t, plan } = state;
   routeLayer.clearLayers();
+  $('map-legend').hidden = true;
   markerLayer.clearLayers();
 
   if (plan && plan.path.length > 1) {
@@ -288,6 +292,15 @@ function drawMap() {
       L.polyline(beyond, { pane: 'route', color: '#1a0f0a', weight: 7, opacity: 0.6, interactive: false }).addTo(routeLayer);
       L.polyline(beyond, { pane: 'route', color: '#ef4b3f', weight: 4, dashArray: '8 6', interactive: false }).addTo(routeLayer);
     }
+    // Stretches the habitat can't see (CONTRACTS §4 lineOfSight.gaps): dark dashes over the route line = dotted.
+    const gaps = plan.lineOfSight?.gaps ?? [];
+    for (const [a, b] of gaps) {
+      const seg = ll.slice(Math.max(0, a - 1), Math.min(ll.length, b + 2));
+      if (seg.length > 1) L.polyline(seg, { pane: 'route', color: '#1a0f0a', weight: 4, dashArray: '3 7', lineCap: 'butt', interactive: false }).addTo(routeLayer);
+    }
+    const legend = $('map-legend');
+    legend.hidden = !(plan.lineOfSight?.outOfSightM >= 1);
+    if (!legend.hidden) $('map-legend-text').textContent = `Out of sight of the habitat · ${Math.round(plan.lineOfSight.outOfSightM)} m`;
     // Wide invisible line for hover: elapsed time and O2 at the nearest path point.
     const hover = L.polyline(ll, { pane: 'route', weight: 18, opacity: 0 }).addTo(routeLayer);
     hover.on('mousemove', (e) => {
@@ -295,7 +308,8 @@ function drawMap() {
       const tl = state.timeline;
       const left = plan.totals.o2CapacityKg - tl.o2[kk];
       const pastTurn = plan.turnBack && kk > plan.turnBack.pathIndex;
-      hover.setTooltipContent(`${tl.exact ? '' : '≈ '}${fmtClock(tl.t[kk])} · O₂ left ${fmtKg(left)} kg${pastTurn ? '<br><b style="color:#ff8a80">beyond the point of no return</b>' : ''}`);
+      const hidden = gaps.some(([a, b]) => kk >= a && kk <= b);
+      hover.setTooltipContent(`${tl.exact ? '' : '≈ '}${fmtClock(tl.t[kk])} · O₂ left ${fmtKg(left)} kg${hidden ? '<br>out of the habitat’s sight' : ''}${pastTurn ? '<br><b style="color:#ff8a80">beyond the point of no return</b>' : ''}`);
       hover.openTooltip(e.latlng);
     });
     hover.bindTooltip('', { className: 'tip', sticky: true, direction: 'top', offset: [0, -8] });
@@ -538,6 +552,20 @@ function highlightStep(s, row) {
 // Side panel
 // ---------------------------------------------------------------------------
 
+/** "Over budget on oxygen and radiation", "Over the 6 h EVA", or both (CONTRACTS §4 violations). */
+function violationText(p) {
+  const budgets = p.violations.filter((x) => x === 'oxygen' || x === 'radiation');
+  const time = p.violations.includes('time') ? `over the ${evaHours(p)} h EVA` : '';
+  if (!budgets.length) return time ? time[0].toUpperCase() + time.slice(1) : 'Over budget';
+  return `Over budget on ${budgets.join(' and ')}${time ? ` and ${time}` : ''}`;
+}
+const evaHours = (p) => +((p.totals.timeLimitS ?? 21600) / 3600).toFixed(1);
+/** Summary tail: how much of the route the habitat can't see (CONTRACTS §4 lineOfSight). */
+function outOfSightText(p, sep = ' · ') {
+  const m = p.lineOfSight?.outOfSightM;
+  return m >= 1 ? `${sep}${Math.round(m)} m out of the habitat's sight (dotted)${sep === ' ' ? '.' : ''}` : '';
+}
+
 function renderVerdict() {
   const p = state.plan;
   const v = $('verdict'), sub = $('verdict-sub'), btn = $('drop-btn');
@@ -555,13 +583,16 @@ function renderVerdict() {
         ? ` · if a dust storm starts, turn back by ${fmtClock(p.turnBackLatest.elapsedS)} (amber ↩)`
         : ' · dust-storm safe all the way';
     }
+    sub.textContent += outOfSightText(p);
   } else {
     v.className = 'verdict over';
-    const what = p.violations.map((x) => (x === 'oxygen' ? 'oxygen' : 'radiation')).join(' and ');
-    v.textContent = `Over budget on ${what}`;
+    v.textContent = violationText(p);
     sub.textContent = p.turnBack
       ? `Turn back by ${fmtClock(p.turnBack.elapsedS)} (red ↩ on the map) or drop a stop.`
-      : 'O₂ still gets you home, but the dose limit is exceeded. Drop a stop or shorten the walk.';
+      : p.violations.includes('radiation')
+        ? 'O₂ still gets you home, but the dose limit is exceeded. Drop a stop or shorten the walk.'
+        : `O₂ still gets you home, but the walk runs past the ${evaHours(p)} h EVA limit. Drop a stop or shorten the walk.`;
+    sub.textContent += outOfSightText(p, ' ');
   }
   if (p.unreachable.length) {
     sub.textContent += ` ${p.unreachable.length} stop${p.unreachable.length > 1 ? 's' : ''} unreachable.`;
@@ -633,7 +664,7 @@ function renderGoNoGo() {
 /** Links to the tablet and HUD (CONTRACTS §7), and keep this page's URL in sync so a reload keeps the plan. */
 function updateLinks() {
   const q = new URLSearchParams();
-  if (DATASET !== 'demo') q.set('data', DATASET);
+  q.set('data', DATASET); // explicit, so links still work if the default site changes again
   // Stops the user added on the map exist only in this page, so they can't travel in a link.
   const fileIds = state.targets.filter((t) => !t.custom && state.included.has(t.id)).map((t) => t.id);
   if (fileIds.length !== state.targets.filter((t) => !t.custom).length) q.set('stops', fileIds.join(','));
@@ -647,8 +678,25 @@ function updateLinks() {
   $('open-vr').href = `hud.html?${[qs, 'vr=1'].filter(Boolean).join('&')}`; // views lane: Cardboard helmet mode
   const hasCustom = state.targets.some((t) => t.custom && state.included.has(t.id));
   $('view-links-note').hidden = !hasCustom;
+  updateSiteSwitch();
   const own = TOUR ? [qs, 'tour=1'].filter(Boolean).join('&') : qs; // presenter mode survives a reload
   try { history.replaceState(null, '', `?${own}`); } catch { /* sandboxed previews */ }
+}
+
+/** Header site switch: same conditions and route on the other site; site-specific stops and weather are dropped. */
+function updateSiteSwitch() {
+  for (const a of document.querySelectorAll('.site-switch a')) {
+    const q = new URLSearchParams();
+    if (a.dataset.site !== DEFAULT_DATASET) q.set('data', a.dataset.site);
+    if (TOUR) q.set('tour', '1');
+    else {
+      for (const c of CONDITIONS) if (state.conditions[c.key]) q.set(c.param, '1');
+      if (state.route !== 'eco') q.set('route', state.route);
+      if (state.condName.startsWith('demo-')) q.set('cond', state.condName); // demo snapshots exist on every site
+    }
+    const qs = q.toString();
+    a.href = qs ? `./?${qs}` : './';
+  }
 }
 
 function renderConditions() {
