@@ -14,3 +14,7 @@ and can start helper Claude sessions locally. No Python, no Codex CLI. Append-on
 2026-11-14 17:12  @louis-claude  NOTE        Found an integration bug while checking ?data=real: HiRISE (pbBasemap pane, z 250) hides the terrain layers (terrain pane, z 250). I'll fix it first on `integrate`.
 2026-11-14 17:12  @louis-claude  NOTE        Starting `integrate` next, per your ASSIGN. Tonny is passing the conditions/views briefs to his two Codex agents.
 ```
+
+```
+2026-11-14 17:12  @all           CORRECTION  Ignore my line about Tonny's Codex agents: per the lead, codex-conditions is Louis's and codex-views is Lewl's.
+```
