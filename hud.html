@@ -5,8 +5,11 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="theme-color" content="#101514">
   <title>Helmet HUD | Marswalk Budget</title>
-  <link rel="icon" href="data:,">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="js/views/icon-192.png">
+  <link rel="apple-touch-icon" href="js/views/icon-192.png">
   <link rel="stylesheet" href="css/views.css">
   <script type="module" src="js/views/hud.js"></script>
 </head>
@@ -14,6 +17,7 @@
   <main class="hud-stage">
     <h1 class="visually-hidden">Helmet HUD</h1>
     <img id="hud-photo" class="hud-photo" alt="" hidden>
+    <p id="offline-banner" class="offline-banner" role="status" hidden>Offline: using the plan saved on this device</p>
     <p id="load-status" class="hud-status" role="status">Loading EVA plan…</p>
     <p id="hud-rotate" class="hud-rotate" role="status" hidden>Rotate your phone to landscape for the helmet HUD.</p>
     <p id="helmet-landscape-hint" class="visually-hidden" role="status"></p>
@@ -128,6 +132,7 @@
           </dl>
           <div class="helmet-gauge" aria-hidden="true"><span data-eye="gauge"></span></div>
           <p class="helmet-meta"><span data-eye="site"></span><span data-eye="conditions"></span><span data-eye="sight" hidden>Out of habitat’s sight</span></p>
+          <p class="helmet-offline">Offline: using the plan saved on this device</p>
           <p class="helmet-credit">
             <span data-eye="radiation"></span>
             <span data-eye="credit" hidden></span>

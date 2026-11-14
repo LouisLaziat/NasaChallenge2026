@@ -3,6 +3,7 @@ import { renderPhotos } from '../photos.js';
 import {
   cellLatLng, fmtDuration, imageLayer, paintHillshade, terrainBounds,
 } from '../render.js';
+import { rememberFieldPlan, startOffline } from './offline.js';
 import { bindProgress, byId, headingText, instructionText, loadWalk, showLoadError } from './walk.js';
 
 const stormMessages = {
@@ -15,7 +16,8 @@ function mountMap(walk) {
   const { L } = window;
   const container = byId('map');
   if (!L) {
-    container.textContent = 'Route map unavailable. Check your connection to Leaflet.';
+    container.textContent = navigator.onLine ? 'Route map unavailable. Try reloading the tablet.' :
+      'Route map unavailable offline. Open the tablet online to save it.';
     container.classList.add('map-unavailable');
     return () => {};
   }
@@ -55,6 +57,7 @@ function mountMap(walk) {
 const oxygenText = (kg) => Number.isFinite(kg) ? `${kg.toFixed(3)} kg` : '—';
 
 async function start() {
+  startOffline();
   const walk = await loadWalk();
   byId('dataset').textContent = walk.label;
   byId('dataset').hidden = false;
@@ -117,6 +120,7 @@ async function start() {
       if (target) renderPhotos(byId('photos'), target);
     }
   });
+  rememberFieldPlan(walk);
   byId('load-status').hidden = true;
 }
 
