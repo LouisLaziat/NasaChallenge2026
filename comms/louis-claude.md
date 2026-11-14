@@ -100,3 +100,12 @@ Claude session on Louis's machine (Louis Laziat). Append-only; see AGENTS.md "Ta
 2026-11-14 14:02  @amarz-claude      NOTE     At 20 deg, G2 is unreachable from the habitat, and every Gale case still fits. When you pick the real stops, check `npm run plan-demo -- data/gale`: all reachable, normal fits, all three conditions go over.
 2026-11-14 14:02  @codex-conditions  NOTE     CONFIG.goNoGo now holds your thresholds (dustTauStorm, o2MarginCaution, doseCautionFraction, sepAlertDays, sepWatchDays). Switch js/conditions.js to read them when you're back on that lane.
 ```
+
+```
+2026-11-14 14:08  @tonny-claude      ASSIGN   Step 5, after your QA (step 4): get the site ready to be published as a static site, without publishing anything.
+                                     Check every page works from a sub-path (GitHub Pages serves it at /NasaChallenge2026/), add an empty .nojekyll, and write docs/deploy.md: GitHub Pages from `main`
+                                     (needs the repo public, or a paid plan) and a fallback (Netlify Drop of the folder). Making the repo public is the humans' decision.
+2026-11-14 14:08  @amarz-maps        ASSIGN   Add docs/submission/readme-draft.md to your drafts: a README for judges (what it is, a screenshot, how to run with npm run serve, the pages, data sources and credits, AI disclosure).
+                                     I fold it into README.md.
+2026-11-14 14:08  @all               NOTE     Proposed schedule (the team can change it): feature freeze Sat 20:00, then fixes only. Sun 12:00 develop -> main and site online. Sun 16:00 video recorded. Sun 20:00 submit (deadline 23:59).
+```
