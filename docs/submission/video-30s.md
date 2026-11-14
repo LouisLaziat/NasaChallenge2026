@@ -6,7 +6,7 @@ Both are editing plans for features present in the repo. Times below are video t
 
 ## A. The decision: science, surprise, return
 
-Record the console at `http://localhost:8080/index.html?data=real&tour=1`. The existing six-step presenter mode advances with Right Arrow / PageDown / Space, and goes back with Left Arrow / PageUp. It is manually advanced, not a timed 30-second movie; record each step after planning settles, then cut to this schedule. The final step opens the same plan in `hud.html` with `play=30` after a short delay.
+Record the console at `http://localhost:8080/index.html?data=real&tour=1`. The existing seven-step presenter mode advances with Right Arrow / PageDown / Space, and goes back with Left Arrow / PageUp. It is manually advanced, not a timed 30-second movie; record each step after planning settles, then cut to this schedule. Step 6 compares routes; the final step opens the selected plan in `hud.html` with `play=30` after a short delay. Tablet, HUD and VR now follow the selected route option.
 
 | Video time | Existing shot / action | Suggested voice-over |
 |---|---|---|
@@ -14,8 +14,8 @@ Record the console at `http://localhost:8080/index.html?data=real&tour=1`. The e
 | 5–10 s | Step 2: dust scenario, same stops now over budget; keep the synthetic conditions label visible. Baseline: 0.45 kg O₂. | “Change the conditions, and the same walk can cost more than the suit's planned allowance.” |
 | 10–15 s | Step 3: zoom to the red point-of-no-return marker and its actual mission time. | “This marker shows where returning home would start using the oxygen reserve.” |
 | 15–20 s | Step 4: highlighted best-set suggestion. Baseline: five stops, science value 36. | “The planner searches for the most science that still fits.” |
-| 20–25 s | Step 5: reduced plan and budget. Baseline: 0.38 kg, CAUTION. | “Keep the dust storm. Change the stops. Read the new margin.” |
-| 25–30 s | Step 6 / same-plan HUD: next stop, oxygen and return guidance. End on “Marswalk Budget”. | “One plan, from mission console to helmet. Explore the trade-off, then get home.” |
+| 20–25 s | Step 5: reduced plan and budget (baseline: 0.38 kg, CAUTION), then a quick cut to step 6's three route cards. | “Keep the dust storm. Change the stops. Compare what each route costs.” |
+| 25–30 s | Step 7 / same-plan HUD: next stop, oxygen and return guidance. End on “Marswalk Budget”. | “One plan, from mission console to helmet. Explore the trade-off, then get home.” |
 
 Use “synthetic dust scenario” on screen; the tour's wording is a demonstration, not an observed forecast. Its weather scenarios are synthetic even though the Jezero terrain and photos are real. The live real-data conditions card uses archival weather and can show CAUTION before any hazard is switched on.
 
@@ -36,6 +36,6 @@ Start the server, then record `http://localhost:8080/hud.html?data=gale&cond=rea
 
 The normal Gale plan fits, so its playback need not show a turn-back warning. To film that warning, make a separate over-budget run using `hud.html?data=gale&cond=demo-quiet&dust=1&kit=1&solar=1&play=30` and label it as a synthetic hazard scenario. Do not imply that the actual route has been walked by an astronaut.
 
-**Conditional VR insert:** if the views lane has merged and verified `hud.html?vr=1`, replace the tablet cut with a short split-eye helmet shot using the same site and plan parameters. At this draft baseline it is an assignment, not a delivered feature. Keep storyboard B as written if it has not landed; do not claim tested headset tracking or real-phone support.
+**Optional VR insert:** the merged `hud.html?vr=1` can replace the tablet cut with a split-eye helmet shot using the same site and plan parameters. The [VR screenshot](../screenshots/views-vr.png) is a layout reference; resolve the lead's chevron-versus-next-step QA question in STATUS.md before treating it as navigation evidence. Physical Android/iOS checks still await an HTTPS preview; do not claim tested headset hardware.
 
 Repo basis: [tour and playback status](../../STATUS.md), [views assignment](../../comms/louis-claude.md), [data caveats](data.md), [existing screenshots](readme-draft.md#screenshots-already-in-the-repo).

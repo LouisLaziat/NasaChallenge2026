@@ -24,13 +24,14 @@ Open [the console](http://localhost:8080/). No build step, framework, bundler or
 | Synthetic console | [index.html](http://localhost:8080/) — invented terrain and labelled demo conditions |
 | Jezero console | [index.html?data=real](http://localhost:8080/index.html?data=real) — six Perseverance stops |
 | Gale console | [index.html?data=gale](http://localhost:8080/index.html?data=gale) — four Curiosity stops |
-| Guided demonstration | [index.html?data=real&tour=1](http://localhost:8080/index.html?data=real&tour=1) — six manually advanced presenter steps; Right Arrow to continue |
+| Guided demonstration | [index.html?data=real&tour=1](http://localhost:8080/index.html?data=real&tour=1) — seven manually advanced presenter steps; Right Arrow to continue |
 | Field tablet | [tablet.html?data=real](http://localhost:8080/tablet.html?data=real) — route and progress in a field view |
 | Helmet HUD | [hud.html?data=gale&cond=real-gale&play=30](http://localhost:8080/hud.html?data=gale&cond=real-gale&play=30) — time-compressed route playback |
+| Split-eye VR helmet | [hud.html?data=real&vr=1](http://localhost:8080/hud.html?data=real&vr=1) — stereo view with drag/arrow fallback controls |
 | Conditions example | [docs/conditions-demo.html](http://localhost:8080/docs/conditions-demo.html) — labelled GO / CAUTION / NO-GO cases |
 | Photos and map layers | [docs/photos-demo.html?data=gale](http://localhost:8080/docs/photos-demo.html?data=gale) — site selector, imagery, rover drive and photo credits |
 
-Open the tablet and HUD from the console to carry the selected stops and hazards into those views. The About panel links the model, source audit, credits and AI note. Route alternatives are implemented in the engine; advertise their console/view controls only after the pending integration is merged. Phone VR is also a pending views assignment at this draft baseline.
+Open the views from the console to carry the selected stops, hazards and route option. The About panel links the model, source audit, credits and AI note. The console compares three route alternatives; tablet, HUD and VR follow the same choice. Phone compass and fullscreen require supported browser permissions and HTTPS; physical Android/iOS checks await a preview.
 
 ## How the plan is calculated
 
@@ -46,7 +47,7 @@ The engine finds paths between stops over a 5 m grid, using terrain-dependent sp
 | Rover positions and photos | NASA/JPL MMGIS, Perseverance and Curiosity; per-image NASA/JPL-Caltech/ASU, MSSS or NASA/JPL-Caltech credits |
 | Weather | NASA/JPL and CAB, Spain: MEDA at Jezero and REMS at Gale; archival snapshots |
 | Solar events | NASA CCMC DONKI, near-Earth detections used as a Mars proxy |
-| Radiation | Curiosity RAD, [Hassler et al. 2014](https://doi.org/10.1126/science.1244797); historical Gale baseline, geographic proxy at Jezero |
+| Radiation | Curiosity RAD, [Hassler et al. 2014](https://doi.org/10.1126/science.1244797) ([paper copy](https://www.scienceintheclassroom.org/sites/default/files/research-papers/1244797.full_.pdf)); historical Gale baseline, geographic proxy at Jezero |
 | Optional manual fields | Mars Climate Database, LMD / ESA / CNES; no values retrieved in the real snapshots |
 
 [Full linked data register and stop citations](data.md) · [Gale dataset notes](../../data/gale/README.md).
@@ -60,8 +61,9 @@ The synthetic dataset is labelled as invented. Gale has no thermal-inertia layer
 - [Gale field tablet](../screenshots/views-tablet-gale.png)
 - [Jezero helmet HUD](../screenshots/views-hud-real.png)
 - [Gale helmet HUD](../screenshots/views-hud-gale.png)
+- [Split-eye helmet layout](../screenshots/views-vr.png)
 
-These are existing captures, not a claim that every screenshot matches the latest UI. No VR screenshot is present at this draft baseline.
+These are existing captures, not a claim that every screenshot matches the latest UI. The VR screenshot is a layout reference; the lead has asked QA to review its chevron versus next-step direction before using it as navigation evidence.
 
 ## AI assistance
 

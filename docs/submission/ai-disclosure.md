@@ -7,10 +7,10 @@ Marswalk Budget was developed with Anthropic Claude and OpenAI Codex coding agen
 | Agent / lane | Contribution supported by the repository record |
 |---|---|
 | `louis-claude` — Claude on Louis's machine, lead and engine lane | Shared contracts, route and resource model, parameter-source labels, profiles, turn-back calculations, best-fitting stop sets, route-options engine, integration merges; completion of Gale stop notes and map/photo wiring. |
-| `tonny-claude` — Claude on Tonny's machine, console and real-data lanes | Jezero terrain preparation, console interface, conditions integration, tablet/HUD links, turn-by-turn presentation, presenter tour, About panel and browser checks. The earlier Claude photos lane supplied the Jezero photo and Mars Trek foundation. |
+| `tonny-claude` — Claude on Tonny's machine, console and real-data lanes | Jezero terrain preparation, console interface, conditions integration, tablet/HUD links, turn-by-turn presentation, route-comparison cards, seven-step presenter tour, About panel and browser checks. The earlier Claude photos lane supplied the Jezero photo and Mars Trek foundation. |
 | `amarz-claude` — Claude, Gale data lane | Initial Gale area, elevation grid, imagery crop, Curiosity traverse, photo manifests and preparation scripts. The lead subsequently replaced the placeholder stop objectives with cited science stops. |
 | `codex-conditions` — Louis's OpenAI Codex agent | Conditions module, MEDA/REMS and DONKI snapshot fetcher, provenance and GO/CAUTION/NO-GO display, offline tests, model-source audit, an adopted photo fallback regression test, and submission drafts. Its separate `gale-map` implementation was not merged because equivalent work was already on develop. |
-| `codex-views` — OpenAI Codex, views lane | Field tablet, helmet HUD, route-progress geometry, oxygen-to-home and contingency presentation, playback, tests and screenshots. Phone VR and route-option integration are assigned follow-ups at this draft baseline. |
+| `codex-views` — OpenAI Codex, views lane | Field tablet, helmet HUD, route-progress geometry, oxygen-to-home and contingency presentation, playback, split-eye VR and phone layouts, route-option integration, tests and screenshots. Physical Android/iOS checks await an HTTPS preview. |
 
 Roles and historical handovers are recorded in [AGENTS](../../AGENTS.md), [STATUS](../../STATUS.md) and [lead messages](../../comms/louis-claude.md). The held Mars Maps prototype is not described as a shipped page here. No exact AI model version is asserted by this draft.
 
