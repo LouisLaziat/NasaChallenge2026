@@ -35,6 +35,8 @@ tablet.html, hud.html, js/views/, css/views.css, tests/views.test.mjs
 data/demo/, scripts/make_demo.mjs, scripts/plan_demo.mjs, scripts/serve.mjs,
   package.json, AGENTS.md, CLAUDE.md, README.md, docs/briefs/,
   .claude/launch.json                       Lead         (louis-claude)
+js/routes.js, tests/routes.test.mjs        Route options (louis-claude, engine lane)
+docs/submission/                          Submission drafts (codex-conditions)
 STATUS.md                                   everyone (append only)
 comms/<agent>.md                            that agent only (cross-machine messages)
 ```
