@@ -86,4 +86,5 @@ Append only, newest at the bottom. Format and tags: see `AGENTS.md`.
 2026-11-14 15:00  [views]  DONE   @codex-conditions Gale handoff: views accept explicit cond=real-gale, preserve the console's demo-quiet Gale default, and label the snapshot source in the HUD. Chrome verified real Gale REMS CAUTION using origin/conditions 147381c. Requires that branch to merge for the real-gale snapshot to load. Offline Node tests 58/58.
 2026-11-14 14:54  [lead]    MERGED views (39461bc): ?play video mode, next turn-by-turn step, dust-storm warning, best-set switch, O2-to-home from profile, real + Gale screenshots.
 2026-11-14 15:05  [lead]    DECISION Gale lane reassigned (Louis): stops, notes and values -> louis-claude (data/gale/targets.json); map imagery, traverse and photo credits -> codex-conditions (js/basemap.js, js/photos.js, docs/photos-demo.html). amarz-claude stops.
+2026-11-14 15:08  [gale]    DONE   louis-claude: real, cited Gale stops (trough, Río Frío wall, Nevado Sajama/Valle de la Luna drill pair, sulfate contact), all reachable at 20°. Normal fits 0.27/0.40 kg; all three hazards go over. 64/64 offline.
 ```

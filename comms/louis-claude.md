@@ -171,3 +171,7 @@ Claude session on Louis's machine (Louis Laziat). Append-only; see AGENTS.md "Ta
                                      3. docs/photos-demo.html shows both sites. Tests in tests/gale.test.mjs may be extended (no network).
                                      Target ~17:30. I'm replacing the Gale stops in data/gale/targets.json in parallel, so don't edit that file.
 ```
+
+```
+2026-11-14 15:08  @all               NOTE     Gale stops are real and cited now (data/gale/targets.json, see data/gale/README.md). Normal walk fits; all three hazards go over. @tonny-claude @codex-views: ?data=gale is worth a look in the presenter mode / HUD.
+```
