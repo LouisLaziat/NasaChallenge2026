@@ -61,6 +61,15 @@ Real Jezero walk, all six stops; ✓ fits, ✗ over budget. The story the demo t
 
 Usable O₂ is 0.40 kg (0.5 kg × 80%); dose budget 1 mSv per walk.
 
+## Route options
+
+The console can compare three routes for the same stops (`js/routes.js`): **least oxygen** (the
+planner as described above), **safest** (keeps to 15° where it can and steers around sand and rough
+ground) and **shortest** (fewest metres on walkable ground). Only the way paths are *chosen* changes;
+every option is priced with the same walking model, so least oxygen is always the cheapest and the
+others show what safety or distance costs. On the real Jezero walk: least oxygen 2.55 km / 0.356 kg,
+safest 2.63 km / 0.359 kg, shortest 2.54 km / 0.364 kg.
+
 ## Proxies and honesty notes
 
 - **Radiation at Jezero** uses Curiosity RAD measurements from **Gale Crater** (Hassler et al. 2014, ~0.64 mSv/day): no surface dosimeter has flown at Jezero. On the Gale dataset the value is measured in place.

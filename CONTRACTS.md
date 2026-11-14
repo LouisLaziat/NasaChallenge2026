@@ -181,4 +181,20 @@ All three pages read and write the same parameters, so a link carries the whole 
 | `dust`, `solar`, `kit` | `1` | condition switches on (`dustStorm`, `solarEvent`, `heavyKit`) |
 | `cond` | `real`, `demo-quiet`, `demo-dusty`, `demo-solar` | conditions file to load (§6) |
 | `p` | `0` … `1` | EVA progress along the route (tablet and HUD only) |
+| `route` | `eco` (default), `safe`, `short` | route option (§8); tablet and HUD plan the same option |
+
+## 8. Route options — `js/routes.js` (engine lane)
+
+```js
+import { planAlternatives, planRoute, slopeProfile, MODE_LABELS, ROUTE_MODES } from './routes.js';
+planAlternatives(terrain, targetsFile, options)  // -> { eco, safe, short }, ~1-1.5 s on 400 x 400: run it in the worker
+planRoute(mode, terrain, targetsFile, options)   // -> one option, for on-demand use
+slopeProfile(terrain, plan)                      // -> metres on [< 10°, 10-15°, 15-20°, >= 20°] ground
+```
+
+Each option is a full plan result (§4) plus `mode` (and `slopeCapDeg` for `safe`). `eco` is
+`planWalk` exactly. `safe` and `short` only change how paths and order are **chosen**
+(`CONFIG.routeModes`, labelled DESIGN); time, O₂, dose, turn-back points and the best set are always
+measured with the real model, so the cards compare fairly. `safe` keeps to 15° (relaxed to 18°, then
+the suit limit, if a stop would become unreachable). `MODE_LABELS[mode]` = `{ name, blurb }` for the UI.
 
