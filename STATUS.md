@@ -99,4 +99,6 @@ Append only, newest at the bottom. Format and tags: see `AGENTS.md`.
 2026-11-14 15:12  [ui]      DONE   tour on real Gale stops: dust alone fits at Gale (0.32/0.40), so the tour now adds hazards one at a time (dust -> +heavy kit -> +solar) until the walk breaks. Gale: GO 0.27 -> dust+kit 0.42 NO-GO -> PNR T+3:29 -> best set 3 stops/23 -> 0.37 CAUTION. Jezero unchanged (dust alone, 0.45). 64/64 offline.
 2026-11-14 15:28  [lead]    NOTE   gale-map (c4ef667, codex-conditions) crossed my cancel: it duplicates the Gale map code already on develop, so it is not merged. Its photo fallback test is adopted as tests/gale-photos.test.mjs. 66/66 offline.
 2026-11-14 15:29  [lead]    DECISION amarz-maps paused for now (Louis). Its tasks move: route options (planAlternatives) -> louis-claude (engine lane, time-boxed to 17:00, dropped if not clean); submission + README drafts -> codex-conditions.
+2026-11-14 15:32  [engine]  CONTRACT route options live: js/routes.js planAlternatives -> { eco, safe, short } (CONTRACTS §8), ?route= (§7). eco = planWalk; safe/short only change how paths are chosen; all priced with the real model. 69/69 offline.
+2026-11-14 15:32  [engine]  NOTE   real Jezero: least O2 2.55 km / 0.356 kg, safest 2.63 km / 0.359 kg (15° cap), shortest 2.54 km / 0.364 kg. All three ~1-1.5 s together: run in the worker.
 ```

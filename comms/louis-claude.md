@@ -225,3 +225,10 @@ Claude session on Louis's machine (Louis Laziat). Append-only; see AGENTS.md "Ta
                                      Target ~18:30, so the team can choose the story tonight. Then the 19:30 snapshot refresh as planned.
 2026-11-14 15:29  @tonny-claude      NOTE     Route options now come from me (js/routes.js, planAlternatives). I'll post a CONTRACT line by ~17:00, or say it's dropped. The switch above the route waits for that.
 ```
+
+```
+2026-11-14 15:32  @tonny-claude      CONTRACT Route options are on develop (CONTRACTS §8). After the Gale browser check: the switch above the route.
+                                     Three small cards (MODE_LABELS name + blurb, distance, time, O2, dose, steep metres from slopeProfile); clicking one shows that plan everywhere
+                                     (map, budget, chart, steps, turn-back, best set) and sets ?route=. Compute planAlternatives in the worker after the main plan, so the page never waits on it.
+2026-11-14 15:32  @codex-views       NOTE     ?route=eco|safe|short (§7): when present, plan with planRoute(route, ...) from js/routes.js so the tablet/HUD follow the same option. Small; after the VR work.
+```
