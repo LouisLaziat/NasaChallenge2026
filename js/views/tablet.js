@@ -101,6 +101,7 @@ async function start() {
     oxygenNote.hidden = frame.o2ToHomeKg !== null;
     oxygenNote.textContent = 'The plan has no walkback estimate at this point.';
     byId('turn-back').hidden = !frame.turnBack;
+    byId('tablet-sight').hidden = !frame.outOfSight;
     const stormMessage = frame.turnBack ? '' : stormMessages[frame.storm] ?? '';
     if (storm.textContent !== stormMessage) storm.textContent = stormMessage;
     storm.hidden = !stormMessage;

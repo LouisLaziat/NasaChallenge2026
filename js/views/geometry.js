@@ -106,6 +106,15 @@ export function passedTurnBack(plan, p) {
   return point != null && clampProgress(p) * (plan.path.length - 1) > point.pathIndex;
 }
 
+export function outOfSightAt(plan, pathIndex) {
+  if (plan.lineOfSight?.gaps) {
+    return plan.lineOfSight.gaps.some(([start, end]) => pathIndex >= start && pathIndex <= end);
+  }
+  // Legacy or partial plans may carry only the downsampled profile.
+  const point = plan.profile?.findLast((sample) => sample.pathIndex <= pathIndex);
+  return point?.inSight === false;
+}
+
 export function stormGuidance(plan, terrain, routeIndex, complete) {
   if (complete || plan.conditions?.dustStorm || plan.turnBackLatest === undefined) return null;
   const mark = plan.turnBackLatest;
@@ -128,7 +137,7 @@ export function currentInstruction(legs, pathIndex, plan) {
     const remainingM = here !== null && end !== null
       ? Math.max(0, end - here)
       : step.distanceM * (step.endIndex - pathIndex) / (step.endIndex - step.startIndex);
-    return { step, destination: leg.to, remainingM };
+    return { step, destination: leg.to === 'habitat' ? 'habitat' : leg.toName, remainingM };
   }
   return null;
 }
@@ -190,6 +199,7 @@ export function walkSnapshot(plan, terrain, habitat, p) {
     slopeDeg: complete ? null : slopeAheadDeg(terrain, plan, routeIndex, 30),
     turnBack: !complete && passedTurnBack(plan, progress),
     storm: stormGuidance(plan, terrain, routeIndex, complete),
+    outOfSight: !complete && outOfSightAt(plan, position.pathIndex),
   };
 }
 
