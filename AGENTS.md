@@ -12,14 +12,14 @@ value**, marks the **point of no return**, and replans when conditions change (d
 event, heavy sample kit). Each stop shows a real Perseverance photo taken nearby.
 
 Stack: plain HTML + ES modules + Leaflet. **No build step, no framework, no bundler.**
-Node ≥ 20 for everything, including the data pipeline (no Python needed).
+Node ≥ 20 for tests and scripts. Python 3 + numpy + rasterio for the data pipeline only.
 
 ```
 index.html, css/, js/app.js, js/render.js   UI           (Claude 1)
 js/photos.js, js/basemap.js, data/real/targets.json, data/real/area.json,
   scripts/fetch_photos.mjs                  Photos/NASA  (Claude 2)
-scripts/prep_real_data.mjs, tests/prep.test.mjs,
-  data/real/terrain.json                    Real data    (Claude 3)
+scripts/prep_real_data.py, tests/test_prep.py,
+  data/real/terrain.json, requirements.txt  Real data    (Codex 1)
 js/engine.js, js/config.js, tests/engine.test.mjs,
   CONTRACTS.md                              Engine/model (Codex 2)
 data/demo/, scripts/make_demo.mjs, scripts/plan_demo.mjs, package.json,
@@ -41,7 +41,7 @@ Nothing about Gale may change the Jezero files or the contracts.
 |---|---|---|---|---|
 | UI | Claude 1 (Tonny) | merged | `index.html`, `css/`, `js/app.js`, `js/render.js` | **MERGED.** Map, route, turn-back, budget bars, conditions, click-to-add, `?data=` switch. |
 | Photos & NASA layers | Claude 2 (Tonny) | merged | `js/photos.js`, `js/basemap.js`, `scripts/fetch_photos.mjs`, `data/real/targets.json`, `data/real/area.json`, `docs/photos-demo.html` | **MERGED.** Jezero area, 6 real stops with Perseverance photos, Mars Trek HiRISE/CTX + traverse. |
-| Real data | Claude 3 (Tonny) | `data` | `scripts/prep_real_data.mjs`, `tests/prep.test.mjs`, `data/real/terrain.json`, `geotiff` devDependency in `package.json` | Crop USGS HiRISE DTM + Zenodo thermal inertia to `data/real/area.json` → `data/real/terrain.json`, in Node (HTTP range reads, no 1.8 GB download). Brief: `docs/briefs/codex-1-data.md`, with Node in place of Python. |
+| Real data | Codex (Tonny) | `data` | `scripts/prep_real_data.py`, `tests/test_prep.py`, `requirements.txt`, `data/real/terrain.json` | Crop USGS HiRISE DTM + Zenodo thermal inertia to `data/real/area.json` → `data/real/terrain.json`. Brief: `docs/briefs/codex-1-data.md`. |
 | Engine & model | louis-claude (Louis) | `engine` | `js/engine.js`, `js/config.js`, `tests/engine.test.mjs`, `CONTRACTS.md`, `docs/model.md` | Cite every `ASSUMPTION` (incl. 20° max slope, NTRS 20210000827); add `profile`, `bestSubset`, `turnBackLatest`. Brief: `docs/briefs/codex-2-engine.md`. |
 | Views (tablet + helmet HUD) | Louis's machine | `views` | new files only (listed in `docs/briefs/louis-views.md`) | Reads the plan result; no route/budget maths of its own. |
 | Conditions (Go/No-Go) | Louis's machine | `conditions` | new files only (listed in `docs/briefs/louis-conditions.md`) | Turns REMS / DONKI / MCD / RAD data into the existing condition toggles and config factors; no duplicate budget logic. Contracts added by the engine lane. |
