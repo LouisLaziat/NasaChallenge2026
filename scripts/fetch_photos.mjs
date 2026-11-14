@@ -115,9 +115,15 @@ function isLandscape(img) {
 
 function score(img, dist, stop) {
   const el = Number(img.extended.mastEl);
-  // Distance first; then prefer the stop's own sol and views a little below the horizon,
+  // mastAz is relative to the rover body (0 = straight ahead). The robotic arm works in front of
+  // the rover, so at sampling stops forward views are mostly arm and drill; prefer side/back views.
+  const az = ((Number(img.extended.mastAz) % 360) + 540) % 360 - 180; // -180..180
+  const forward = Math.abs(az) < 60 ? 40 : 0;
+  // ECM products are the un-debayered/companion versions of EBY colour frames.
+  const ecm = /_d{3}ECM_/.test(img.imageid) ? 10 : 0;
+  // Distance first; then the stop's own sol and views a little below the horizon,
   // where the ground the astronaut will walk on fills the frame.
-  return dist + Math.abs(img.sol - stop.sol) * 0.5 + Math.abs(el + 7) * 0.3;
+  return dist + forward + ecm + Math.abs(img.sol - stop.sol) * 0.5 + Math.abs(el + 7) * 0.3;
 }
 
 function toPhoto(img, dist) {
@@ -125,7 +131,8 @@ function toPhoto(img, dist) {
   const cam = img.camera.instrument;
   const camName = cam.startsWith('MCZ') ? 'Left Mastcam-Z' : 'Left Navigation Camera (Navcam)';
   return {
-    url: f.large || f.medium || f.full_res,
+    url: f.medium || f.large || f.full_res,   // 800 px: plenty for a side panel, loads fast
+    large: f.large,
     thumb: f.small || f.medium,
     full: f.full_res,
     sol: img.sol,

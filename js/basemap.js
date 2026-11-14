@@ -101,7 +101,8 @@ function eqTileLayer(L, spec, { opacity = 1, maxTiles = 64, pane } = {}) {
         want.add(key);
         if (tiles.has(key)) continue;
         const north = 90 - r * d, west = c * d - 180;
-        const ov = L.imageOverlay(trekTileUrl(spec.id, z, r, c), [[north - d, west], [north, west + d]],
+        const o = d / 512; // half-pixel overlap hides hairline seams between overlays
+        const ov = L.imageOverlay(trekTileUrl(spec.id, z, r, c), [[north - d - o, west - o], [north + o, west + d + o]],
           { opacity, interactive: false, pane, className: 'pb-trek-tile' });
         pending++;
         ov.once('load error', done);
