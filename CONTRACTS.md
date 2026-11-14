@@ -118,6 +118,16 @@ cheapest path without dipping into the O2 reserve. It is `null` when the whole r
 }
 ```
 
+**Added 2026-11-14 16:30 (additive):** `totals.timeLimitS` (`CONFIG.eva.maxHours`, 6 h) and a third
+violation `"time"` when `totals.totalTimeS` is over it (`withinBudget`, `dropSuggestion` and `bestSubset`
+all respect it); `profile[].inSight` and
+
+```jsonc
+"lineOfSight": { "habitatAntennaM": 3, "astronautEyeM": 1.8,
+                 "outOfSightM": 348,            // route metres where the habitat can't see the astronaut
+                 "gaps": [[120, 141], ...] }    // path index ranges out of sight, for the map
+```
+
 `turnBackLatest` is the "turn back by here" point for a surprise: the last point from which the
 astronaut could still get home without touching the O2 reserve **if a dust storm started right
 there** (the contingency is `CONFIG.planner.contingency`). `null` means a storm starting anywhere
@@ -176,7 +186,7 @@ All three pages read and write the same parameters, so a link carries the whole 
 
 | Param | Values | Meaning |
 |---|---|---|
-| `data` | `demo` (default), `real`, later `gale` | data set folder under `data/` |
+| `data` | `gale` (default), `real` (Jezero), `demo` (synthetic) | data set folder under `data/` |
 | `stops` | `R1,R3,R5` | chosen stop ids; omitted = the page's default |
 | `dust`, `solar`, `kit` | `1` | condition switches on (`dustStorm`, `solarEvent`, `heavyKit`) |
 | `cond` | `real`, `demo-quiet`, `demo-dusty`, `demo-solar` | conditions file to load (§6) |

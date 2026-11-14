@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import {
   buildCostGrid, findPath, search, planWalk, bestOrder,
-  cellToLatLon, latLonToCell, energyToO2Kg,
+  cellToLatLon, latLonToCell, energyToO2Kg, canSee,
 } from '../js/engine.js';
 import { CONFIG } from '../js/config.js';
 
@@ -270,4 +270,38 @@ test('plan on a 400 x 400 grid stays under ~1.5 s', () => {
   const ms = performance.now() - t0;
   assert.ok(r.ok);
   assert.ok(ms < 1500, `took ${ms.toFixed(0)} ms`);
+});
+
+// ---- line of sight and EVA time limit -------------------------------------
+
+test('line of sight: open ground is all in view, a wall hides what is behind it', () => {
+  const flat = flatTerrain(60, 20, { cellSize: 5 });
+  const gf = buildCostGrid(flat);
+  assert.equal(canSee(gf, 10 * 60 + 2, 10 * 60 + 57, 3, 1.8), true);
+  // A 10 m wall at x = 30 with a gap at the top rows, so the walker can go round it.
+  const wall = flatTerrain(60, 20, { cellSize: 5, elev: (x, y) => (x === 30 && y > 3 ? 10 : 0) });
+  const gw = buildCostGrid(wall, { ...CONFIG, walk: { ...CONFIG.walk, maxSlopeDeg: 89 } });
+  assert.equal(canSee(gw, 10 * 60 + 2, 10 * 60 + 57, 3, 1.8), false);
+  const targets = { habitat: { name: 'H', x: 2, y: 10 }, targets: [{ id: 'B', name: 'Behind the wall', x: 57, y: 10, value: 5, dwellMin: 5, note: '' }] };
+  const open = planWalk(flat, targets);
+  assert.equal(open.lineOfSight.outOfSightM, 0);
+  assert.ok(open.profile.every((q) => q.inSight));
+  const hidden = planWalk(wall, targets, { config: { ...CONFIG, walk: { ...CONFIG.walk, maxSlopeDeg: 89 } } });
+  assert.ok(hidden.lineOfSight.outOfSightM > 0);
+  assert.ok(hidden.lineOfSight.gaps.length > 0);
+  assert.ok(hidden.profile.some((q) => !q.inSight));
+  for (const [a, b] of hidden.lineOfSight.gaps) assert.ok(a <= b && b < hidden.path.length);
+});
+
+test('EVA time limit: a long walk breaks the time budget and the best set respects it', () => {
+  const { t, s } = demo();
+  const r0 = planWalk(t, s, { contingency: false });
+  assert.equal(r0.totals.timeLimitS, CONFIG.eva.maxHours * 3600);
+  assert.ok(!r0.violations.includes('time'));
+  const short = structuredClone(CONFIG);
+  short.eva.maxHours = (r0.totals.totalTimeS / 3600) * 0.8;
+  const r = planWalk(t, s, { config: short, contingency: false });
+  assert.ok(r.violations.includes('time'));
+  assert.equal(r.withinBudget, false);
+  assert.ok(r.bestSubset && r.bestSubset.totalTimeS <= short.eva.maxHours * 3600);
 });

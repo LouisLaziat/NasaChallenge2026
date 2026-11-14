@@ -7,8 +7,17 @@ import { buildSteps } from '../js/steps.js';
 import { cameraAt, cameraKeyframes, decimateTerrain, elevationAt } from '../js/views/flyover-geometry.js';
 import {
   bearingDeg, currentInstruction, deviceHeadingDeg, distanceM, doseAt, nextStop, o2At, passedTurnBack,
-  positionAt, relativeBearingDeg, slopeAheadDeg, smoothHeadingDeg, stereoEyes, stormGuidance, walkSnapshot,
+  outOfSightAt, positionAt, relativeBearingDeg, slopeAheadDeg, smoothHeadingDeg, stereoEyes, stormGuidance, walkSnapshot,
 } from '../js/views/geometry.js';
+
+test('visibility uses exact line-of-sight gaps and falls back to older profile samples', () => {
+  const profile = [{ pathIndex: 0, inSight: true }, { pathIndex: 3, inSight: false }, { pathIndex: 7, inSight: true }];
+  const plan = { profile, lineOfSight: { gaps: [[2, 3], [6, 6]] } };
+  assert.deepEqual([1, 2, 3, 4, 6, 7].map((index) => outOfSightAt(plan, index)),
+    [false, true, true, false, true, false]);
+  assert.equal(outOfSightAt({ profile }, 4), true);
+  assert.equal(outOfSightAt({}, 4), false);
+});
 
 test('fly-through mesh decimates both axes and covers the complete terrain extent', () => {
   const grid = { width: 4, height: 2, cellSize: 5, layers: { elevation: [0, 0, 5, 5, 0, 0, 5, 5] } };

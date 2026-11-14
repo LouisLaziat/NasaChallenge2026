@@ -150,6 +150,7 @@ export function mountHelmet(walk) {
       eye.dose.textContent = `${fmtMSv(frame.doseMSv)} mSv`;
       eye.site.textContent = walk.label;
       eye.conditions.textContent = walk.verdict?.level ?? '';
+      eye.sight.hidden = !frame.outOfSight;
       eye.radiation.textContent = walk.dataset === 'gale' ? 'Curiosity RAD · Gale' : 'Curiosity RAD · Gale proxy for Jezero';
       if (nextPhoto?.url !== shownPhoto) {
         eye.photo.hidden = true;

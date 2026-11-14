@@ -26,7 +26,7 @@ export async function loadWalk() {
   const url = new URL(location.href);
   const params = url.searchParams;
   const requestedData = params.get('data');
-  const dataset = ['real', 'gale'].includes(requestedData) ? requestedData : 'demo';
+  const dataset = ['real', 'demo'].includes(requestedData) ? requestedData : 'gale';
   const directory = new URL(`../../data/${dataset}/`, import.meta.url);
   const localSnapshot = dataset === 'gale' ? 'real-gale' : 'real';
   const allowedSnapshots = [localSnapshot, 'demo-quiet', 'demo-dusty', 'demo-solar'];

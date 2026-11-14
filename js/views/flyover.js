@@ -1,6 +1,7 @@
 // Generated with AI assistance for NASA Space Apps 2026; reviewed by the team
 import { cellToLatLon } from '../engine.js';
 import { MODE_LABELS } from '../routes.js';
+import { outOfSightAt } from './geometry.js';
 import { bindProgress, byId, loadWalk } from './walk.js';
 import { cameraAt, cameraKeyframes, decimateTerrain, ELEVATION_SCALE, elevationAt } from './flyover-geometry.js';
 
@@ -64,9 +65,14 @@ function buildGround(THREE, grid, overlay, pointAt) {
   }));
 }
 
-function addRoute(THREE, scene, points, color) {
+function addRoute(THREE, scene, points, plan) {
   if (points.length < 2) return;
   const positions = [];
+  const colors = [];
+  const route = new THREE.Color(PALETTE.route);
+  const exceeded = new THREE.Color(PALETTE.exceeded);
+  const dim = new THREE.Color(0x7e716a);
+  const color = new THREE.Color();
   const normals = points.slice(1).map((b, i) => {
     const a = points[i];
     const dx = b[0] - a[0];
@@ -87,10 +93,14 @@ function addRoute(THREE, scene, points, color) {
     const [left, right] = sides[i - 1];
     const [endLeft, endRight] = sides[i];
     positions.push(...left, ...right, ...endLeft, ...right, ...endRight, ...endLeft);
+    color.copy(plan.turnBack && i > plan.turnBack.pathIndex ? exceeded : route);
+    if (outOfSightAt(plan, i)) color.lerp(dim, 0.57);
+    for (let vertex = 0; vertex < 6; vertex++) colors.push(color.r, color.g, color.b);
   }
   const geometry = new THREE.BufferGeometry();
   geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
-  scene.add(new THREE.Mesh(geometry, new THREE.MeshBasicMaterial({ color, side: THREE.DoubleSide })));
+  geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
+  scene.add(new THREE.Mesh(geometry, new THREE.MeshBasicMaterial({ vertexColors: true, side: THREE.DoubleSide })));
 }
 
 function makePin(THREE, scene, point, title, kind) {
@@ -125,9 +135,7 @@ function buildScene(THREE, walk, grid, overlay, renderer, OrbitControls) {
   const frames = cameraKeyframes(plan.path, pointAt);
   const route = frames.map(({ walker }) => walker);
   const turn = plan.turnBack;
-  const cut = turn?.pathIndex ?? route.length - 1;
-  addRoute(THREE, scene, route.slice(0, cut + 1), PALETTE.route);
-  if (turn) addRoute(THREE, scene, route.slice(cut), PALETTE.exceeded);
+  addRoute(THREE, scene, route, plan);
   const pins = [makePin(THREE, scene, pointAt(habitat.x, habitat.y), 'H · Habitat', 'habitat')];
   if (turn) {
     pins.push(makePin(THREE, scene, pointAt(turn.x, turn.y), 'Turn back', 'exceeded'));
@@ -247,6 +255,7 @@ async function start() {
   byId('flyover-credit').textContent = overlay ? 'USGS HiRISE colour imagery' :
     walk.terrain.synthetic ? 'Synthetic terrain · Red marks slopes over 20°' : 'USGS HiRISE elevation · Red marks slopes over 20°';
   byId('flyover-message').hidden = true;
+  byId('flyover-sight-key').hidden = !walk.plan.lineOfSight?.gaps.length;
   byId('flyover-scale').hidden = false;
   byId('flyover-footer').hidden = false;
   const setPlaying = (playing) => {
@@ -257,8 +266,9 @@ async function start() {
     progress = nextProgress;
     if (overview) view.overview();
     else view.follow(progress);
-    status.textContent = frame.complete ? 'Habitat reached' : frame.turnBack ? 'Past the turn-back point' :
+    const destination = frame.complete ? 'Habitat reached' : frame.turnBack ? 'Past the turn-back point' :
       frame.upcoming ? `Next: ${frame.upcoming.name}` : 'Returning to habitat';
+    status.textContent = frame.outOfSight ? `${destination} · Out of habitat’s sight` : destination;
     if (progress === 1) setPlaying(false);
   }, { autoplay: false, startAt });
   if (walk.plan.path.length < 2) button.disabled = true;

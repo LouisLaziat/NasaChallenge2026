@@ -167,6 +167,8 @@ input[type="range"] { width: 100%; margin: 0; accent-color: #ffc98a; cursor: poi
 #hud-storm .hud-panel { stroke: currentColor; }
 #hud-storm .hud-label { fill: currentColor; color: inherit; }
 #hud-storm[data-state="safe"] { color: var(--hud-accent); }
+#hud-sight, .helmet-meta [data-eye="sight"] { color: #ffd18b; }
+#hud-sight text { font-size: 16px; font-weight: 650; }
 .hud-value { font-size: 34px; font-weight: 700; }
 .hud-gauge-track { fill: #526360; }
 .hud-accent.is-critical { fill: var(--hud-danger); }
@@ -490,6 +492,7 @@ kbd { padding: .05rem .25rem; border: 1px solid var(--hud-line); border-radius: 
 .flyover-caption { display: flex; flex-wrap: wrap; justify-content: space-between; gap: .2rem .8rem; }
 .flyover-caption > p:first-child { color: var(--fly-accent); font-weight: 650; }
 .flyover-caption > p:last-child, .flyover-gesture { color: var(--fly-muted); font-size: .74rem; }
+.flyover-gesture { display: flex; flex-wrap: wrap; justify-content: space-between; gap: .15rem .8rem; }
 @media (pointer: coarse) {
   .flyover-progress button, .flyover-progress input { min-height: 44px; }
 }

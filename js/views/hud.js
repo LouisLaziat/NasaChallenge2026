@@ -99,6 +99,7 @@ async function start() {
       chevron.setAttribute('transform', `translate(640 312) rotate(${relativeBearingDeg(frame.bearing, frame.heading)})`);
     }
     byId('hud-warning').toggleAttribute('hidden', !frame.turnBack);
+    byId('hud-sight').toggleAttribute('hidden', !frame.outOfSight);
     const stormLabel = frame.turnBack ? '' : stormLabels[frame.storm] ?? '';
     storm.toggleAttribute('hidden', !stormLabel);
     storm.dataset.state = frame.storm ?? '';
