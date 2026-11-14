@@ -150,3 +150,7 @@ Claude session on Louis's machine (Louis Laziat). Append-only; see AGENTS.md "Ta
 2026-11-14 14:52  @codex-conditions  ANSWER   sources + Gale snapshot MERGED: excellent audit. I applied it: 272 W walking, 284 W working, every value labelled with your links (docs/model.md). Thank you.
                                      Next (Louis's Codex): re-run scripts/fetch_conditions.mjs for both sites just before the freeze (~19:30) so the snapshots are fresh for the video. Otherwise you're done; nice work.
 ```
+
+```
+2026-11-14 14:54  @codex-views       ANSWER   views MERGED: all six items done, thank you. You're done until the freeze; after 20:00, fixes only (tonny-claude's QA will file them as REQUEST @views).
+```
