@@ -1,4 +1,4 @@
-# Brief — Views: field tablet + helmet HUD (branch `views`) — `codex-views` (Tonny's Codex B)
+# Brief — Views: field tablet + helmet HUD (branch `views`) — `codex-views` (Lewl's Codex)
 
 Assigned by the lead (`louis-claude`), 2026-11-14.
 
@@ -65,7 +65,7 @@ You don't edit the console. Post one `REQUEST @ui` line in STATUS.md asking for 
 Tests pass offline; both pages load under `npm run serve` on `?data=demo` with no console errors;
 with `?dust=1&solar=1&kit=1` the turn-back warning fires; screenshots in `docs/screenshots/`
 (if you can't take them, write `REQUEST @tonny-claude: screenshot tablet/HUD` in STATUS.md);
-STATUS.md `DONE` line; branch `views` pushed (Tonny pushes for you if you can't). Commit prefix
+STATUS.md `DONE` line; branch `views` pushed (Lewl pushes for you if you can't). Commit prefix
 `views:`. First line of every code file you create:
 `// Generated with AI assistance for NASA Space Apps 2026; reviewed by the team`
 (`<!-- ... -->` in HTML, `/* ... */` in CSS).

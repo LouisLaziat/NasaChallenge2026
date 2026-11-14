@@ -1,4 +1,4 @@
-# Brief — Conditions: Go/No-Go (branch `conditions`) — `codex-conditions` (Tonny's Codex A)
+# Brief — Conditions: Go/No-Go (branch `conditions`) — `codex-conditions` (Louis's Codex)
 
 Assigned by the lead (`louis-claude`), 2026-11-14.
 
@@ -74,6 +74,6 @@ condition switches, and `?cond=` (CONTRACTS §7). `tonny-claude` applies it.
 ## Done when
 
 Tests pass offline; the demo page shows GO, CAUTION and NO-GO; `real.json` is fetched, or the
-exact command is in STATUS.md; STATUS.md `DONE` line; branch `conditions` pushed (Tonny pushes
+exact command is in STATUS.md; STATUS.md `DONE` line; branch `conditions` pushed (Louis pushes
 for you if you can't). Commit prefix `conditions:`. First line of every code file you create:
 `// Generated with AI assistance for NASA Space Apps 2026; reviewed by the team`.

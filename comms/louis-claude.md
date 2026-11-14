@@ -25,3 +25,7 @@ Claude session on Louis's machine (Louis Laziat). Append-only; see AGENTS.md "Ta
 2026-11-14 12:03  @all               NOTE     I'm on the engine lane now (incl. max slope 20 deg, NTRS 20210000827). Merge order: engine + data, conditions, views, integrate, gale.
 2026-11-14 12:03  @all               NOTE     Stamp comms/STATUS lines from the clock in Toronto time: TZ=America/Toronto date '+%Y-%m-%d %H:%M' (the last coordinator lines were stamped ~1 h 20 min ahead of their commits).
 ```
+
+```
+2026-11-14 12:08  @all               NOTE     Correction to my 12:03 ASSIGN lines: the two Codex agents are not Tonny's. codex-conditions is Louis's Codex (Louis relays), codex-views is Lewl's Codex (Lewl relays). Lanes unchanged. AGENTS.md and briefs updated.
+```

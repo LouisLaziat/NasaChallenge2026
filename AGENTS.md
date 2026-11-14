@@ -42,8 +42,9 @@ comms/<agent>.md                            that agent only (cross-machine messa
   `AGENTS.md`, `CONTRACTS.md` and `docs/briefs/`, and does every merge into `develop`. It also
   runs the engine lane. It has no GitHub access: it merges locally and Louis pushes, so expect
   some lag between your `DONE` and the merge.
-- **Workers:** `tonny-claude` (Claude on Tonny's machine), `codex-conditions` and `codex-views`
-  (Tonny's two Codex agents; Tonny passes their briefs and pushes for them if needed).
+- **Workers:** `tonny-claude` (Claude on Tonny's machine), `codex-conditions` (Louis's Codex
+  agent; Louis passes its messages and pushes for it if needed) and `codex-views` (Lewl's Codex
+  agent; Lewl passes its messages and pushes for it if needed).
 - **Humans** own the science and creative calls, the story, the demo video or slides and the
   submission. `main` only changes when a human merges a pull request from `develop`.
 - The old coordinator is retired: read "coordinator" in older lines as "lead".
@@ -62,8 +63,8 @@ Nothing about Gale may change the Jezero files or the contracts.
 | Photos & NASA layers | Claude 2 (Tonny) | merged | `js/photos.js`, `js/basemap.js`, `scripts/fetch_photos.mjs`, `data/real/targets.json`, `data/real/area.json`, `docs/photos-demo.html` | **MERGED.** Jezero area, 6 real stops with Perseverance photos, Mars Trek HiRISE/CTX + traverse. |
 | Real data | **`tonny-claude`** | `data` | `scripts/prep_real_data.mjs`, `scripts/lib/prep.mjs`, `tests/prep.test.mjs`, `data/real/terrain.json` | Jezero DTM + thermal inertia → `data/real/terrain.json`, in Node. Brief: `docs/briefs/data.md`. **Critical path.** |
 | Engine & model | **`louis-claude`** | `engine` | `js/engine.js`, `js/config.js`, `tests/engine.test.mjs`, `CONTRACTS.md`, `docs/model.md` | Cite every `ASSUMPTION`, max slope 20° (NTRS 20210000827), add `profile`, `bestSubset`, `turnBackLatest`. Brief: `docs/briefs/engine.md`. |
-| Conditions (Go/No-Go) | **`codex-conditions`** (Tonny's Codex A) | `conditions` | see brief | MEDA / DONKI / RAD / MCD → condition switches + GO/CAUTION/NO-GO. Brief: `docs/briefs/conditions.md`. |
-| Views (tablet + helmet HUD) | **`codex-views`** (Tonny's Codex B) | `views` | see brief | Field tablet and helmet HUD from the plan result. Brief: `docs/briefs/views.md`. |
+| Conditions (Go/No-Go) | **`codex-conditions`** (Louis's Codex) | `conditions` | see brief | MEDA / DONKI / RAD / MCD → condition switches + GO/CAUTION/NO-GO. Brief: `docs/briefs/conditions.md`. |
+| Views (tablet + helmet HUD) | **`codex-views`** (Lewl's Codex) | `views` | see brief | Field tablet and helmet HUD from the plan result. Brief: `docs/briefs/views.md`. |
 | Gale dataset | `tonny-claude`, only after the lead posts `GO gale` | `gale` | `data/gale/*`, its fetch/prep scripts | Same contracts for Mount Sharp boxwork, Curiosity photos. Only if time allows. |
 
 Partner-agency data is credited where used (ESA HRSC / Mars Climate Database, CSA APXS,
@@ -127,10 +128,10 @@ through git, on the `develop` branch:
   Then switch back to your lane branch.
 - **Read all of `comms/`** (`git fetch origin && git show origin/develop:comms/<file>`) when you
   start, before you commit, and every ~30 minutes. Answer anything addressed to you or `@all`.
-- The lead (`louis-claude`) does all merges into `develop`. `tonny-claude` passes messages to
-  Tonny, and Tonny to the two Codex agents. To get a lane merged, push your lane branch and post
-  `DONE <branch>` in your comms file (Codex agents: a `DONE` line in `STATUS.md` on your branch,
-  and Tonny tells `tonny-claude`, who posts it).
+- The lead (`louis-claude`) does all merges into `develop`. Each human relays for their own agents:
+  Tonny for `tonny-claude`, Louis for `codex-conditions`, Lewl for `codex-views`. To get a lane
+  merged, push your lane branch and post `DONE <branch>` in your comms file (Codex agents: a
+  `DONE` line in `STATUS.md` on your branch; your human tells Louis, who tells the lead).
 
 ## Commands
 
