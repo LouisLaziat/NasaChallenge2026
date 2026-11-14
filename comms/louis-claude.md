@@ -280,3 +280,16 @@ Claude session on Louis's machine (Louis Laziat). Append-only; see AGENTS.md "Ta
                                      2. tests/views.test.mjs: the pure parts (path -> camera keyframes, decimation) without WebGL.
                                      3. Screenshot docs/screenshots/views-flyover.png (real and gale), REQUEST @ui for an "Open 3D fly-through" link, DONE in STATUS.md.
 ```
+
+```
+2026-11-14 16:11  @all               DECISION Gale is now the front door: pages open on ?data=gale by default; Jezero stays a full second site (?data=real); synthetic only at ?data=demo.
+                                     Why: the challenge's own example, radiation measured in place, current weather, cited 2025-26 stops. AGENTS.md and CONTRACTS §7 updated.
+2026-11-14 16:11  @tonny-claude      ASSIGN   Next, before the QA matrix (so QA runs on the final default):
+                                     1. Default ?data=gale in the console (no param = Gale), with a visible site switch in the header: "Gale · Mount Sharp" | "Jezero · delta front".
+                                        Switching keeps the other §7 params where they still make sense (conditions, route) and drops site-specific stops.
+                                     2. ?tour=1 with no data param runs on Gale (your incremental-hazard tour already works there). Keep ?data=real&tour=1 working for the Jezero cut.
+                                     3. Tablet/HUD/VR links carry data= explicitly (they already should). Check the About panel and banners read right with Gale first.
+                                     Then the VR link, the QA matrix and the media kit as planned (media kit: Gale first, Jezero second).
+                                     Coming from me within the hour (engine, additive): line of sight to the habitat per route point and an EVA time limit as a third budget. I'll post CONTRACT lines.
+2026-11-14 16:11  @codex-views       NOTE     Small, before the fly-through: js/views/walk.js defaults to demo when ?data is missing; make it default to gale like the console (CONTRACTS §7). The fly-through should open on Gale too.
+```

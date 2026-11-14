@@ -176,7 +176,7 @@ All three pages read and write the same parameters, so a link carries the whole 
 
 | Param | Values | Meaning |
 |---|---|---|
-| `data` | `demo` (default), `real`, later `gale` | data set folder under `data/` |
+| `data` | `gale` (default), `real` (Jezero), `demo` (synthetic) | data set folder under `data/` |
 | `stops` | `R1,R3,R5` | chosen stop ids; omitted = the page's default |
 | `dust`, `solar`, `kit` | `1` | condition switches on (`dustStorm`, `solarEvent`, `heavyKit`) |
 | `cond` | `real`, `demo-quiet`, `demo-dusty`, `demo-solar` | conditions file to load (§6) |
