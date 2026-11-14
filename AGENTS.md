@@ -12,30 +12,63 @@ value**, marks the **point of no return**, and replans when conditions change (d
 event, heavy sample kit). Each stop shows a real Perseverance photo taken nearby.
 
 Stack: plain HTML + ES modules + Leaflet. **No build step, no framework, no bundler.**
-Node ≥ 20 for tests and scripts. Python 3 + numpy + rasterio for the data pipeline only.
+Node ≥ 20 for everything, data pipeline included (`geotiff` is the only devDependency).
+`npm test` must pass on a clean checkout with no `node_modules` and no network.
 
 ```
-index.html, css/, js/app.js, js/render.js   UI           (Claude 1)
+index.html, css/app.css, js/app.js, js/render.js
+                                            Console UI   (tonny-claude, integration)
 js/photos.js, js/basemap.js, data/real/targets.json, data/real/area.json,
-  scripts/fetch_photos.mjs                  Photos/NASA  (Claude 2)
-scripts/prep_real_data.py, tests/test_prep.py,
-  data/real/terrain.json, requirements.txt  Real data    (Codex 1)
+  scripts/fetch_photos.mjs                  Photos/NASA  (merged; changes via tonny-claude)
+scripts/prep_real_data.mjs, scripts/lib/prep.mjs, tests/prep.test.mjs,
+  data/real/terrain.json                    Real data    (tonny-claude)
 js/engine.js, js/config.js, tests/engine.test.mjs,
-  CONTRACTS.md                              Engine/model (Codex 2)
-data/demo/, scripts/make_demo.mjs, scripts/plan_demo.mjs, package.json,
-  AGENTS.md, CLAUDE.md, README.md           Coordinator  (main Claude session)
+  CONTRACTS.md, docs/model.md               Engine/model (louis-claude)
+js/conditions.js, scripts/fetch_conditions.mjs, data/conditions/,
+  tests/conditions.test.mjs, docs/conditions-demo.html
+                                            Conditions   (codex-conditions)
+tablet.html, hud.html, js/views/, css/views.css, tests/views.test.mjs
+                                            Views        (codex-views)
+data/demo/, scripts/make_demo.mjs, scripts/plan_demo.mjs, scripts/serve.mjs,
+  package.json, AGENTS.md, CLAUDE.md, README.md, docs/briefs/,
+  .claude/launch.json                       Lead         (louis-claude)
 STATUS.md                                   everyone (append only)
 comms/<agent>.md                            that agent only (cross-machine messages)
 ```
 
-## The four lanes
+## Roles (2026-11-14, decided by Tonny)
 
-| Agent | Branch | Owns | Done when |
-|---|---|---|---|
-| Claude 1 — UI | `ui` | `index.html`, `css/`, `js/app.js`, `js/render.js` | Map shows terrain layers, route, numbered stops, turn-back marker; side panel shows O2, time, radiation bars; the three condition toggles and click-to-add-stop replan the route. Works on `data/demo`. |
-| Claude 2 — Photos & NASA layers | `photos` | `js/photos.js`, `js/basemap.js`, `scripts/fetch_photos.mjs`, `data/real/targets.json`, `data/real/area.json` | Each real stop shows a Perseverance photo taken nearby; Mars Trek imagery loads as a base layer; real stops chosen along the rover traverse with sol numbers. |
-| Codex 1 — Real data | `data` | `scripts/prep_real_data.py`, `tests/test_prep.py`, `requirements.txt`, `data/real/terrain.json` | Script crops the USGS HiRISE DTM and the Zenodo thermal-inertia map to `data/real/area.json`, computes roughness, writes the terrain contract. Tested on small synthetic GeoTIFFs. |
-| Codex 2 — Engine & model | `engine` | `js/engine.js`, `js/config.js`, `tests/engine.test.mjs`, `CONTRACTS.md` | Every `ASSUMPTION` in config either cited or kept and justified; adds `profile` (O2/dose along route) and `bestSubset` (best stops that fit); tests pass. |
+- **Lead: `louis-claude`** (Claude on Louis's machine). Decides the plan, assigns lanes, owns
+  `AGENTS.md`, `CONTRACTS.md` and `docs/briefs/`, and does every merge into `develop`. It also
+  runs the engine lane. It has no GitHub access: it merges locally and Louis pushes, so expect
+  some lag between your `DONE` and the merge.
+- **Workers:** `tonny-claude` (Claude on Tonny's machine), `codex-conditions` (Louis's Codex
+  agent; Louis passes its messages and pushes for it if needed) and `codex-views` (Lewl's Codex
+  agent; Lewl passes its messages and pushes for it if needed).
+- **Humans** own the science and creative calls, the story, the demo video or slides and the
+  submission. `main` only changes when a human merges a pull request from `develop`.
+- The old coordinator is retired: read "coordinator" in older lines as "lead".
+
+## Site decision (2026-11-14)
+
+**Jezero Crater (delta front) is the primary site.** Gale Crater (Mount Sharp boxwork) is a
+**second dataset added later**, in `data/gale/` with the same contracts, loaded with `?data=gale`.
+Nothing about Gale may change the Jezero files or the contracts.
+
+## The lanes
+
+| Lane | Who | Branch | Owns | Status / done when |
+|---|---|---|---|---|
+| UI (console) | Claude 1 (Tonny) → now `tonny-claude` | `integrate` | `index.html`, `css/app.css`, `js/app.js`, `js/render.js` | **MERGED.** `tonny-claude` now owns these files for integration: conditions card, tablet/HUD links, new plan fields. |
+| Photos & NASA layers | Claude 2 (Tonny) | merged | `js/photos.js`, `js/basemap.js`, `scripts/fetch_photos.mjs`, `data/real/targets.json`, `data/real/area.json`, `docs/photos-demo.html` | **MERGED.** Jezero area, 6 real stops with Perseverance photos, Mars Trek HiRISE/CTX + traverse. |
+| Real data | **`tonny-claude`** | `data` | `scripts/prep_real_data.mjs`, `scripts/lib/prep.mjs`, `tests/prep.test.mjs`, `data/real/terrain.json` | Jezero DTM + thermal inertia → `data/real/terrain.json`, in Node. Brief: `docs/briefs/data.md`. **Critical path.** |
+| Engine & model | **`louis-claude`** | `engine` | `js/engine.js`, `js/config.js`, `tests/engine.test.mjs`, `CONTRACTS.md`, `docs/model.md` | Cite every `ASSUMPTION`, max slope 20° (NTRS 20210000827), add `profile`, `bestSubset`, `turnBackLatest`. Brief: `docs/briefs/engine.md`. |
+| Conditions (Go/No-Go) | **`codex-conditions`** (Louis's Codex) | `conditions` | see brief | MEDA / DONKI / RAD / MCD → condition switches + GO/CAUTION/NO-GO. Brief: `docs/briefs/conditions.md`. |
+| Views (tablet + helmet HUD) | **`codex-views`** (Lewl's Codex) | `views` | see brief | Field tablet and helmet HUD from the plan result. Brief: `docs/briefs/views.md`. |
+| Gale dataset | `tonny-claude`, only after the lead posts `GO gale` | `gale` | `data/gale/*`, its fetch/prep scripts | Same contracts for Mount Sharp boxwork, Curiosity photos. Only if time allows. |
+
+Partner-agency data is credited where used (ESA HRSC / Mars Climate Database, CSA APXS,
+Spain REMS, UAE Emirates Mars Mission).
 
 ## Hard rules
 
@@ -45,17 +78,24 @@ comms/<agent>.md                            that agent only (cross-machine messa
    agrees in `STATUS.md`. Never rename or remove a field another lane reads.
 3. **Branch from `develop`, merge back into `develop`.** Rebase or merge `develop` into your
    branch at least every couple of hours and before you open a merge. Never push to `main`.
-4. **Merge order:** `engine` and `data` first, then `ui`, then `photos`. Whoever merges after a
-   contract change re-runs all tests.
-5. **Tests must pass before merging:** `npm test` (and `python -m pytest tests/` once it exists).
+4. **Merge order (from now):** `engine` and `data`, then `conditions`, then `views`, then
+   `integrate`, then `gale`. The lead merges and re-runs all tests after every merge.
+5. **Tests must pass before merging:** `npm test`, on a clean checkout with no `node_modules` and
+   no network. Import optional packages (`geotiff`) only inside scripts, with `await import()`.
 6. **No secrets or large files in git.** Raw GeoTIFFs and downloads go in `raw/` (git-ignored).
    Anything committed under `data/` stays under ~5 MB per file.
 7. **Be honest about data.** Synthetic data is labelled `synthetic: true`. Numbers we invented
    are tagged `ASSUMPTION` in `js/config.js`. Curiosity RAD dose rates are from Gale Crater, used
    as a proxy for Jezero — say so wherever dose is shown.
-8. **Unverified endpoints.** Mars Trek tile URLs and the Perseverance raw-image feed have not been
-   tested by anyone yet. Load one of each by hand before building on it, and record the working
-   URL in `STATUS.md`.
+8. **Unverified endpoints.** Mars Trek tiles, the Perseverance raw-image feed and the MMGIS
+   traverse are verified (STATUS.md, 11:20 lines). Anything else (the DTM download, MEDA weather,
+   DONKI) is unverified until someone loads it by hand and records the working URL in `STATUS.md`.
+9. **Real clock times.** Stamp `STATUS.md` and `comms/` lines from the clock, in Toronto time
+   (the Local Event's zone): `TZ=America/Toronto date '+%Y-%m-%d %H:%M'`. Never type a time.
+10. **AI disclosure.** First line of every code file you create:
+    `// Generated with AI assistance for NASA Space Apps 2026; reviewed by the team`
+    (`<!-- -->` in HTML, `/* */` in CSS). Space Apps requires it. No NASA logos or mission
+    insignia in anything we make.
 
 ## STATUS.md protocol
 
@@ -67,29 +107,31 @@ Append a line (newest at the bottom), never rewrite others' lines:
 2026-11-14 14:30  [photos]  NOTE   raw image feed works: https://... (CORS: no, use manifest)
 ```
 
-Tags: `START`, `DONE`, `NOTE`, `REQUEST @lane`, `BLOCKED`, `CONTRACT` (engine lane only),
-`MERGED`.
+Tags: `START`, `DONE`, `NOTE`, `QUESTION`, `REQUEST @lane`, `BLOCKED`, `CONTRACT` (engine lane
+only), `MERGED` (lead only).
 
 ## Talking across machines (`comms/`)
 
 Agents on different computers or accounts cannot message each other directly. They talk
 through git, on the `develop` branch:
 
-- Every agent has **one file it alone writes**: `comms/<agent-name>.md` (e.g. `comms/coordinator.md`,
-  `comms/louis-claude.md`). Nobody edits anyone else's file, so these never conflict.
+- Every agent has **one file it alone writes**: `comms/<agent-name>.md` (e.g. `comms/louis-claude.md`,
+  `comms/tonny-claude.md`). Nobody edits anyone else's file, so these never conflict.
 - Append messages at the bottom, newest last:
-  `2026-11-14 15:02  @coordinator  QUESTION  Can I take the engine lane?`
-  Address with `@coordinator`, `@ui`, `@photos`, `@data`, `@engine`, `@all`.
-  Tags: `HELLO`, `CLAIM <lane>`, `QUESTION`, `ANSWER`, `DONE`, `BLOCKED`, `REQUEST`, `CONTRACT`.
+  `2026-11-14 15:02  @lead  QUESTION  Can the tablet show dose as % of the limit?`
+  Address with `@lead` (= `@louis-claude`), `@tonny-claude`, `@codex-conditions`,
+  `@codex-views`, `@all`.
+  Tags: `HELLO`, `ASSIGN`, `QUESTION`, `ANSWER`, `DONE`, `BLOCKED`, `REQUEST`, `CONTRACT`, `GO`.
 - **Comms commits are the one exception to the merge rule:** commit only your own
   `comms/` file directly on `develop` and push:
   `git checkout develop && git pull --rebase origin develop && git add comms/<you>.md && git commit -m "comms: <you>" && git push origin develop`
   Then switch back to your lane branch.
 - **Read all of `comms/`** (`git fetch origin && git show origin/develop:comms/<file>`) when you
   start, before you commit, and every ~30 minutes. Answer anything addressed to you or `@all`.
-- The coordinator (main Claude session on Tonny's machine) relays between `comms/` and the
-  agents on its own machine, and does all merges into `develop`. To get a lane merged, push your
-  lane branch and post `DONE` with the branch name.
+- The lead (`louis-claude`) does all merges into `develop`. Each human relays for their own agents:
+  Tonny for `tonny-claude`, Louis for `codex-conditions`, Lewl for `codex-views`. To get a lane
+  merged, push your lane branch and post `DONE <branch>` in your comms file (Codex agents: a
+  `DONE` line in `STATUS.md` on your branch; your human tells Louis, who tells the lead).
 
 ## Commands
 
