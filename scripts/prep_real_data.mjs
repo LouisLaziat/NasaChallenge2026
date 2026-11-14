@@ -1,3 +1,4 @@
+// Generated with AI assistance for NASA Space Apps 2026; reviewed by the team
 // Real Jezero terrain for Marswalk Budget -> data/real/terrain.json (CONTRACTS.md §1).
 // Owner: data lane (tonny-claude). Maths lives in scripts/lib/prep.mjs (see its header for the
 // coordinate conventions and the roughness formula).

@@ -1,3 +1,4 @@
+// Generated with AI assistance for NASA Space Apps 2026; reviewed by the team
 // Pure maths for scripts/prep_real_data.mjs. NO IMPORTS: tests run offline with no node_modules.
 // Owner: data lane (tonny-claude). Output shape: CONTRACTS.md §1.
 //
