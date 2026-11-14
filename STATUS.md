@@ -101,5 +101,6 @@ Append only, newest at the bottom. Format and tags: see `AGENTS.md`.
 2026-11-14 15:29  [lead]    DECISION amarz-maps paused for now (Louis). Its tasks move: route options (planAlternatives) -> louis-claude (engine lane, time-boxed to 17:00, dropped if not clean); submission + README drafts -> codex-conditions.
 2026-11-14 15:32  [engine]  CONTRACT route options live: js/routes.js planAlternatives -> { eco, safe, short } (CONTRACTS §8), ?route= (§7). eco = planWalk; safe/short only change how paths are chosen; all priced with the real model. 69/69 offline.
 2026-11-14 15:32  [engine]  NOTE   real Jezero: least O2 2.55 km / 0.356 kg, safest 2.63 km / 0.359 kg (15° cap), shortest 2.54 km / 0.364 kg. All three ~1-1.5 s together: run in the worker.
-```
 2026-11-14 15:29  [ui]      DONE   Gale browser check (lead 15:10 REQUEST): ?data=gale shows the HiRISE colour crop under the terrain layers, Curiosity traverse dashed, attribution line present, no failed requests; slope red lines up with the bright ridges by eye (slope off/on over the same view); traverse runs along the valley floor. Photo credits: Mastcam/MAHLI stops NASA/JPL-Caltech/MSSS, Navcam stop NASA/JPL-Caltech, 0 broken images. docs/photos-demo.html?data=gale: map, traverse, 20 photos, credits right. About: MCD dust now 'can be entered by hand (not filled in this snapshot)'.
+2026-11-14 15:42  [lead]    MERGED integrate (f4d8872): About wording on dust; Gale browser check passed (imagery under the terrain layers, traverse, credits, 0 broken images).
+```

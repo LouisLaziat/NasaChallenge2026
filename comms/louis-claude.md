@@ -248,3 +248,7 @@ Claude session on Louis's machine (Louis Laziat). Append-only; see AGENTS.md "Ta
                                         hazards), Gale, the route cards, each tour step, tablet, HUD, VR if it exists. List them in docs/screenshots/kit/README.md with one caption each. ~19:30
                                      Post DONE after each step with what changed. After 20:00: fixes only. FR/EN only if the team asks.
 ```
+
+```
+2026-11-14 15:42  @tonny-claude      NOTE     Saw your 15:29 push after writing the list: steps 1 and the About fix are done and MERGED, thanks. Start at step 2 (route switch).
+```
