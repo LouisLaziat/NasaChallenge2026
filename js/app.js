@@ -748,7 +748,16 @@ function esc(s) {
 // ---------------------------------------------------------------------------
 
 const TOUR = PARAMS.get('tour') === '1';
-let tourStep = -1, tourBest = null, tourBusy = false;
+let tourStep = -1, tourBest = null, tourBusy = false, tourHaz = 0;
+
+// Hazards are added one at a time until the walk breaks, so the story works on every site
+// (Jezero: dust alone is enough; Gale needs more). Deterministic, so recordings still repeat.
+const TOUR_HAZARDS = [
+  { conditions: { dustStorm: true }, text: 'Dust storm forecast: slower walking, more effort.', short: 'dust storm on' },
+  { conditions: { dustStorm: true, heavyKit: true }, text: 'Dust storm plus a heavy sample kit: slower, harder walking.', short: 'dust storm + heavy kit' },
+  { conditions: { dustStorm: true, heavyKit: true, solarEvent: true }, text: 'Dust storm, heavy kit and a solar particle event.', short: 'all three hazards' },
+];
+const tourHazSet = (included) => tourSet({ cond: 'demo-dusty', conditions: TOUR_HAZARDS[tourHaz].conditions, included });
 
 const tourFileIds = () => state.targets.filter((t) => !t.custom).map((t) => t.id);
 const tourStops = (p) => `${p.order.length} stop${p.order.length === 1 ? '' : 's'}`;
@@ -779,14 +788,22 @@ const TOUR_STEPS = [
       : `A quiet sol: ${tourStops(p)}, ${tourO2(p)}. Even this walk is over budget.`,
   },
   {
-    run: () => tourSet({ cond: 'demo-dusty', conditions: { dustStorm: true }, included: tourFileIds() }),
+    run: async () => {
+      for (tourHaz = 0; tourHaz < TOUR_HAZARDS.length; tourHaz++) {
+        await tourHazSet(tourFileIds());
+        if (!state.plan?.withinBudget) break;
+      }
+      tourHaz = Math.min(tourHaz, TOUR_HAZARDS.length - 1);
+    },
     after: () => { tourBest = state.plan?.bestSubset || null; tourFitRoute(); },
     caption: (p) => p.withinBudget
-      ? `Dust storm forecast: slower walking, more effort. Still fits: ${tourO2(p)}.`
-      : `Dust storm forecast: slower walking, more effort. Same stops now need ${tourO2(p)}: over budget.`,
+      ? `${TOUR_HAZARDS[tourHaz].text} Still fits: ${tourO2(p)}.`
+      : p.violations.includes('oxygen')
+        ? `${TOUR_HAZARDS[tourHaz].text} Same stops now need ${tourO2(p)}: over budget.`
+        : `${TOUR_HAZARDS[tourHaz].text} O₂ is fine, but the radiation dose goes over the per-walk limit.`,
   },
   {
-    run: () => tourSet({ cond: 'demo-dusty', conditions: { dustStorm: true }, included: tourFileIds() }),
+    run: () => tourHazSet(tourFileIds()),
     after: () => {
       if (!turnBackMarker) return;
       map.flyTo(turnBackMarker.getLatLng(), Math.max(map.getZoom(), 16), { duration: 0.8 });
@@ -797,7 +814,7 @@ const TOUR_STEPS = [
       : 'No point of no return on this walk: oxygen gets the astronaut home.',
   },
   {
-    run: () => tourSet({ cond: 'demo-dusty', conditions: { dustStorm: true }, included: tourFileIds() }),
+    run: () => tourHazSet(tourFileIds()),
     after: () => {
       tourFitRoute();
       const box = $('best-subset');
@@ -808,13 +825,13 @@ const TOUR_STEPS = [
       : 'The planner looks for the most science that still fits the budget.',
   },
   {
-    run: () => tourSet({ cond: 'demo-dusty', conditions: { dustStorm: true }, included: tourBest?.ids || tourFileIds() }),
+    run: () => tourHazSet(tourBest?.ids || tourFileIds()),
     after: tourFitRoute,
     caption: (p) => {
       let level = '';
       try { level = conditionsVerdict(state.cond, p).level; } catch { /* card shows the error */ }
       const fit = p.withinBudget ? `fits${level ? `, ${level}` : ''}` : 'still over budget';
-      return `Best set, dust storm on: ${tourStops(p)}, science ${p.totals.scienceValue}, ${tourO2(p)}: ${fit}.`;
+      return `Best set, ${TOUR_HAZARDS[tourHaz].short}: ${tourStops(p)}, science ${p.totals.scienceValue}, ${tourO2(p)}: ${fit}.`;
     },
   },
   {
