@@ -20,7 +20,7 @@ test('gale area sits inside the USGS 1 m DEM footprint', () => {
   assert.ok(b.west >= 137.12 && b.east <= 137.68, 'longitude inside 137.12..137.68');
 });
 
-test('gale targets follow CONTRACTS §2 and are honest placeholders', () => {
+test('gale targets follow CONTRACTS §2 and every stop is cited', () => {
   const t = load('targets.json');
   assert.ok(t.habitat && Number.isFinite(t.habitat.lat) && Number.isFinite(t.habitat.lon));
   assert.ok(t.targets.length >= 3);
@@ -30,7 +30,9 @@ test('gale targets follow CONTRACTS §2 and are honest placeholders', () => {
     assert.ok(Number.isFinite(s.lat) && Number.isFinite(s.lon));
     assert.ok(s.value >= 1 && s.value <= 10);
     assert.ok(s.dwellMin > 0);
-    assert.equal(s.placeholder, true, 'science values are placeholders until the team sets them');
+    assert.ok(!s.placeholder, `${s.id} is still a placeholder`);
+    assert.match(s.source ?? '', /^https:\/\/science\.nasa\.gov\//, `${s.id} cites a NASA mission update`);
+    assert.ok(s.note && s.note.length > 40);
     for (const p of s.photos ?? []) {
       assert.match(p.url, /^https:\/\/mars\.nasa\.gov\//);
       assert.ok(Number.isInteger(p.sol) && p.camera && p.credit);
@@ -61,4 +63,15 @@ test('gale stops resolve inside the grid and the walk plans', { skip: !has && 'd
   assert.ok(plan.ok);
   assert.ok(plan.order.length >= 3, `at least 3 stops reachable (unreachable: ${plan.unreachable.join(', ')})`);
   assert.ok(plan.totals.distanceM > 500);
+});
+
+test('gale demo story: every stop reachable at 20°, a normal walk fits, all three hazards go over', { skip: !has && 'data/gale/terrain.json not generated' }, () => {
+  const terrain = load('terrain.json');
+  const targets = load('targets.json');
+  const normal = planWalk(terrain, targets);
+  assert.deepEqual(normal.unreachable, []);
+  assert.equal(normal.withinBudget, true);
+  const all = planWalk(terrain, targets, { conditions: { dustStorm: true, heavyKit: true, solarEvent: true } });
+  assert.equal(all.withinBudget, false);
+  assert.ok(all.bestSubset, 'over budget offers a best set');
 });

@@ -20,7 +20,8 @@
         <text id="hud-dataset" x="60" y="89" class="hud-label"></text>
         <g id="conditions-badge" hidden>
           <rect x="1030" y="38" width="190" height="56" rx="6" fill="var(--hud-panel)" stroke="currentColor"/>
-          <text id="conditions-level" x="1125" y="74" text-anchor="middle"></text>
+          <text id="conditions-level" x="1125" y="61" text-anchor="middle"></text>
+          <text id="conditions-source" x="1125" y="82" text-anchor="middle" class="hud-credit"></text>
         </g>
       </g>
 
@@ -36,6 +37,10 @@
         <rect x="484" y="162" width="312" height="52" rx="6"/>
         <text x="640" y="195">TURN BACK · O₂ RESERVE</text>
       </g>
+      <g id="hud-storm" text-anchor="middle" hidden>
+        <rect x="440" y="162" width="400" height="42" rx="6" class="hud-panel"/>
+        <text id="hud-storm-text" x="640" y="189" class="hud-label"></text>
+      </g>
 
       <g class="hud-target" text-anchor="middle">
         <path d="M589 302v-30h30 M661 272h30v30 M691 323v30h-30 M619 353h-30v-30"
@@ -46,6 +51,7 @@
         <text id="hud-destination-label" x="640" y="388" class="hud-label"></text>
         <text id="hud-destination" x="640" y="426" class="hud-target-name"></text>
         <text id="hud-distance" x="640" y="459" class="hud-range"></text>
+        <text id="hud-instruction" x="640" y="494" class="hud-instruction" hidden></text>
       </g>
 
       <text id="hud-photo-credit" x="1220" y="516" text-anchor="end" class="hud-credit" hidden></text>
