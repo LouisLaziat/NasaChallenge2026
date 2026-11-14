@@ -75,3 +75,18 @@ test('gale demo story: every stop reachable at 20°, a normal walk fits, all thr
   assert.equal(all.withinBudget, false);
   assert.ok(all.bestSubset, 'over budget offers a best set');
 });
+
+test('gale photos: Curiosity camera names and per-photo credits', async () => {
+  const { roverOf, captionText } = await import('../js/photos.js');
+  const { isGale } = await import('../js/basemap.js');
+  const targets = load('targets.json');
+  for (const s of targets.targets) {
+    for (const p of s.photos ?? []) {
+      assert.equal(roverOf(p), 'Curiosity');
+      assert.doesNotMatch(captionText(p), /Perseverance|undefined/);
+    }
+  }
+  assert.equal(roverOf({ url: 'https://mars.nasa.gov/mars2020-raw-images/x.png' }), 'Perseverance');
+  if (has) assert.equal(isGale(load('terrain.json')), true);
+  assert.equal(isGale(JSON.parse(readFileSync(new URL('../data/real/terrain.json', import.meta.url)))), false);
+});

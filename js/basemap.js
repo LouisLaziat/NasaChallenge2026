@@ -1,4 +1,8 @@
-// NASA base layers for the map. Owner: photos lane (Claude 2). Contract: CONTRACTS.md §5.
+// NASA base layers for the map. Owner: photos layers (Claude 2, then louis-claude for Gale). Contract: CONTRACTS.md §5.
+//
+// Two sites: Jezero (Mars Trek HiRISE/CTX tiles + Perseverance traverse) and Gale (our own HiRISE
+// colour crop data/gale/imagery.png + Curiosity traverse data/gale/traverse.json). The site is picked
+// from where the terrain grid is, so callers don't change.
 //
 // Mars Trek serves Jezero mosaics as WMTS tiles in an equirectangular (plate carrée) grid:
 // zoom 0 = 2 x 1 tiles from (-180°, 90°), URL .../{z}/{row}/{col}.png, CORS open. That grid is
@@ -15,6 +19,16 @@ import { cellToLatLon } from './engine.js';
 
 const TREK = 'https://trek.nasa.gov/tiles/Mars/EQ';
 const TRAVERSE_URL = 'https://mars.nasa.gov/mmgis-maps/M20/Layers/json/M20_traverse.json';
+
+// Gale (Mount Sharp boxwork) files, prepared by scripts/prep_gale.mjs (see data/gale/README.md).
+const GALE_DIR = new URL('../data/gale/', import.meta.url);
+const GALE_CREDIT = 'Imagery: MRO HiRISE colour mosaic (NASA/JPL-Caltech/UArizona), USGS Astrogeology; Curiosity traverse: NASA/JPL MMGIS';
+
+/** True when the terrain grid lies in Gale Crater (about 4.6° S, 137.4° E). */
+export function isGale(terrain) {
+  const o = terrain?.origin;
+  return Boolean(o) && o.lat > -6.5 && o.lat < -3 && o.lon > 136 && o.lon < 139;
+}
 const TREK_CREDIT = 'Imagery: <a href="https://trek.nasa.gov/mars/" target="_blank" rel="noopener">NASA Mars Trek</a>, MRO HiRISE/CTX (NASA/JPL-Caltech/UArizona/MSSS)';
 
 export const TREK_LAYERS = {
@@ -147,20 +161,22 @@ function trekLayer(L, map, spec, opts = {}) {
   return eqTileLayer(L, spec, opts);
 }
 
-let traversePromise = null;
-function loadTraverse() {
-  traversePromise ??= fetch(TRAVERSE_URL).then((r) => {
-    if (!r.ok) throw new Error(`traverse HTTP ${r.status}`);
-    return r.json();
-  });
-  return traversePromise;
+const geoCache = new Map();
+function loadGeo(url) {
+  if (!geoCache.has(url)) {
+    geoCache.set(url, fetch(url).then((r) => {
+      if (!r.ok) throw new Error(`traverse HTTP ${r.status}`);
+      return r.json();
+    }));
+  }
+  return geoCache.get(url);
 }
 
-/** Perseverance's actual drive path as a dashed line, clipped to `bounds` (+ margin). */
-function traverseLayer(L, bounds) {
+/** A rover's actual drive path as a dashed line, clipped to `bounds` (+ margin). */
+function traverseLayer(L, bounds, { url = TRAVERSE_URL, rover = 'Perseverance' } = {}) {
   const group = L.layerGroup();
   const box = L.latLngBounds(bounds).pad(0.5);
-  loadTraverse().then((geo) => {
+  loadGeo(url).then((geo) => {
     for (const f of geo.features || []) {
       const g = f.geometry;
       const lines = g?.type === 'LineString' ? [g.coordinates] : g?.type === 'MultiLineString' ? g.coordinates : [];
@@ -169,12 +185,36 @@ function traverseLayer(L, bounds) {
         if (!pts.some((p) => box.contains(p))) continue;
         L.polyline(pts, {
           color: '#7fd3ff', weight: 2, opacity: 0.9, dashArray: '6 5', interactive: true,
-        }).bindTooltip(`Perseverance drive, sol ${f.properties?.sol ?? '?'}`, { sticky: true })
+        }).bindTooltip(`${rover} drive${f.properties?.sol != null ? `, sol ${f.properties.sol}` : ''}`, { sticky: true })
           .addTo(group);
       }
     }
   }).catch((err) => console.warn('[basemap] rover traverse not loaded:', err.message));
   return group;
+}
+
+/** Gale: our HiRISE colour crop as one image overlay, placed on the exact area.json bounds. */
+function galeImageryLayer(L, terrain, pane) {
+  const layer = L.imageOverlay(new URL('imagery.png', GALE_DIR).href, terrainBounds(terrain),
+    { pane, interactive: false, attribution: GALE_CREDIT, className: 'pb-gale-imagery' });
+  fetch(new URL('area.json', GALE_DIR)).then((r) => (r.ok ? r.json() : null)).then((a) => {
+    const b = a?.bounds;
+    if (b) layer.setBounds(L.latLngBounds([b.south, b.west], [b.north, b.east]));
+  }).catch(() => { /* keep the terrain bounds */ });
+  return layer;
+}
+
+function addGaleLayers(L, map, terrain, pane) {
+  const bounds = terrainBounds(terrain);
+  const hirise = galeImageryLayer(L, terrain, pane);
+  const traverse = traverseLayer(L, bounds, { url: new URL('traverse.json', GALE_DIR).href, rover: 'Curiosity' });
+  hirise.addTo(map);
+  traverse.addTo(map);
+  const control = L.control.layers(null, {
+    'HiRISE colour (USGS mosaic)': hirise,
+    'Curiosity traverse': traverse,
+  }, { collapsed: true, position: 'topright' }).addTo(map);
+  return { layers: { hirise, traverse }, control };
 }
 
 /**
@@ -192,6 +232,8 @@ export function addBaseLayers(map, terrain) {
     map.createPane(pane);
     map.getPane(pane).style.zIndex = 250; // above Leaflet tiles (200), below overlays (400)
   }
+
+  if (isGale(terrain)) return addGaleLayers(L, map, terrain, pane);
 
   const bounds = terrainBounds(terrain);
   const hirise = trekLayer(L, map, TREK_LAYERS.hirise, { pane });

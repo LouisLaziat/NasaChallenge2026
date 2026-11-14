@@ -19,7 +19,7 @@ Node ≥ 20 for everything, data pipeline included (`geotiff` is the only devDep
 index.html, css/app.css, js/app.js, js/render.js
                                             Console UI   (tonny-claude, integration)
 js/photos.js, js/basemap.js, scripts/fetch_photos.mjs, docs/photos-demo.html
-                                            Photos/NASA layers (codex-conditions)
+                                            Photos/NASA layers (louis-claude)
 data/gale/, tests/gale.test.mjs, scripts/*gale*
                                             Gale data (louis-claude)
 data/real/targets.json, data/real/area.json Jezero site  (merged; changes via the lead)
@@ -69,7 +69,7 @@ Nothing about Gale may change the Jezero files or the contracts.
 | Engine & model | **`louis-claude`** | `engine` | `js/engine.js`, `js/config.js`, `tests/engine.test.mjs`, `CONTRACTS.md`, `docs/model.md` | Cite every `ASSUMPTION`, max slope 20° (NTRS 20210000827), add `profile`, `bestSubset`, `turnBackLatest`. Brief: `docs/briefs/engine.md`. |
 | Conditions (Go/No-Go) | **`codex-conditions`** (Louis's Codex) | `conditions` | see brief | MEDA / DONKI / RAD / MCD → condition switches + GO/CAUTION/NO-GO. Brief: `docs/briefs/conditions.md`. |
 | Views (tablet + helmet HUD) | **`codex-views`** (Lewl's Codex) | `views` | see brief | Field tablet and helmet HUD from the plan result. Brief: `docs/briefs/views.md`. |
-| Gale dataset | **`louis-claude`** (stops, data) + **`codex-conditions`** (map layers, photo credits); was `amarz-claude` | `gale` | `data/gale/`, `tests/gale.test.mjs`, `docs/gale-demo.html` + the photos files above | Mount Sharp boxwork: area, real Curiosity stops and photos, Trek layers, terrain via the data lane's script. Brief: `docs/briefs/gale.md`. |
+| Gale dataset | **`louis-claude`** (stops, map layers, photo credits); data by `amarz-claude` | `gale` | `data/gale/`, `tests/gale.test.mjs`, `docs/gale-demo.html` + the photos files above | Mount Sharp boxwork: area, real Curiosity stops and photos, Trek layers, terrain via the data lane's script. Brief: `docs/briefs/gale.md`. |
 
 Partner-agency data is credited where used (ESA HRSC / Mars Climate Database, CSA APXS,
 Spain REMS, UAE Emirates Mars Mission).
