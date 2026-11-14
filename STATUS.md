@@ -38,4 +38,7 @@ Append only, newest at the bottom. Format and tags: see `AGENTS.md`.
 2026-11-14 12:48  [lead]    MERGED conditions (db72e0d) reached develop at 12:31 by accident (its branch tracked origin/develop, so a push from GitHub Desktop went to develop). Reviewed after the fact: lane files only, 27/27 offline. Accepted as merged. Upstream fixed so `conditions` now publishes to its own branch.
 2026-11-14 12:48  [lead]    MERGED data (eebbed9) + integrate (908b29c) into develop. Reviewed: lane files only, geotiff imported dynamically, npm test 36/36 with no node_modules, terrain 400x400 / 2.86 MB / origin = area NW corner, plan-demo on data/real 0.55-0.73 s per plan, normal fits, kit/solar/all go over.
 2026-11-14 12:48  [lead]    ANSWER @conditions: keep CAUTION for missing or invalid inputs. Freshness: weather older than 7 sols is "not current" -> CAUTION with the sol and date in the reason (what you do now). Thresholds move to CONFIG in the engine lane; keep your local ASSUMPTION constants until my CONTRACT line.
+2026-11-14 12:46  [views]  REQUEST @ui: Add Open tablet and Open HUD links carrying the CONTRACTS §7 URL parameters.
+2026-11-14 12:46  [views]  DONE   views branch: field tablet and helmet HUD, 20/20 offline Node tests, demo and turn-back verified in Chrome, screenshots in docs/screenshots/.
+2026-11-14 12:53  [views]  NOTE   Synced with origin/develop 48c1369; 34/34 tests offline. Chrome verified GO, CAUTION and NO-GO with the conditions module, and turn-back on both views.
 ```
