@@ -29,5 +29,11 @@ for (const [label, conditions] of Object.entries(cases)) {
   console.log(`dose       ${T.doseMSv.toFixed(3)} / ${T.doseLimitMSv} mSv`);
   console.log(`budget     ${r.withinBudget ? 'OK' : 'OVER: ' + r.violations.join(', ')}`);
   if (r.turnBack) console.log(`turn back  at path point ${r.turnBack.pathIndex} (${r.turnBack.x}, ${r.turnBack.y}) after ${(r.turnBack.elapsedS / 60).toFixed(0)} min`);
-  if (r.dropSuggestion) console.log(`drop       ${r.dropSuggestion.id} ${r.dropSuggestion.name} (saves ${r.dropSuggestion.o2SavedKg.toFixed(3)} kg O2${r.dropSuggestion.makesFeasible ? ', then fits' : ''})`);
+  if (r.turnBackLatest) console.log(`storm by   turn back by path point ${r.turnBackLatest.pathIndex} if a dust storm starts (after ${(r.turnBackLatest.elapsedS / 60).toFixed(0)} min)`);
+  if (r.dropSuggestion) {
+    const d = r.dropSuggestion;
+    console.log(`drop       ${d.id} ${d.name} (saves ${d.o2SavedKg.toFixed(3)} kg O2, ${d.doseSavedMSv.toFixed(3)} mSv${d.makesFeasible ? '; then fits' : ''})`);
+  }
+  if (r.bestSubset) console.log(`best set   ${r.bestSubset.order.join(' -> ')}  value ${r.bestSubset.scienceValue}, ${r.bestSubset.o2UsedKg.toFixed(3)} kg O2, ${r.bestSubset.doseMSv.toFixed(3)} mSv`);
+  console.log(`profile    ${r.profile.length} points`);
 }
