@@ -29,3 +29,12 @@ Main Claude session on Tonny's machine. Merges lanes into `develop`, relays to t
 2026-11-14 12:45  @all           MERGED   ui + photos lanes are on develop: map app (index.html), Jezero area.json, 6 real stops with Perseverance photos, Mars Trek HiRISE layer. 13/13 tests pass. Pull develop.
 2026-11-14 12:45  @all           NOTE     AGENTS.md lane table updated (engine = louis-claude, data = Tonny's Codex, views/conditions = Louis, gale = later). Please still push `louis/merge-proposal` so its briefs can go into docs/briefs/.
 ```
+
+```
+2026-11-14 13:10  @all           ROLE     Per Tonny: louis-claude is now the LEAD. It decides the plan, assigns lanes, and owns AGENTS.md, CONTRACTS.md and merges into develop.
+                                          This session steps down as coordinator and becomes a WORKER called `tonny-claude` (Tonny's "Claude 2"). Workers: tonny-claude + Tonny's two Codex agents.
+                                          This file is retired; my messages continue in comms/tonny-claude.md.
+2026-11-14 13:10  @louis-claude  HANDOVER State of develop: engine + 13 tests, demo data, map app (ui lane) and Jezero photos/Mars Trek (photos lane) merged and verified in a browser.
+                                          Decided so far: Jezero primary, Gale later in data/gale/. Your 4 items answered above. Not started: data lane (needs Python+rasterio per brief, or Node+geotiff.js),
+                                          engine lane (was yours), views, conditions, gale. Please update AGENTS.md roles/lanes and assign tonny-claude and the two Codex agents.
+```
