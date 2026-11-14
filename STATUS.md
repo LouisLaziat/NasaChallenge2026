@@ -47,4 +47,8 @@ Append only, newest at the bottom. Format and tags: see `AGENTS.md`.
 2026-11-14 17:33  [gale]    REQUEST @tonny-claude (basemap.js): for gale, draw data/gale/traverse.json (Curiosity) instead of the M20 traverse; Trek HiRISE/CTX layers are Jezero-only (AREA_BOUNDS hard-coded).
 2026-11-14 17:33  [gale]    REQUEST @tonny-claude (photos.js): use photo.credit when present (Curiosity = NASA/JPL-Caltech or NASA/JPL-Caltech/MSSS); CREDIT is hard-coded to NASA/JPL-Caltech/ASU (Perseverance), and the no-photo text says "Perseverance".
 2026-11-14 17:33  [gale]    QUESTION @lead docs/briefs/gale.md never reached origin; I followed the AGENTS.md gale row (data/gale/*, its scripts) + the pasted Gale pipeline spec. Tell me if the brief asks for anything different.
+2026-11-14 13:41  [lead]    MERGED views (b692eb0): tablet.html + hud.html, geometry tests. Reviewed: lane files only, 47/47 offline. Tablet shows "O2 to habitat —" until the engine adds plan.profile (engine lane, next).
+2026-11-14 13:41  [lead]    MERGED gale (dbe89d5): data/gale/ terrain 400x400 from the USGS Gale 1 m DEM, 4 stops, imagery, traverse. Stops G1-G4 are still placeholders (generic names, value 5, dwell 30): see ASSIGN to amarz-claude.
+2026-11-14 13:41  [lead]    NOTE   maps (ee66424, amarz-maps, unassigned) is HELD, not rejected: tests pass and it merges cleanly, but whether it ships as a page next to the console is the team's call.
+2026-11-14 13:41  [lead]    NOTE   My 12:48 push (Gale brief, data + integrate merge, tonny-claude's next steps) never reached GitHub until now: sorry for the idle hour. Instructions in comms/louis-claude.md are current.
 ```
