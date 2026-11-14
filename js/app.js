@@ -1,7 +1,8 @@
 // Marswalk Budget — app entry: loads data, runs the planner off the main thread, wires the UI.
 // Owner: UI lane (Claude 1). Drawing helpers live in js/render.js.
 
-import { latLonToCell, planWalk } from './engine.js';
+import { latLonToCell } from './engine.js';
+import { planRoute, slopeProfile, MODE_LABELS, ROUTE_MODES } from './routes.js';
 import { CONFIG } from './config.js';
 import { renderPhotos } from './photos.js';
 import { addBaseLayers } from './basemap.js';
@@ -65,6 +66,8 @@ const state = {
   selectedId: null,
   customCount: 0,
   condName: COND_SNAPSHOTS.some((s) => s.name === PARAMS.get('cond')) ? PARAMS.get('cond') : SITE.defaultCond,
+  route: ROUTE_MODES.includes(PARAMS.get('route')) ? PARAMS.get('route') : 'eco', // route option (CONTRACTS §8)
+  alts: {},               // { eco, safe, short } plans for the current stops and conditions, filled in the background
   cond: null,             // loaded conditions snapshot, or null if it could not be loaded
   condError: null,
 };
@@ -80,9 +83,9 @@ const planner = (() => {
   let worker = null, seq = 0;
   const pending = new Map();
   try {
-    const engineUrl = new URL('./engine.js', import.meta.url).href;
+    const routesUrl = new URL('./routes.js', import.meta.url).href;
     const src = `
-      import { planWalk } from ${JSON.stringify(engineUrl)};
+      import { planRoute } from ${JSON.stringify(routesUrl)};
       let terrain = null;
       self.onmessage = async (e) => {
         const m = e.data;
@@ -91,7 +94,7 @@ const planner = (() => {
             terrain = await (await fetch(m.terrainUrl)).json();
             self.postMessage({ id: m.id, ok: true });
           } else {
-            const plan = planWalk(terrain, m.targetsFile, m.options);
+            const plan = planRoute(m.mode || 'eco', terrain, m.targetsFile, m.options); // eco = planWalk exactly (CONTRACTS §8)
             self.postMessage({ id: m.id, plan });
           }
         } catch (err) { self.postMessage({ id: m.id, error: String(err && err.message || err) }); }
@@ -119,13 +122,13 @@ const planner = (() => {
       if (!worker) return;
       try { await call({ type: 'init', terrainUrl }); } catch { worker = null; }
     },
-    async plan(targetsFile, options) {
+    async plan(targetsFile, options, mode = 'eco') {
       if (worker) {
-        try { return (await call({ type: 'plan', targetsFile, options })).plan; }
+        try { return (await call({ type: 'plan', targetsFile, options, mode })).plan; }
         catch (err) { if (worker) throw err; } // worker died: fall through to main thread
       }
       await new Promise((r) => setTimeout(r, 30)); // let the "planning…" state paint
-      return planWalk(state.terrain, targetsFile, options);
+      return planRoute(mode, state.terrain, targetsFile, options);
     },
   };
 })();
@@ -359,16 +362,100 @@ function nearestPathIndex(ll, p) {
 // ---------------------------------------------------------------------------
 
 let planSeq = 0;
+
+/** The two route options not on screen, planned after the main plan so the page never waits (CONTRACTS §8). */
+async function planOtherRoutes(mine, file, options, shown) {
+  // Same reachability target as planAlternatives: safe relaxes its slope cap until it reaches as many stops as eco.
+  const extra = shown.mode === 'eco' ? { ...options, ecoUnreachable: shown.unreachable.length } : options;
+  for (const mode of ROUTE_MODES) {
+    if (mode === state.route) continue;
+    try {
+      const p = await planner.plan(file, extra, mode);
+      if (mine !== planSeq) return; // stops or conditions changed meanwhile
+      state.alts = { ...state.alts, [mode]: p };
+    } catch (err) {
+      if (mine !== planSeq) return;
+      console.warn(`route option ${mode} failed`, err);
+      state.alts = { ...state.alts, [mode]: { error: err.message } };
+    }
+    renderRoutes();
+    drawAltRoutes();
+  }
+}
+
+/** Route option cards: least oxygen / safest / shortest for the same stops and conditions. */
+function renderRoutes() {
+  const box = $('routes');
+  if (!box) return;
+  box.replaceChildren();
+  if (!state.plan?.order?.length) {
+    box.append(el('p', { class: 'muted' }, 'Select at least one stop to compare routes.'));
+    return;
+  }
+  for (const mode of ROUTE_MODES) {
+    const p = state.alts[mode];
+    const lab = MODE_LABELS[mode] || { name: mode, blurb: '' };
+    const on = mode === state.route;
+    let body;
+    if (!p) body = el('div', { class: 'route-meta muted' }, 'planning…');
+    else if (p.error) body = el('div', { class: 'route-meta muted' }, 'not available');
+    else {
+      const prof = slopeProfile(state.terrain, p);
+      const steep = prof[2] + prof[3];
+      const T = p.totals;
+      body = el('div', { class: 'route-meta' },
+        el('span', {}, `${(T.distanceM / 1000).toFixed(2)} km · ${fmtDuration(T.totalTimeS)}`),
+        // 3 decimals here only: the options often differ by a few grams of O₂.
+        el('span', { class: T.o2UsedKg > T.o2UsableKg ? 'over' : '' }, `${T.o2UsedKg.toFixed(3)} kg O₂ · ${fmtMSv(T.doseMSv)} mSv`),
+        el('span', {}, `${steep.toFixed(0)} m over 15°${p.slopeCapDeg ? ` · kept under ${p.slopeCapDeg}°` : ''}`),
+        p.withinBudget ? null : el('span', { class: 'over' }, 'over budget'));
+    }
+    const card = el('button', {
+      type: 'button', class: `route-opt${on ? ' on' : ''}`, 'aria-pressed': on ? 'true' : 'false',
+      disabled: !p || p.error ? true : null, 'data-mode': mode,
+    }, el('b', {}, lab.name), el('small', {}, lab.blurb), body);
+    card.addEventListener('click', () => chooseRoute(mode));
+    box.append(card);
+  }
+}
+
+function chooseRoute(mode) {
+  const p = state.alts[mode];
+  if (!p || p.error || mode === state.route) return;
+  state.route = mode;
+  state.plan = p;
+  state.timeline = pathTimeline(p);
+  renderAll();
+}
+
+/** The other route options as thin lines under the chosen one. */
+let altLayer = null;
+function drawAltRoutes() {
+  if (!map) return;
+  altLayer ??= L.layerGroup().addTo(map);
+  altLayer.clearLayers();
+  for (const mode of ROUTE_MODES) {
+    const p = state.alts[mode];
+    if (mode === state.route || !p?.path || p.path.length < 2) continue;
+    L.polyline(p.path.map(([x, y]) => cellLatLng(state.terrain, x, y)),
+      { pane: 'route', color: '#d9c7b8', weight: 2, opacity: 0.55, dashArray: '2 6', interactive: false })
+      .bindTooltip(MODE_LABELS[mode]?.name || mode, { className: 'tip', sticky: true })
+      .addTo(altLayer);
+  }
+}
+
 async function replan() {
   const mine = ++planSeq;
   $('planning').hidden = false;
   const stopIds = state.targets.filter((t) => state.included.has(t.id)).map((t) => t.id);
   try {
-    const plan = await planner.plan(
-      { habitat: state.habitat, targets: state.targets },
-      { stopIds, conditions: { ...state.conditions } });
+    const file = { habitat: state.habitat, targets: state.targets };
+    const options = { stopIds, conditions: { ...state.conditions } };
+    const plan = await planner.plan(file, options, state.route);
     if (mine !== planSeq) return; // a newer request superseded this one
     state.plan = plan;
+    state.alts = { [state.route]: plan };
+    state.altsPromise = planOtherRoutes(mine, file, options, plan);
     state.timeline = pathTimeline(plan);
     showError('');
   } catch (err) {
@@ -390,6 +477,8 @@ function renderAll() {
     renderBudget($('budget'), state.plan);
     renderChart($('chart'), state.plan, state.timeline);
   }
+  renderRoutes();
+  drawAltRoutes();
   renderStops();
   renderSteps();
   renderSelected();
@@ -549,6 +638,7 @@ function updateLinks() {
   const fileIds = state.targets.filter((t) => !t.custom && state.included.has(t.id)).map((t) => t.id);
   if (fileIds.length !== state.targets.filter((t) => !t.custom).length) q.set('stops', fileIds.join(','));
   for (const c of CONDITIONS) if (state.conditions[c.key]) q.set(c.param, '1');
+  if (state.route !== 'eco') q.set('route', state.route); // CONTRACTS §7: tablet and HUD plan the same option
   // Gale always names its snapshot: the tablet/HUD default is Jezero weather (codex-views is changing that).
   if (state.condName !== SITE.defaultCond || DATASET === 'gale') q.set('cond', state.condName);
   const qs = q.toString().replace(/%2C/g, ','); // readable stop lists; URLSearchParams accepts both
@@ -768,9 +858,18 @@ async function tourSet({ cond, conditions, included }) {
   state.conditions = { ...conditions };
   state.included = new Set(included);
   state.selectedId = null;
+  state.route = 'eco'; // the tour always narrates the least-oxygen route; step 6 compares the others
   renderConditions();
   refreshSlopeLayer();
   await replan();
+}
+
+/** Scroll the side panel (or the page, on phones) so this element is in view. */
+function tourReveal(node) {
+  const panel = document.querySelector('.panel');
+  const scroller = panel.scrollHeight > panel.clientHeight + 1 && getComputedStyle(panel).overflowY !== 'visible' ? panel : document.scrollingElement;
+  const top = node.getBoundingClientRect().top - (scroller === panel ? panel.getBoundingClientRect().top : 0) + scroller.scrollTop - 12;
+  scroller.scrollTo({ top: Math.max(0, top) });
 }
 
 function tourFitRoute() {
@@ -818,7 +917,7 @@ const TOUR_STEPS = [
     after: () => {
       tourFitRoute();
       const box = $('best-subset');
-      if (!box.hidden) { box.classList.add('tour-focus'); box.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); }
+      if (!box.hidden) { box.classList.add('tour-focus'); tourReveal(box); }
     },
     caption: (p) => p.bestSubset?.ids?.length
       ? `The planner searches every set of stops for the most science that still fits: ${p.bestSubset.ids.length} stops, value ${p.bestSubset.scienceValue}.`
@@ -832,6 +931,23 @@ const TOUR_STEPS = [
       try { level = conditionsVerdict(state.cond, p).level; } catch { /* card shows the error */ }
       const fit = p.withinBudget ? `fits${level ? `, ${level}` : ''}` : 'still over budget';
       return `Best set, ${TOUR_HAZARDS[tourHaz].short}: ${tourStops(p)}, science ${p.totals.scienceValue}, ${tourO2(p)}: ${fit}.`;
+    },
+  },
+  {
+    // Same stops and hazards as the best set; wait for the other two route options, then show the cards.
+    run: async () => { await tourHazSet(tourBest?.ids || tourFileIds()); await state.altsPromise; },
+    after: () => {
+      const box = $('routes-card');
+      box.classList.add('tour-focus');
+      tourReveal(box);
+    },
+    caption: () => {
+      const parts = ROUTE_MODES.filter((m) => state.alts[m]?.totals).map((m) => {
+        const p = state.alts[m];
+        const steep = slopeProfile(state.terrain, p);
+        return `${MODE_LABELS[m].name} ${p.totals.o2UsedKg.toFixed(3)} kg, ${Math.round(steep[2] + steep[3])} m over 15°`;
+      });
+      return `Compare routes for the same stops: ${parts.join(' · ')}.`;
     },
   },
   {
@@ -860,7 +976,7 @@ async function tourGo(i) {
     document.querySelectorAll('.tour-focus').forEach((n) => n.classList.remove('tour-focus'));
     const s = TOUR_STEPS[i];
     // The best set comes from the full dust-storm plan: if we jump straight to it, compute that first.
-    if (i === 4 && !tourBest) { await TOUR_STEPS[1].run(); tourBest = state.plan?.bestSubset || null; }
+    if (i >= 4 && i < TOUR_STEPS.length - 1 && !tourBest) { await TOUR_STEPS[1].run(); tourBest = state.plan?.bestSubset || null; }
     await s.run();
     tourCaption(state.plan ? s.caption(state.plan) : '');
     s.after?.();

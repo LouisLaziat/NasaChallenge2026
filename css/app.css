@@ -129,6 +129,21 @@ code { background: #00000055; padding: 0 4px; border-radius: 3px; }
 .about a { color: var(--ochre); }
 .about-close { float: right; }
 
+/* ---------- Route options ---------- */
+.routes { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+.route-opt {
+  display: flex; flex-direction: column; gap: 2px; text-align: left; padding: 7px 8px; min-height: 44px;
+  background: #120d0b; color: var(--text); border: 1px solid var(--line); border-radius: 6px; cursor: pointer; font: inherit;
+}
+.route-opt:hover:not(:disabled) { border-color: var(--ochre); }
+.route-opt.on { border-color: var(--ochre); background: #2f2219; box-shadow: inset 0 0 0 1px var(--ochre); }
+.route-opt:disabled { cursor: default; opacity: .7; }
+.route-opt b { font-size: 13px; }
+.route-opt small { font-size: 11px; color: var(--muted); line-height: 1.3; }
+.route-meta { display: flex; flex-direction: column; gap: 1px; margin-top: 4px; font-size: 11.5px; font-variant-numeric: tabular-nums; }
+.route-meta .over { color: #ff7a6b; }
+@media (max-width: 420px) { .routes { grid-template-columns: minmax(0, 1fr); } }
+
 /* ---------- Turn-by-turn ---------- */
 .steps-card > summary { cursor: pointer; list-style: none; }
 .steps-card > summary::-webkit-details-marker { display: none; }
