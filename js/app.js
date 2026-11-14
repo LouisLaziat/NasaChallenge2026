@@ -5,6 +5,7 @@ import { latLonToCell, planWalk } from './engine.js';
 import { CONFIG } from './config.js';
 import { renderPhotos } from './photos.js';
 import { addBaseLayers } from './basemap.js';
+import { loadConditions, toToggles, renderConditions as renderConditionsCard } from './conditions.js';
 import {
   el, fmtClock, fmtDuration, fmtKg, fmtMSv, cellLatLng, terrainBounds,
   LAYER_INFO, rampCss, paintHillshade, paintSlope, paintScalar, imageLayer,
@@ -14,13 +15,23 @@ import {
 const L = window.L;
 const $ = (id) => document.getElementById(id);
 
-const DATASET = new URLSearchParams(location.search).get('data') === 'real' ? 'real' : 'demo';
+// Page URL parameters shared by console, tablet and HUD (CONTRACTS §7).
+const PARAMS = new URLSearchParams(location.search);
+const DATASET = PARAMS.get('data') === 'real' ? 'real' : 'demo';
 const DATA_DIR = new URL(`../data/${DATASET}/`, import.meta.url);
 
 const CONDITIONS = [
-  { key: 'dustStorm', name: 'Dust storm' },
-  { key: 'solarEvent', name: 'Solar particle event' },
-  { key: 'heavyKit', name: 'Heavy sample kit' },
+  { key: 'dustStorm', name: 'Dust storm', param: 'dust' },
+  { key: 'solarEvent', name: 'Solar particle event', param: 'solar' },
+  { key: 'heavyKit', name: 'Heavy sample kit', param: 'kit' },
+];
+
+// Conditions snapshots (CONTRACTS §6), loaded by js/conditions.js.
+const COND_SNAPSHOTS = [
+  { name: 'real', label: 'Latest real data' },
+  { name: 'demo-quiet', label: 'Demo: quiet sol' },
+  { name: 'demo-dusty', label: 'Demo: dust storm' },
+  { name: 'demo-solar', label: 'Demo: solar alert' },
 ];
 
 const state = {
@@ -33,6 +44,9 @@ const state = {
   timeline: null,
   selectedId: null,
   customCount: 0,
+  condName: COND_SNAPSHOTS.some((s) => s.name === PARAMS.get('cond')) ? PARAMS.get('cond') : 'real',
+  cond: null,             // loaded conditions snapshot, or null if it could not be loaded
+  condError: null,
 };
 
 let map, overlays = {}, routeLayer, markerLayer;
@@ -127,6 +141,18 @@ async function boot() {
     if (!(Number.isInteger(t.x) && Number.isInteger(t.y)) && t.lat != null) Object.assign(t, latLonToCell(terrain, t.lat, t.lon));
   }
   state.included = new Set(state.targets.map((t) => t.id));
+  if (PARAMS.get('stops')) {
+    const wanted = new Set(PARAMS.get('stops').split(','));
+    state.included = new Set(state.targets.filter((t) => wanted.has(t.id)).map((t) => t.id));
+  }
+
+  // Conditions snapshot pre-sets dust/solar; explicit ?dust= / ?solar= / ?kit= win. Kit is never suggested.
+  await loadCondSnapshot(state.condName);
+  const suggested = state.cond ? toToggles(state.cond) : {};
+  for (const c of CONDITIONS) {
+    const v = PARAMS.get(c.param);
+    if (v === '1' || (v !== '0' && suggested[c.key])) state.conditions[c.key] = true;
+  }
 
   $('synthetic-banner').hidden = !terrain.synthetic;
   if (terrain.name) $('dataset-label').textContent += ` · ${terrain.name}`;
@@ -324,6 +350,8 @@ async function replan() {
 function renderAll() {
   drawMap();
   renderVerdict();
+  renderGoNoGo();
+  updateLinks();
   if (state.plan) {
     renderBudget($('budget'), state.plan);
     renderChart($('chart'), state.plan, state.timeline);
@@ -367,9 +395,70 @@ function renderVerdict() {
   }
 }
 
+async function loadCondSnapshot(name) {
+  state.condName = name;
+  try {
+    state.cond = await loadConditions(name);
+    state.condError = null;
+  } catch (err) {
+    // Never invent "quiet": the card shows CAUTION / unknown data instead.
+    state.cond = null;
+    state.condError = err.message;
+    console.warn('conditions snapshot unavailable', err);
+  }
+}
+
+/** GO / CAUTION / NO-GO card from the conditions lane, refreshed after every plan. */
+function renderGoNoGo() {
+  const box = $('conditions-card');
+  if (!box) return;
+  try {
+    renderConditionsCard(box, state.cond, state.plan);
+    if (state.condError) box.append(el('p', { class: 'note' }, `Conditions snapshot unavailable: ${state.condError}`));
+  } catch (err) {
+    box.textContent = `Go/No-Go unavailable: ${err.message}`;
+  }
+}
+
+/** Links to the tablet and HUD (CONTRACTS §7), and keep this page's URL in sync so a reload keeps the plan. */
+function updateLinks() {
+  const q = new URLSearchParams();
+  if (DATASET !== 'demo') q.set('data', DATASET);
+  // Stops the user added on the map exist only in this page, so they can't travel in a link.
+  const fileIds = state.targets.filter((t) => !t.custom && state.included.has(t.id)).map((t) => t.id);
+  if (fileIds.length !== state.targets.filter((t) => !t.custom).length) q.set('stops', fileIds.join(','));
+  for (const c of CONDITIONS) if (state.conditions[c.key]) q.set(c.param, '1');
+  q.set('cond', state.condName);
+  const qs = q.toString().replace(/%2C/g, ','); // readable stop lists; URLSearchParams accepts both
+  $('open-tablet').href = `tablet.html?${qs}`;
+  $('open-hud').href = `hud.html?${qs}`;
+  const hasCustom = state.targets.some((t) => t.custom && state.included.has(t.id));
+  $('view-links-note').hidden = !hasCustom;
+  try { history.replaceState(null, '', `?${qs}`); } catch { /* sandboxed previews */ }
+}
+
 function renderConditions() {
   const box = $('conditions');
   box.replaceChildren();
+  // Which conditions snapshot drives the Go/No-Go card and the suggested switches.
+  const select = el('select', { 'aria-label': 'Conditions snapshot', class: 'cond-source' });
+  for (const s of COND_SNAPSHOTS) {
+    const o = el('option', { value: s.name }, s.label);
+    if (s.name === state.condName) o.selected = true;
+    select.append(o);
+  }
+  select.addEventListener('change', async () => {
+    await loadCondSnapshot(select.value);
+    const sug = state.cond ? toToggles(state.cond) : {};
+    // A new snapshot re-applies its suggestions for dust and solar; the kit switch stays as the astronaut set it.
+    for (const key of ['dustStorm', 'solarEvent']) {
+      if (sug[key]) state.conditions[key] = true; else delete state.conditions[key];
+    }
+    renderConditions();
+    refreshSlopeLayer();
+    replan();
+  });
+  box.append(el('label', { class: 'cond-source-row' }, el('span', {}, 'Snapshot'), select));
   for (const c of CONDITIONS) {
     const cfg = CONFIG.conditions[c.key] || {};
     const fx = [];

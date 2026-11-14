@@ -99,6 +99,20 @@ code { background: #00000055; padding: 0 4px; border-radius: 3px; }
 .drop-btn:hover { background: #f2b862; }
 .drop-btn small { display: block; font-weight: 500; opacity: .8; }
 
+/* ---------- Tablet / HUD links and conditions snapshot ---------- */
+.view-links { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+.view-links a {
+  flex: 1 1 0; min-width: 120px; padding: 6px 10px; border: 1px solid var(--line); border-radius: 6px;
+  color: var(--ochre); text-decoration: none; font-size: 13px; font-weight: 600; text-align: center;
+}
+.view-links a:hover { border-color: var(--ochre); }
+#conditions-card { margin-bottom: 10px; }
+.cond-source-row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; font-size: 13px; color: var(--muted); }
+.cond-source {
+  flex: 1; padding: 4px 6px; font: inherit; color: inherit; background: var(--card);
+  border: 1px solid var(--line); border-radius: 4px;
+}
+
 /* ---------- Budget bars ---------- */
 .budget { display: flex; flex-direction: column; gap: 12px; }
 .metric-head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }

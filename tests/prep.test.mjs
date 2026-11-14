@@ -1,3 +1,4 @@
+// Generated with AI assistance for NASA Space Apps 2026; reviewed by the team
 // Data-lane tests. Offline, no node_modules: only the pure library and the engine are imported.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
