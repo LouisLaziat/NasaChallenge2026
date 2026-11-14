@@ -1,7 +1,7 @@
 <!-- Generated with AI assistance for NASA Space Apps 2026; reviewed by the team -->
 # The model behind Marswalk Budget
 
-Owner: engine lane (`louis-claude`). Every number the planner uses lives in `js/config.js`; this page says where each one comes from. Status **SOURCE** = published value; **ASSUMPTION** = our choice, to be cited or defended before the pitch (sources research in progress: `docs/model-sources.md`, conditions lane).
+Owner: engine lane (`louis-claude`). Every number the planner uses lives in `js/config.js`; this page says where each one comes from. Every value is labelled SOURCE, PROXY, ASSUMPTION or DESIGN below, with a link.
 
 ## How a walk is priced
 
@@ -9,43 +9,57 @@ The walk area is a grid of 5 m cells built from real elevation (USGS HiRISE DTM)
 
 ## Parameters
 
-| Parameter | Value | Status | Source or justification |
-|---|---|---|---|
-| `walk.vFlatMps` | 1.0 | ASSUMPTION | Apollo EVA traverses averaged roughly 0.7–1.1 m/s on foot. |
-| `walk.toblerK` | 3.5 | SOURCE | Tobler (1993) hiking function exponent (Earth). |
-| `walk.toblerG0` | 0.05 | SOURCE | Tobler (1993) optimum grade offset (Earth). |
-| `walk.maxSlopeDeg` | 20 | SOURCE | NASA exploration EVA concept, suited walking limited to 20° slopes (NTRS 20210000827). Being re-checked in docs/model-sources.md. |
-| `metabolic.baseW` | 300 | ASSUMPTION | Apollo lunar EVA averaged ~234 kcal/h (~272 W); rounded up for Mars gravity. |
-| `metabolic.uphillPerGrade` | 3.0 | ASSUMPTION | +300% metabolic rate per unit grade uphill (i.e. +30% at 10%). |
-| `metabolic.downhillPerGrade` | 0.5 | ASSUMPTION | downhill still costs extra for braking. |
-| `metabolic.dwellW` | 200 | ASSUMPTION | metabolic rate while working at a stop (sampling, imaging). |
-| `terrain.looseSandTI` | 200 | ASSUMPTION | below this, treat as loose fines/sand. |
-| `terrain.bedrockTI` | 400 | ASSUMPTION | above this, treat as firm rock. |
-| `terrain.sandSpeedFactor` | 0.6 | ASSUMPTION | walking speed multiplier on loose sand. |
-| `terrain.sandMetabolicFactor` | 1.4 | ASSUMPTION | metabolic multiplier on loose sand. |
-| `terrain.roughnessBlock` | 0.8 | ASSUMPTION | cells rougher than this are impassable. |
-| `terrain.roughnessSpeedPenalty` | 0.5 | ASSUMPTION | speed *= 1 - penalty * roughness. |
-| `suit.o2CapacityKg` | 0.5 | ASSUMPTION | usable primary O2 in a Mars EVA suit. |
-| `suit.reserveFraction` | 0.2 | ASSUMPTION | keep 20% of O2 untouched for emergencies. |
-| `suit.o2JoulesPerLitre` | 20100 | SOURCE | ~20.1 kJ released per litre of O2 consumed (respiratory physiology, RQ≈0.85). |
-| `suit.o2KgPerLitre` | 0.001429 | SOURCE | O2 density at STP, 1.429 g/L. |
-| `radiation.surfaceMSvPerDay` | 0.64 | SOURCE | Hassler et al. (2014), Science 343: Curiosity RAD dose equivalent on the surface at Gale Crater (proxy for Jezero). |
-| `radiation.walkLimitMSv` | 1.0 | ASSUMPTION | per-EVA dose budget for this tool. |
-| `conditions.dustStorm.speedFactor` | 0.7 | ASSUMPTION | reduced visibility slows walking. |
-| `conditions.dustStorm.metabolicFactor` | 1.1 | ASSUMPTION |  |
-| `conditions.dustStorm.maxSlopeDeg` | 20 | design | Same as the suit limit: tried 15°, but it cut off half the demo stops. Dust slows you instead. |
-| `conditions.solarEvent.doseFactor` | 10 | ASSUMPTION | a moderate solar particle event raises surface dose ~10x. |
-| `conditions.heavyKit.speedFactor` | 0.85 | ASSUMPTION | carrying a sample kit. |
-| `conditions.heavyKit.metabolicFactor` | 1.25 | ASSUMPTION |  |
-| `conditions.heavyKit.maxSlopeDeg` | 20 | design | Same as the suit limit (see dustStorm). |
-| `planner.bruteForceMaxStops` | 7 | design | Exact best order up to this many stops; heuristic above. |
-| `planner.subsetExactMaxStops` | 10 | design | bestSubset tries every subset up to this many stops; greedy above. |
-| `planner.contingency` | ['dustStorm'] | ASSUMPTION | a dust storm is the likeliest surprise on foot. |
-| `goNoGo.dustTauStorm` | 1.0 | ASSUMPTION | dust optical depth above which the dust-storm switch is suggested. |
-| `goNoGo.o2MarginCaution` | 0.10 | ASSUMPTION | CAUTION when less than 10% of usable O2 is left at the end. |
-| `goNoGo.doseCautionFraction` | 0.8 | ASSUMPTION | CAUTION above 80% of the per-walk dose budget. |
-| `goNoGo.sepAlertDays` | 2 | ASSUMPTION | a solar particle event in the last 2 days = alert (NO-GO). |
-| `goNoGo.sepWatchDays` | 7 | ASSUMPTION | within 7 days = watch (CAUTION). |
+Status: **SOURCE** = published value. **PROXY** = published value from Earth, the Moon or another Mars site. **ASSUMPTION** = our number; the source gives context, not the value. **DESIGN** = a software or policy choice. Full audit with page references: [`docs/model-sources.md`](model-sources.md) (by `codex-conditions`).
+
+| Parameter | Value | Status | What it means / why | Source |
+|---|---|---|---|---|
+| `walk.vFlatMps` | 1.0 | ASSUMPTION | flat-ground walking speed. Lunar xEVA tests saw ~2 km/h (0.56 m/s) on level regolith; at 0.56 the normal Jezero walk goes over budget (docs/model.md, sensitivity). | [Coan 2021, NTRS 20210000827](https://ntrs.nasa.gov/citations/20210000827) |
+| `walk.toblerK` | 3.5 | PROXY | Earth hiking-function exponent; transfer to a Mars suit is assumed. | [Tobler 1993](https://escholarship.org/uc/item/05r820mz) |
+| `walk.toblerG0` | 0.05 | PROXY | Earth optimum downhill grade. | [Tobler 1993](https://escholarship.org/uc/item/05r820mz) |
+| `walk.maxSlopeDeg` | 20 | PROXY | suited walking up to 20° in lunar xEVA tests; not a Mars flight rule. | [Coan 2021, NTRS 20210000827](https://ntrs.nasa.gov/citations/20210000827) |
+| `metabolic.baseW` | 272 | PROXY | Apollo whole-EVA mean, 234 kcal/h = 272 W. Not a fitted Mars walking law. | [NASA 1986 metabolism report (Apollo EVA data), NTRS 19930074290](https://ntrs.nasa.gov/api/citations/19930074290/downloads/19930074290.pdf) |
+| `metabolic.uphillPerGrade` | 3.0 | ASSUMPTION | linear uphill surcharge (+30% at 10% grade); measured graded walking is nonlinear. | [Minetti et al. 2002](https://doi.org/10.1152/japplphysiol.01177.2001) |
+| `metabolic.downhillPerGrade` | 0.5 | ASSUMPTION | braking surcharge downhill; gentle downhill can be cheaper in reality. | [Minetti et al. 2002](https://doi.org/10.1152/japplphysiol.01177.2001) |
+| `metabolic.dwellW` | 284 | PROXY | Apollo geology surveys and deployments, 244 kcal/h = 284 W. | [NASA 1986 metabolism report (Apollo EVA data), NTRS 19930074290](https://ntrs.nasa.gov/api/citations/19930074290/downloads/19930074290.pdf) |
+| `terrain.looseSandTI` | 200 | ASSUMPTION | thermal-inertia breakpoint for loose fines; thermal units overlap. | [Murphy et al. 2007](https://doi.org/10.1029/2005JE002586) |
+| `terrain.bedrockTI` | 400 | ASSUMPTION | firm-ground proxy; inertia alone does not prove walkable bedrock. | [Murphy et al. 2007](https://doi.org/10.1029/2005JE002586) |
+| `terrain.sandSpeedFactor` | 0.6 | ASSUMPTION | speed on loose sand; Earth sand studies show more effort, not this factor. | [Lejeune et al. 1998](https://doi.org/10.1242/jeb.201.13.2071) |
+| `terrain.sandMetabolicFactor` | 1.4 | ASSUMPTION | power on loose sand; with the speed factor, sand costs ~2.3x per metre (Earth: 2.1-2.7x at matched speed). | [Lejeune et al. 1998](https://doi.org/10.1242/jeb.201.13.2071) |
+| `terrain.roughnessBlock` | 0.8 | ASSUMPTION | dataset-specific threshold on our DTM roughness index. | [NASA 2017 EVA risk report, NTRS 20170002574](https://ntrs.nasa.gov/citations/20170002574) |
+| `terrain.roughnessSpeedPenalty` | 0.5 | ASSUMPTION | dataset-specific speed penalty for roughness. | [NASA 2017 EVA risk report, NTRS 20170002574](https://ntrs.nasa.gov/citations/20170002574) |
+| `suit.o2CapacityKg` | 0.5 | PROXY | Shuttle/ISS EMU primary O2 is 1.2 lb (0.544 kg); rounded down. Mars suit hardware unknown. | [Jeng et al. 2009, NTRS 20090013081](https://ntrs.nasa.gov/citations/20090013081) |
+| `suit.reserveFraction` | 0.2 | DESIGN | team reserve policy: 20% of the primary O2 is never planned. | [Jeng et al. 2009, NTRS 20090013081](https://ntrs.nasa.gov/citations/20090013081) |
+| `suit.o2JoulesPerLitre` | 20100 | SOURCE | ~20.1 kJ per litre of O2 (indirect calorimetry, RQ about 0.85). | [Weir 1949](https://doi.org/10.1113/jphysiol.1949.sp004363) |
+| `suit.o2KgPerLitre` | 0.001429 | SOURCE | O2 density 1.429 g/L at 0 °C and 1 atm. | [NBS Circular 279](https://nvlpubs.nist.gov/nistpubs/Legacy/circ/nbscircular279.pdf) |
+| `radiation.surfaceMSvPerDay` | 0.64 | SOURCE | Curiosity RAD dose equivalent at Gale, 0.64 ± 0.12 mSv/day; a proxy at Jezero. | [Hassler et al. 2014, Science 343](https://doi.org/10.1126/science.1244797) |
+| `radiation.walkLimitMSv` | 1.0 | DESIGN | educational per-walk allocation, not a NASA exposure limit. | [NASA-STD-3001 Vol. 1, 4.8](https://www.nasa.gov/reference/4-0-human-performance/) |
+| `conditions.dustStorm.speedFactor` | 0.7 | ASSUMPTION | visibility scenario; no measured link to suited walking speed. | [NASA Mars environment handbook, NTRS 20010046858](https://ntrs.nasa.gov/citations/20010046858) |
+| `conditions.dustStorm.metabolicFactor` | 1.1 | ASSUMPTION | scenario factor. | [NASA 2017 EVA risk report, NTRS 20170002574](https://ntrs.nasa.gov/citations/20170002574) |
+| `conditions.dustStorm.maxSlopeDeg` | 20 | DESIGN | same as the suit limit; 15° cut off half the demo stops. | [Coan 2021, NTRS 20210000827](https://ntrs.nasa.gov/citations/20210000827) |
+| `conditions.solarEvent.doseFactor` | 10 | ASSUMPTION | stress-test multiplier, not a typical event; real events vary with spectrum and shielding. | [Hassler et al. 2018](https://doi.org/10.1029/2018SW001959) |
+| `conditions.heavyKit.speedFactor` | 0.85 | ASSUMPTION | load carriage slows walking; kit mass not specified. | [Pandolf et al. 1977](https://doi.org/10.1152/jappl.1977.43.4.577) |
+| `conditions.heavyKit.metabolicFactor` | 1.25 | ASSUMPTION | load carriage raises power; kit mass not specified. | [Pandolf et al. 1977](https://doi.org/10.1152/jappl.1977.43.4.577) |
+| `conditions.heavyKit.maxSlopeDeg` | 20 | DESIGN | same as the suit limit. | [Coan 2021, NTRS 20210000827](https://ntrs.nasa.gov/citations/20210000827) |
+| `planner.bruteForceMaxStops` | 7 | DESIGN | exact best order up to this many stops; heuristic above. | — |
+| `planner.subsetExactMaxStops` | 10 | DESIGN | bestSubset tries every subset up to this many stops; greedy above. | — |
+| `planner.contingency` | ['dustStorm'] | DESIGN | stress scenario for turnBackLatest: a dust storm starting mid-walk. | [NASA Mars environment handbook, NTRS 20010046858](https://ntrs.nasa.gov/citations/20010046858) |
+| `goNoGo.dustTauStorm` | 1.0 | DESIGN | team alert threshold on dust optical depth; not an EVA rule. | [NASA Mars environment handbook, NTRS 20010046858](https://ntrs.nasa.gov/citations/20010046858) |
+| `goNoGo.o2MarginCaution` | 0.10 | DESIGN | team UI policy: CAUTION under 10% usable O2 left. | [Jeng et al. 2009, NTRS 20090013081](https://ntrs.nasa.gov/citations/20090013081) |
+| `goNoGo.doseCautionFraction` | 0.8 | DESIGN | team UI policy: CAUTION above 80% of the walk allocation. | [NASA-STD-3001 Vol. 1, 4.8](https://www.nasa.gov/reference/4-0-human-performance/) |
+| `goNoGo.sepAlertDays` | 2 | DESIGN | Earth-catalogue recency policy; not a Mars all-clear. | [NASA CCMC DONKI](https://ccmc.gsfc.nasa.gov/tools/DONKI/) |
+| `goNoGo.sepWatchDays` | 7 | DESIGN | Earth-catalogue recency policy. | [NASA CCMC DONKI](https://ccmc.gsfc.nasa.gov/tools/DONKI/) |
+
+## Sensitivity (2026-11-14)
+
+Real Jezero walk, all six stops; ✓ fits, ✗ over budget. The story the demo tells (a normal walk fits, any one hazard can break it) holds for the current values; a much slower walker breaks even the normal walk.
+
+| Variant | Normal | Dust storm | Heavy kit | Solar event | All three |
+|---|---|---|---|---|---|
+| Current (272 W walking, 284 W working, 1.0 m/s) | ✓ 0.36 kg | ✗ 0.45 kg | ✗ 0.47 kg | ✗ dose | ✗ 0.61 kg |
+| Before the audit (300 W, 200 W) | ✓ 0.30 kg | ✓ 0.40 kg | ✗ 0.41 kg | ✗ dose | ✗ 0.54 kg |
+| Lunar xEVA walking speed, 0.56 m/s | ✗ 0.41 kg | ✗ 0.57 kg | ✗ 0.57 kg | ✗ | ✗ 0.80 kg |
+
+Usable O₂ is 0.40 kg (0.5 kg × 80%); dose budget 1 mSv per walk.
 
 ## Proxies and honesty notes
 
@@ -57,4 +71,5 @@ The walk area is a grid of 5 m cells built from real elevation (USGS HiRISE DTM)
 
 ## Changes
 
+- 2026-11-14 (afternoon): source audit by `codex-conditions` applied. Walking power 300 → **272 W** and working power 200 → **284 W** (Apollo EVA averages); every parameter now has a status and a link; the 20° limit is labelled a lunar proxy; the 1 mSv walk budget is labelled an educational allocation, not a NASA limit.
 - 2026-11-14: max walkable slope 25° → **20°** (NASA exploration EVA concept, NTRS 20210000827). Dust storm and heavy kit no longer lower it further: 15° cut off half the demo stops. Added `profile`, `bestSubset`, `turnBackLatest` (dust-storm contingency) and the Go/No-Go thresholds (`goNoGo`).

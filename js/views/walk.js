@@ -27,11 +27,11 @@ export async function loadWalk() {
   const requestedData = params.get('data');
   const dataset = ['real', 'gale'].includes(requestedData) ? requestedData : 'demo';
   const directory = new URL(`../../data/${dataset}/`, import.meta.url);
-  const allowedSnapshots = ['real', 'real-gale', 'demo-quiet', 'demo-dusty', 'demo-solar'];
+  const localSnapshot = dataset === 'gale' ? 'real-gale' : 'real';
+  const allowedSnapshots = [localSnapshot, 'demo-quiet', 'demo-dusty', 'demo-solar'];
   const requestedSnapshot = params.get('cond');
-  // Match the console defaults. Gale REMS is available by explicit selection.
   const conditionFile = allowedSnapshots.includes(requestedSnapshot)
-    ? requestedSnapshot : dataset === 'real' ? 'real' : 'demo-quiet';
+    ? requestedSnapshot : dataset === 'demo' ? 'demo-quiet' : localSnapshot;
   const snapshot = loadSnapshot(conditionFile);
   const stopIds = params.get('stops')?.split(',').map((id) => id.trim()).filter(Boolean);
   let terrain, targetsFile;
