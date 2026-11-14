@@ -62,3 +62,5 @@ Append only, newest at the bottom. Format and tags: see `AGENTS.md`.
 2026-11-14 14:17  [ui]      DONE   turn-by-turn card (js/steps.js, tests/steps.test.mjs); click a step to highlight it on the map
 2026-11-14 14:27  [lead]    MERGED integrate (2ad1e11): turn-by-turn steps card + js/steps.js (buildSteps) + tests. 56/56 offline.
 ```
+2026-11-14 14:55  [views]  REQUEST @gale: renderPhotos still uses Perseverance credit and camera labels on ?data=gale. Please use photos[].credit and Curiosity labels in js/photos.js. The Gale tablet screenshot shows the current shared renderer.
+2026-11-14 14:55  [views]  DONE   Claude follow-up on views: real Jezero and Gale tablet/HUD screenshots, ?play=30 verified in Chrome, profile O2 and return margin, shared turn-by-turn steps, dust-storm contingency, and best-set reload. Offline Node suite 58/58.

@@ -1,10 +1,15 @@
 // Generated with AI assistance for NASA Space Apps 2026; reviewed by the team
 import { PHOTO_CREDIT } from '../photos.js';
-import { fmtDuration, fmtKg, fmtMSv } from '../render.js';
+import { fmtDuration, fmtMSv } from '../render.js';
 import { compassTicks, relativeBearingDeg } from './geometry.js';
-import { bindProgress, byId, headingText, loadWalk, showLoadError } from './walk.js';
+import { bindProgress, byId, headingText, instructionText, loadWalk, showLoadError } from './walk.js';
 
 const svgNS = 'http://www.w3.org/2000/svg';
+const stormLabels = {
+  approaching: 'Dust storm · Turn-back point ahead',
+  past: 'Past dust-storm turn-back point',
+  safe: 'Dust-storm safe',
+};
 
 function drawCompass(heading) {
   byId('compass').toggleAttribute('hidden', heading === null);
@@ -27,18 +32,12 @@ function drawCompass(heading) {
   byId('compass-ticks').replaceChildren(...ticks);
 }
 
-async function drawConditions(walk) {
-  try {
-    const { loadConditions, verdict } = await import('../conditions.js');
-    const cond = await loadConditions(walk.conditionFile);
-    const { level } = verdict(cond, walk.plan);
-    const badge = byId('conditions-badge');
-    badge.dataset.level = level;
-    byId('conditions-level').textContent = level;
-    badge.removeAttribute('hidden');
-  } catch {
-    // Conditions is an optional lane and its snapshot may not be available.
-  }
+function drawConditions(verdict) {
+  if (!verdict) return;
+  const badge = byId('conditions-badge');
+  badge.dataset.level = verdict.level;
+  byId('conditions-level').textContent = verdict.level;
+  badge.removeAttribute('hidden');
 }
 
 async function start() {
@@ -47,6 +46,8 @@ async function start() {
   const controls = byId('hud-controls');
   const photo = byId('hud-photo');
   const credit = byId('hud-photo-credit');
+  const storm = byId('hud-storm');
+  const maneuver = byId('hud-instruction');
   let shownPhoto;
   photo.addEventListener('error', () => {
     photo.hidden = true;
@@ -59,7 +60,14 @@ async function start() {
   byId('hud-dataset').textContent = walk.label;
   byId('hud-dose-note').textContent = walk.dataset === 'gale' ? 'Curiosity RAD · Gale Crater' : 'Curiosity RAD · Gale proxy for Jezero';
 
-  bindProgress(walk, (frame) => {
+  if (walk.playMs) {
+    // Request upcoming backgrounds before the fast playback reaches those stops.
+    for (const stop of walk.plan.stops) {
+      const url = walk.targets.get(stop.id)?.photos?.[0]?.url;
+      if (url) new Image().src = url;
+    }
+  }
+  bindProgress(walk, (frame, instruction) => {
     const target = walk.targets.get(frame.upcoming?.id);
     const nextPhoto = target?.photos?.[0];
     if (nextPhoto?.url !== shownPhoto) {
@@ -67,7 +75,8 @@ async function start() {
       photo.hidden = true;
       credit.setAttribute('hidden', '');
       if (shownPhoto) {
-        credit.textContent = `Rover image · ${nextPhoto.credit ?? PHOTO_CREDIT}`;
+        const rover = walk.dataset === 'gale' ? 'Curiosity' : 'Perseverance';
+        credit.textContent = `${rover} · ${nextPhoto.credit ?? PHOTO_CREDIT}`;
         photo.src = shownPhoto;
       } else {
         photo.removeAttribute('src');
@@ -81,6 +90,10 @@ async function start() {
       chevron.setAttribute('transform', `translate(640 312) rotate(${relativeBearingDeg(frame.bearing, frame.heading)})`);
     }
     byId('hud-warning').toggleAttribute('hidden', !frame.turnBack);
+    const stormLabel = frame.turnBack ? '' : stormLabels[frame.storm] ?? '';
+    storm.toggleAttribute('hidden', !stormLabel);
+    storm.dataset.state = frame.storm ?? '';
+    byId('hud-storm-text').textContent = stormLabel;
     const warning = frame.turnBack ? 'Turn back. Oxygen reserve at risk.' : '';
     const alert = byId('turn-back-alert');
     if (alert.textContent !== warning) alert.textContent = warning;
@@ -88,11 +101,13 @@ async function start() {
     byId('hud-destination-label').textContent = frame.complete ? 'EVA complete' : frame.returning ? 'Return to habitat' : 'Next stop';
     byId('hud-destination').textContent = frame.complete || frame.returning ? 'Habitat' : frame.destination.name;
     byId('hud-distance').textContent = frame.complete ? '' : `${Math.round(frame.rangeM)} m direct`;
+    maneuver.toggleAttribute('hidden', !instruction);
+    maneuver.textContent = instructionText(instruction);
     byId('hud-time').textContent = fmtDuration(frame.remainingS);
     byId('hud-slope').textContent = frame.slopeDeg === null ? '—' : `${frame.slopeDeg > 0 ? '+' : ''}${frame.slopeDeg.toFixed(1)}°`;
     byId('hud-dose').textContent = `${fmtMSv(frame.doseMSv)} mSv`;
     byId('hud-oxygen-label').textContent = frame.o2ToHomeKg === null ? 'O₂ left above reserve' : 'O₂ margin after return';
-    byId('hud-oxygen').textContent = `${fmtKg(frame.o2MarginKg)} kg`;
+    byId('hud-oxygen').textContent = `${frame.o2MarginKg.toFixed(3)} kg`;
     const bar = byId('hud-oxygen-bar');
     bar.setAttribute('width', 385 * frame.o2MarginFraction);
     bar.classList.toggle('is-critical', frame.o2MarginKg < 0 || frame.turnBack);
@@ -107,7 +122,7 @@ async function start() {
   controls.hidden = false;
   overlay.removeAttribute('hidden');
   byId('load-status').hidden = true;
-  void drawConditions(walk);
+  drawConditions(walk.verdict);
 }
 
 start().catch(showLoadError);

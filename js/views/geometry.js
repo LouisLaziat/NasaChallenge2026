@@ -101,13 +101,36 @@ export function nextStop(plan, pathIndex) {
   return plan.stops.find((stop) => stop.pathIndex > pathIndex) ?? null;
 }
 
-export function turnBackPoint(plan) {
-  return plan.turnBackLatest !== undefined ? plan.turnBackLatest : plan.turnBack;
+export function passedTurnBack(plan, p) {
+  const point = plan.turnBack;
+  return point != null && clampProgress(p) * (plan.path.length - 1) > point.pathIndex;
 }
 
-export function passedTurnBack(plan, p) {
-  const point = turnBackPoint(plan);
-  return point != null && clampProgress(p) * (plan.path.length - 1) > point.pathIndex;
+export function stormGuidance(plan, terrain, routeIndex, complete) {
+  if (complete || plan.conditions?.dustStorm || plan.turnBackLatest === undefined) return null;
+  const mark = plan.turnBackLatest;
+  if (mark === null) return plan.withinBudget ? 'safe' : null;
+  if (routeIndex > mark.pathIndex) return 'past';
+  const end = plan.path.length - 1;
+  const here = profileValue(plan, routeIndex / end, 'distanceM');
+  const there = profileValue(plan, mark.pathIndex / end, 'distanceM');
+  const metresLeft = here !== null && there !== null ? there - here : (mark.pathIndex - routeIndex) * terrain.cellSize;
+  return metresLeft <= 50 ? 'approaching' : null;
+}
+
+export function currentInstruction(legs, pathIndex, plan) {
+  for (const leg of legs) {
+    const step = leg.steps.find(({ startIndex, endIndex }) => startIndex <= pathIndex && pathIndex < endIndex);
+    if (!step) continue;
+    const last = plan.path.length - 1;
+    const here = profileValue(plan, pathIndex / last, 'distanceM');
+    const end = profileValue(plan, step.endIndex / last, 'distanceM');
+    const remainingM = here !== null && end !== null
+      ? Math.max(0, end - here)
+      : step.distanceM * (step.endIndex - pathIndex) / (step.endIndex - step.startIndex);
+    return { step, destination: leg.to, remainingM };
+  }
+  return null;
 }
 
 // Average signed grade over the next metres of the planned path.
@@ -158,7 +181,7 @@ export function walkSnapshot(plan, terrain, habitat, p) {
       : null);
   const o2MarginKg = o2LeftKg - reserveKg - (o2ToHomeKg ?? 0);
   return {
-    position, upcoming, complete, returning, destination, bearing, heading,
+    position, routeIndex, upcoming, complete, returning, destination, bearing, heading,
     rangeM: complete ? 0 : distanceM(position, target),
     remainingS: Math.max(0, totals.totalTimeS - position.elapsedS),
     o2LeftKg, o2ToHomeKg, o2MarginKg, reserveKg,
@@ -166,6 +189,7 @@ export function walkSnapshot(plan, terrain, habitat, p) {
     doseMSv: doseAt(plan, progress),
     slopeDeg: complete ? null : slopeAheadDeg(terrain, plan, routeIndex, 30),
     turnBack: !complete && passedTurnBack(plan, progress),
+    storm: stormGuidance(plan, terrain, routeIndex, complete),
   };
 }
 
