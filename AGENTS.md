@@ -23,19 +23,32 @@ scripts/prep_real_data.py, tests/test_prep.py,
 js/engine.js, js/config.js, tests/engine.test.mjs,
   CONTRACTS.md                              Engine/model (Codex 2)
 data/demo/, scripts/make_demo.mjs, scripts/plan_demo.mjs, package.json,
-  AGENTS.md, CLAUDE.md, README.md           Coordinator  (main Claude session)
+  AGENTS.md, CLAUDE.md, README.md,
+  .claude/launch.json                       Coordinator  (main Claude session)
 STATUS.md                                   everyone (append only)
 comms/<agent>.md                            that agent only (cross-machine messages)
 ```
 
-## The four lanes
+## Site decision (2026-11-14)
 
-| Agent | Branch | Owns | Done when |
-|---|---|---|---|
-| Claude 1 — UI | `ui` | `index.html`, `css/`, `js/app.js`, `js/render.js` | Map shows terrain layers, route, numbered stops, turn-back marker; side panel shows O2, time, radiation bars; the three condition toggles and click-to-add-stop replan the route. Works on `data/demo`. |
-| Claude 2 — Photos & NASA layers | `photos` | `js/photos.js`, `js/basemap.js`, `scripts/fetch_photos.mjs`, `data/real/targets.json`, `data/real/area.json` | Each real stop shows a Perseverance photo taken nearby; Mars Trek imagery loads as a base layer; real stops chosen along the rover traverse with sol numbers. |
-| Codex 1 — Real data | `data` | `scripts/prep_real_data.py`, `tests/test_prep.py`, `requirements.txt`, `data/real/terrain.json` | Script crops the USGS HiRISE DTM and the Zenodo thermal-inertia map to `data/real/area.json`, computes roughness, writes the terrain contract. Tested on small synthetic GeoTIFFs. |
-| Codex 2 — Engine & model | `engine` | `js/engine.js`, `js/config.js`, `tests/engine.test.mjs`, `CONTRACTS.md` | Every `ASSUMPTION` in config either cited or kept and justified; adds `profile` (O2/dose along route) and `bestSubset` (best stops that fit); tests pass. |
+**Jezero Crater (delta front) is the primary site.** Gale Crater (Mount Sharp boxwork) is a
+**second dataset added later**, in `data/gale/` with the same contracts, loaded with `?data=gale`.
+Nothing about Gale may change the Jezero files or the contracts.
+
+## The lanes
+
+| Lane | Who (machine) | Branch | Owns | Status / done when |
+|---|---|---|---|---|
+| UI | Claude 1 (Tonny) | merged | `index.html`, `css/`, `js/app.js`, `js/render.js` | **MERGED.** Map, route, turn-back, budget bars, conditions, click-to-add, `?data=` switch. |
+| Photos & NASA layers | Claude 2 (Tonny) | merged | `js/photos.js`, `js/basemap.js`, `scripts/fetch_photos.mjs`, `data/real/targets.json`, `data/real/area.json`, `docs/photos-demo.html` | **MERGED.** Jezero area, 6 real stops with Perseverance photos, Mars Trek HiRISE/CTX + traverse. |
+| Real data | Codex (Tonny) | `data` | `scripts/prep_real_data.py`, `tests/test_prep.py`, `requirements.txt`, `data/real/terrain.json` | Crop USGS HiRISE DTM + Zenodo thermal inertia to `data/real/area.json` → `data/real/terrain.json`. Brief: `docs/briefs/codex-1-data.md`. |
+| Engine & model | louis-claude (Louis) | `engine` | `js/engine.js`, `js/config.js`, `tests/engine.test.mjs`, `CONTRACTS.md`, `docs/model.md` | Cite every `ASSUMPTION` (incl. 20° max slope, NTRS 20210000827); add `profile`, `bestSubset`, `turnBackLatest`. Brief: `docs/briefs/codex-2-engine.md`. |
+| Views (tablet + helmet HUD) | Louis's machine | `views` | new files only (listed in `docs/briefs/louis-views.md`) | Reads the plan result; no route/budget maths of its own. |
+| Conditions (Go/No-Go) | Louis's machine | `conditions` | new files only (listed in `docs/briefs/louis-conditions.md`) | Turns REMS / DONKI / MCD / RAD data into the existing condition toggles and config factors; no duplicate budget logic. Contracts added by the engine lane. |
+| Gale dataset | TBD, after the above | `gale` | `data/gale/*`, its fetch/prep scripts | Same terrain/targets contracts for Mount Sharp boxwork, Curiosity photos. Only if time allows. |
+
+Partner-agency data is credited where used (ESA HRSC / Mars Climate Database, CSA APXS,
+Spain REMS, UAE Emirates Mars Mission).
 
 ## Hard rules
 
@@ -45,8 +58,8 @@ comms/<agent>.md                            that agent only (cross-machine messa
    agrees in `STATUS.md`. Never rename or remove a field another lane reads.
 3. **Branch from `develop`, merge back into `develop`.** Rebase or merge `develop` into your
    branch at least every couple of hours and before you open a merge. Never push to `main`.
-4. **Merge order:** `engine` and `data` first, then `ui`, then `photos`. Whoever merges after a
-   contract change re-runs all tests.
+4. **Merge order (from now):** `engine` and `data`, then `conditions`, then `views`, then `gale`.
+   The coordinator merges; whoever merges after a contract change re-runs all tests.
 5. **Tests must pass before merging:** `npm test` (and `python -m pytest tests/` once it exists).
 6. **No secrets or large files in git.** Raw GeoTIFFs and downloads go in `raw/` (git-ignored).
    Anything committed under `data/` stays under ~5 MB per file.
