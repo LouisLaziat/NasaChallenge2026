@@ -393,7 +393,8 @@ export function resolveTargets(terrain, targetsFile) {
  *
  * @param terrain      Terrain file (CONTRACTS.md)
  * @param targetsFile  Targets file (CONTRACTS.md)
- * @param options      { stopIds?: string[], conditions?: {dustStorm, solarEvent, heavyKit}, config? }
+ * @param options      { stopIds?: string[], conditions?: {dustStorm, solarEvent, heavyKit}, config?,
+ *                       contingency?: false, routeConfig? (route options, see js/routes.js) }
  *
  * Returns a Plan result (also documented in CONTRACTS.md):
  * {
@@ -420,6 +421,14 @@ export function planWalk(terrain, targetsFile, options = {}) {
   const config = options.config ?? CONFIG;
   const conditions = options.conditions ?? {};
   const g = buildCostGrid(terrain, config, conditions);
+  // options.routeConfig: choose paths and order with a different cost model (route options in
+  // js/routes.js), but measure time, O2 and dose with the real one. Its slope limit must not be
+  // looser than the real one, or a chosen path could cross ground the real model forbids.
+  let gs = g;
+  if (options.routeConfig) {
+    if (options.routeConfig.walk.maxSlopeDeg > config.walk.maxSlopeDeg) throw new Error('routeConfig may not raise the slope limit');
+    gs = buildCostGrid(terrain, options.routeConfig, conditions);
+  }
   const p = g.params;
   const W = g.width;
   const resolved = resolveTargets(terrain, targetsFile);
@@ -431,7 +440,7 @@ export function planWalk(terrain, targetsFile, options = {}) {
   const inGrid = (n) => n.x >= 0 && n.y >= 0 && n.x < W && n.y < g.height;
   if (!inGrid(habitat)) throw new Error('habitat is outside the terrain');
   const hCell = habitat.y * W + habitat.x;
-  if (g.blocked[hCell]) throw new Error('habitat sits on impassable ground');
+  if (g.blocked[hCell] || gs.blocked[hCell]) throw new Error('habitat sits on impassable ground');
 
   const nodes = [habitat, ...wanted];
   const cells = nodes.map((n) => (inGrid(n) ? n.y * W + n.x : -1));
@@ -441,9 +450,9 @@ export function planWalk(terrain, targetsFile, options = {}) {
   const E = Array.from({ length: n }, () => new Array(n).fill(Infinity));
   const prevs = new Array(n);
   for (let i = 0; i < n; i++) {
-    if (cells[i] < 0 || g.blocked[cells[i]]) continue;
-    const targets = cells.filter((c, j) => j !== i && c >= 0 && !g.blocked[c]);
-    const { dist, prev } = search(g, cells[i], { targets });
+    if (cells[i] < 0 || gs.blocked[cells[i]]) continue;
+    const targets = cells.filter((c, j) => j !== i && c >= 0 && !gs.blocked[c]);
+    const { dist, prev } = search(gs, cells[i], { targets });
     prevs[i] = prev;
     for (let j = 0; j < n; j++) E[i][j] = i === j ? 0 : cells[j] >= 0 ? dist[cells[j]] : Infinity;
   }

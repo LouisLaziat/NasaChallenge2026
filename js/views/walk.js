@@ -1,5 +1,6 @@
 // Generated with AI assistance for NASA Space Apps 2026; reviewed by the team
-import { planWalk, resolveTargets } from '../engine.js';
+import { resolveTargets } from '../engine.js';
+import { ROUTE_MODES, planRoute } from '../routes.js';
 import { buildSteps } from '../steps.js';
 import { clampProgress, currentInstruction, walkSnapshot } from './geometry.js';
 
@@ -52,7 +53,9 @@ export async function loadWalk() {
     heavyKit: enabled('kit'),
   };
   const { habitat, targets } = resolveTargets(terrain, targetsFile);
-  const plan = planWalk(terrain, { habitat, targets }, { stopIds, conditions });
+  const requestedRoute = params.get('route');
+  const mode = ROUTE_MODES.includes(requestedRoute) ? requestedRoute : 'eco';
+  const plan = planRoute(mode, terrain, { habitat, targets }, { stopIds, conditions });
   const playSeconds = Number(params.get('play'));
   return {
     url, dataset, terrain, habitat, plan,
