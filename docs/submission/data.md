@@ -2,7 +2,7 @@ DRAFT for the team to rewrite in their own words
 
 # Data, credits and limits
 
-This register follows the committed source records in [Jezero terrain](../../data/real/terrain.json), [Jezero stops](../../data/real/targets.json), [Gale terrain](../../data/gale/terrain.json), [Gale stops](../../data/gale/targets.json), [Gale notes](../../data/gale/README.md), and the two [Jezero](../../data/conditions/real.json) / [Gale](../../data/conditions/real-gale.json) conditions snapshots. It records project use, without asserting that a link was rechecked while drafting. Retrieval timestamps and weather observation dates are different.
+This register follows the committed source records in [Jezero terrain](../../data/real/terrain.json), [Jezero stops](../../data/real/targets.json), [Gale terrain](../../data/gale/terrain.json), [Gale stops](../../data/gale/targets.json), [Gale APXS chemistry](../../data/gale/chemistry.json), [Gale notes](../../data/gale/README.md), and the two [Jezero](../../data/conditions/real.json) / [Gale](../../data/conditions/real-gale.json) conditions snapshots. Gale is the default site; Jezero remains a full second site. Retrieval timestamps and weather observation dates are different; verification of the new APXS sources is recorded in STATUS.md.
 
 ## Terrain, imagery and rover positions
 
@@ -28,7 +28,26 @@ This register follows the committed source records in [Jezero terrain](../../dat
 | [Curiosity RAD / Hassler et al. (2014)](https://doi.org/10.1126/science.1244797) · [paper copy](https://www.scienceintheclassroom.org/sites/default/files/research-papers/1244797.full_.pdf) | Published historical surface dose-equivalent baseline, about 0.64 mSv/day. | **Measured at Gale, geographic proxy at Jezero.** It is not a live dosimeter on either site. The 1 mSv walk allocation and solar-event multiplier are team scenario choices. The paper copy is an alternate reading link when the DOI's publisher blocks automated access. |
 | [Mars Climate Database](https://www-mars.lmd.jussieu.fr/) — LMD / ESA / CNES | Referenced source for optional manual dust optical depth and Mars-local EVA-window entry. | **No MCD values were retrieved.** Both fields are null in the real snapshots. Synthetic demo entries are invented and labelled. The window is displayed, not enforced. |
 
-CAB's MEDA and REMS observations are the partner contributions actually used in the weather snapshots. MCD's LMD / ESA / CNES role is credited as a referenced manual-input resource, not as downloaded project data. The repo mentions ESA HRSC, CSA APXS and UAE Emirates Mars Mission as possible partner resources; no such dataset is present in these committed planning inputs, so this draft does not claim their use.
+CAB's MEDA and REMS observations are the partner contributions used in the weather snapshots. Curiosity APXS supplies the Canadian Space Agency contribution below. MCD's LMD / ESA / CNES role is credited as a referenced manual-input resource, not as downloaded project data. ESA HRSC and UAE Emirates Mars Mission remain possible resources; no such dataset is present in these committed planning inputs.
+
+## Rock chemistry: Curiosity APXS / Canadian Space Agency
+
+The [APXS archive](https://pds-geosciences.wustl.edu/missions/msl/apxs.htm) credits instrument funding to the Canadian Space Agency and data production to the University of Guelph APXS team. The [PDS4 calibrated RDR bundle](https://pds-geosciences.wustl.edu/msl/msl-m-apxs-4_5-rdr-v1/mslapx_1xxx/) contains RWP oxide-abundance CSVs and labels. These measurements are science context; they do not change the route's oxygen model or team-assigned science scores.
+
+The separate [chemistry manifest](../../data/gale/chemistry.json) records source products, labels, exact reported values, statistical precision and preserved RWP excerpts with SHA-256 checksums. Target names are joined from the release concentration tables ([sols 4489–4612](https://pds-geosciences.wustl.edu/msl/msl-m-apxs-4_5-rdr-v1/mslapx_1xxx/extras/msl_apxs_concentrations_4489_4612.csv), [4613–4709](https://pds-geosciences.wustl.edu/msl/msl-m-apxs-4_5-rdr-v1/mslapx_1xxx/extras/msl_apxs_concentrations_4613_4709.csv), [4710–4843](https://pds-geosciences.wustl.edu/msl/msl-m-apxs-4_5-rdr-v1/mslapx_1xxx/extras/msl_apxs_concentrations_4710_4843.csv)). Rover site/drive identifiers in the products are joined to the NASA/JPL MMGIS waypoints for approximate distance.
+
+| Gale stop | Selected APXS target / measurement sol | Approximate rover-station distance | Association limit |
+|---|---|---:|---|
+| G1, trough (stop sol 4578) | [Hornitos_DRT, 4580](https://pds-geosciences.wustl.edu/msl/msl-m-apxs-4_5-rdr-v1/mslapx_1xxx/data/sol04580/apb_804072789rwp45801170168_______p1.csv) | ~0 m | Same rover station; measurement two sols later. |
+| G2, Río Frío (stop sol 4636) | [Tartagalita_DRT, 4638](https://pds-geosciences.wustl.edu/msl/msl-m-apxs-4_5-rdr-v1/mslapx_1xxx/data/sol04638/apb_809257818rwp46381181752_______p1.csv) | ~8 m | Two sols later. Vitichi is another analysis at the same station and sol; values are not averaged. |
+| G3, drill pair (stop sol 4722) | [Tesoro_del_Pangal_DRT, 4716](https://pds-geosciences.wustl.edu/msl/msl-m-apxs-4_5-rdr-v1/mslapx_1xxx/data/sol04716/apb_816180959rwp47161200082_______p1.csv) | ~0 m | Six sols earlier. This is not the Nevado Sajama drill sample; [Nevado_Sajama_DRT, sol 4713](https://pds-geosciences.wustl.edu/msl/msl-m-apxs-4_5-rdr-v1/mslapx_1xxx/data/sol04713/apb_815916525rwp47131200082_______p1.csv) is retained as a companion measurement. |
+| G4, sulfate contact (stop sol 4851) | [Challapata_DRT, 4842](https://pds-geosciences.wustl.edu/msl/msl-m-apxs-4_5-rdr-v1/mslapx_1xxx/data/sol04842/apb_827365543rwp48421210762_______p1.csv) | ~96 m | Nearby context only, nine sols earlier and at a different station. No exact-stop abundance is asserted. |
+
+**Association is a curation assumption:** among released analyses within 15 sols of each listed stop, choose the nearest rover station, then the smallest absolute sol offset; prefer a DRT analysis on a station/sol tie. DRT means a dust-removal-tool brushed measurement. The coordinate is the rover's waypoint, not the APXS contact point on the rock. A rounded ~0 m does not establish an exact sample location or geological equivalence.
+
+Values are copied without renormalisation: SiO₂, FeO(T), MgO, CaO, SO₃, Na₂O, Al₂O₃ and Cl. **Cl is elemental chlorine**, not an oxide. FeO(T) uses the published FeO column without conversion. The reported ± values describe statistical precision, not total analytical accuracy; the eight displayed components are a subset, not a complete mineral composition. See the [APXS RDR specification](https://pds-geosciences.wustl.edu/msl/msl-m-apxs-4_5-rdr-v1/mslapx_1xxx/document/apxs_rdr_sis.pdf), section 3.2 / Appendix B.
+
+The [PDS release schedule](https://pds-geosciences.wustl.edu/missions/msl/index.htm) currently ends at sol 4843 (release 42). G4 sol 4851 belongs to release 43, scheduled for 2026-12-07. The nearby Challapata measurement does not fill that exact-stop gap. Render credit: **APXS · Canadian Space Agency / NASA**. Stop-card integration is requested from the UI lane; the source manifest and shared renderer are supplied here.
 
 ## Science-stop context from NASA
 
