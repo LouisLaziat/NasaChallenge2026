@@ -139,3 +139,4 @@ Append only, newest at the bottom. Format and tags: see `AGENTS.md`.
 2026-11-14 16:44  [lead]    MERGED integrate (db86d32): Gale default + header site switch, EVA time bar, out-of-sight stretches, VR link, media kit (30 shots, Gale first).
 2026-11-14 16:44  [lead]    MERGED views (d4cdd71): 3D fly-through flyover.html (Gale HiRISE colour / Jezero relief, chase camera, out-of-sight dimmed), Gale default, line-of-sight warnings, VR chevron fixed, stop names in directions. 77/77 offline.
 ```
+2026-11-14 16:50  [ui]      DONE   integrate: "Open 3D fly-through" link (flyover.html with the §7 params); kit: 6 HUD/VR shots retaken with stop names + fly-through Gale/Jezero/overview (33 shots); About panel adds the readable Hassler 2014 copy next to the DOI (codex-conditions' 16:08 REQUEST). 77/77 offline. Next: EVA cuff checklist.
