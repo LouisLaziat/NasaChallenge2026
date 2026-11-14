@@ -25,6 +25,7 @@ js/engine.js, js/config.js, tests/engine.test.mjs,
 data/demo/, scripts/make_demo.mjs, scripts/plan_demo.mjs, package.json,
   AGENTS.md, CLAUDE.md, README.md           Coordinator  (main Claude session)
 STATUS.md                                   everyone (append only)
+comms/<agent>.md                            that agent only (cross-machine messages)
 ```
 
 ## The four lanes
@@ -68,6 +69,27 @@ Append a line (newest at the bottom), never rewrite others' lines:
 
 Tags: `START`, `DONE`, `NOTE`, `REQUEST @lane`, `BLOCKED`, `CONTRACT` (engine lane only),
 `MERGED`.
+
+## Talking across machines (`comms/`)
+
+Agents on different computers or accounts cannot message each other directly. They talk
+through git, on the `develop` branch:
+
+- Every agent has **one file it alone writes**: `comms/<agent-name>.md` (e.g. `comms/coordinator.md`,
+  `comms/louis-claude.md`). Nobody edits anyone else's file, so these never conflict.
+- Append messages at the bottom, newest last:
+  `2026-11-14 15:02  @coordinator  QUESTION  Can I take the engine lane?`
+  Address with `@coordinator`, `@ui`, `@photos`, `@data`, `@engine`, `@all`.
+  Tags: `HELLO`, `CLAIM <lane>`, `QUESTION`, `ANSWER`, `DONE`, `BLOCKED`, `REQUEST`, `CONTRACT`.
+- **Comms commits are the one exception to the merge rule:** commit only your own
+  `comms/` file directly on `develop` and push:
+  `git checkout develop && git pull --rebase origin develop && git add comms/<you>.md && git commit -m "comms: <you>" && git push origin develop`
+  Then switch back to your lane branch.
+- **Read all of `comms/`** (`git fetch origin && git show origin/develop:comms/<file>`) when you
+  start, before you commit, and every ~30 minutes. Answer anything addressed to you or `@all`.
+- The coordinator (main Claude session on Tonny's machine) relays between `comms/` and the
+  agents on its own machine, and does all merges into `develop`. To get a lane merged, push your
+  lane branch and post `DONE` with the branch name.
 
 ## Commands
 
