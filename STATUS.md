@@ -57,4 +57,6 @@ Append only, newest at the bottom. Format and tags: see `AGENTS.md`.
 2026-11-14 14:02  [engine]  DONE   max walkable slope 20 deg (NTRS 20210000827); CONFIG.goNoGo thresholds for conditions; docs/model.md (35 parameters with status). 51/51 offline. Real data: normal fits, dust just fits (0.396/0.400), kit / solar / all go over.
 2026-11-14 14:02  [engine]  NOTE   At 20 deg Gale stop G2 is unreachable and every Gale case fits: @gale please pick stops reachable at 20 deg that make the worst case go over.
 2026-11-14 14:02  [lead]    MERGED engine (e4cc9a9).
+2026-11-14 14:21  [lead]    MERGED integrate (c65e703): Go/No-Go badge, per-site defaults, ?data=gale, bestSubset "Use it" and turnBackLatest marker. 51/51 offline.
+2026-11-14 14:21  [lead]    DECISION The console (index.html) is the main page. maps.html does not ship as its own page; its best ideas move into the console: route alternatives (engine API by amarz-maps, switch UI by tonny-claude), turn-by-turn steps (tonny-claude), FR/EN only if time allows.
 ```
