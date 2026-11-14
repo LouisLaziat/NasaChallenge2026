@@ -24,8 +24,52 @@
         <p class="tagline"><span id="site-name">Jezero Crater</span> EVA planner · every route priced in O<sub>2</sub>, time, dose and science</p>
       </div>
     </div>
-    <div class="dataset" id="dataset-label">loading…</div>
+    <div class="topbar-right">
+      <div class="dataset" id="dataset-label">loading…</div>
+      <button type="button" class="about-link" id="about-open" aria-haspopup="dialog">About this model</button>
+    </div>
   </header>
+
+  <dialog class="about" id="about" aria-labelledby="about-title">
+    <form method="dialog"><button class="about-link about-close" aria-label="Close">Close</button></form>
+    <h2 id="about-title">About this model</h2>
+    <p>
+      The walk area is a grid of 5 m cells built from real elevation and ground-hardness data. Each step between
+      cells costs <strong>metabolic energy</strong>: walking speed follows a hiking law on the local slope and drops on
+      loose sand and rough ground; power rises uphill, on sand and with a heavy kit; slopes over 20° are off limits.
+      Energy becomes <strong>suit oxygen</strong> (about 20.1 kJ per litre of O<sub>2</sub>), with 20% of the tank held
+      in reserve. The planner finds the least-effort path and the best order of stops, then adds
+      <strong>radiation dose</strong> from the time spent outside, the <strong>point of no return</strong>, where to turn
+      back if a dust storm starts, and the best set of stops that fits. Every number is labelled as a published source,
+      a proxy, an assumption or a design choice.
+    </p>
+    <ul>
+      <li><a href="docs/model.md" target="_blank" rel="noopener">The model and every parameter</a> (docs/model.md)</li>
+      <li><a href="docs/model-sources.md" target="_blank" rel="noopener">Source audit with page references</a> (docs/model-sources.md)</li>
+    </ul>
+
+    <h3>Data</h3>
+    <ul>
+      <li>Elevation: USGS Astrogeology HiRISE DTM mosaics,
+        <a href="https://astrogeology.usgs.gov/search/map/mars_2020_terrain_relative_navigation_hirise_dtm_mosaic" target="_blank" rel="noopener">Jezero (Mars 2020 TRN)</a> and
+        <a href="https://astrogeology.usgs.gov/search/map/mars_msl_gale_merged_dem_1m" target="_blank" rel="noopener">Gale (MSL)</a>.</li>
+      <li>Ground hardness: <a href="https://doi.org/10.5281/zenodo.4931348" target="_blank" rel="noopener">THEMIS-derived thermal inertia of Jezero Crater</a> (Zenodo, CC BY 4.0). Not available for Gale.</li>
+      <li>Imagery: <a href="https://trek.nasa.gov/mars/" target="_blank" rel="noopener">NASA Mars Trek</a> (MRO HiRISE / CTX) and the USGS Gale HiRISE colour mosaic; rover traverses from NASA/JPL MMGIS.</li>
+      <li>Stop photos: <a href="https://mars.nasa.gov/mars2020/multimedia/raw-images/" target="_blank" rel="noopener">Perseverance</a> and
+        <a href="https://mars.nasa.gov/msl/multimedia/raw-images/" target="_blank" rel="noopener">Curiosity</a> raw images, NASA/JPL-Caltech; each photo shows its own credit.</li>
+      <li>Weather: Perseverance MEDA and Curiosity REMS, both led by Spain's Centro de Astrobiología (CAB), from the
+        <a href="https://mars.nasa.gov/rss/api/?feed=weather&amp;category=mars2020&amp;feedtype=json" target="_blank" rel="noopener">NASA weather feed</a>; dust from the Mars Climate Database (LMD / ESA / CNES), entered by hand.</li>
+      <li>Solar particle events: <a href="https://ccmc.gsfc.nasa.gov/tools/DONKI/" target="_blank" rel="noopener">NASA CCMC DONKI</a>, detected near Earth and used as a proxy for Mars.</li>
+      <li>Radiation: Curiosity RAD at Gale, <a href="https://doi.org/10.1126/science.1244797" target="_blank" rel="noopener">Hassler et al. 2014</a> (~0.64 mSv/day). Measured at Gale; used as a proxy at Jezero.</li>
+    </ul>
+
+    <h3>AI assistance</h3>
+    <p>
+      This project was built for NASA Space Apps 2026 with AI coding agents (Anthropic Claude and OpenAI Codex), each
+      working in its own part of the code, with the team reviewing and merging the work. Files carry an
+      AI-assistance note on their first line. The science calls, story and presentation are the team's.
+    </p>
+  </dialog>
 
   <div class="banner" id="synthetic-banner" hidden>
     <strong>Synthetic terrain.</strong> This demo grid is invented to exercise the planner; it is not a real

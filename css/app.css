@@ -99,6 +99,36 @@ code { background: #00000055; padding: 0 4px; border-radius: 3px; }
 .drop-btn:hover { background: #f2b862; }
 .drop-btn small { display: block; font-weight: 500; opacity: .8; }
 
+/* ---------- Presenter mode (?tour=1) ---------- */
+.tour-caption {
+  position: absolute; left: 50%; bottom: 28px; transform: translateX(-50%); z-index: 1000;
+  display: flex; align-items: baseline; gap: 12px; width: max-content; max-width: min(calc(100% - 32px), 860px);
+  padding: 10px 18px; border-radius: 8px; background: #120d0be6; border: 1px solid var(--ochre);
+  box-shadow: 0 4px 18px #000a; color: var(--text); font-size: 18px; font-weight: 600; line-height: 1.35;
+}
+.tour-count { color: var(--ochre); font-size: 13px; font-weight: 700; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.tour-focus { outline: 2px solid var(--ochre); outline-offset: 3px; animation: tourGlow 1.4s ease-in-out infinite alternate; }
+@keyframes tourGlow { from { box-shadow: 0 0 0 0 #e0a14a00; } to { box-shadow: 0 0 18px 2px #e0a14a88; } }
+
+/* ---------- About this model ---------- */
+.about-link {
+  background: none; border: 1px solid var(--line); color: var(--ochre); border-radius: 4px;
+  padding: 3px 10px; font: 600 12px var(--font); cursor: pointer; white-space: nowrap;
+}
+.about-link:hover { border-color: var(--ochre); }
+.topbar-right { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+.about {
+  width: min(680px, calc(100vw - 32px)); max-height: calc(100vh - 48px); overflow-y: auto;
+  background: var(--panel); color: var(--text); border: 1px solid var(--line); border-radius: 10px; padding: 18px 22px;
+}
+.about::backdrop { background: #000b; }
+.about h2 { margin: 0 0 8px; font-size: 20px; color: var(--text); text-transform: none; letter-spacing: 0; }
+.about h3 { margin: 16px 0 6px; font-size: 12px; text-transform: uppercase; letter-spacing: .1em; color: var(--ochre); }
+.about p, .about li { font-size: 14px; line-height: 1.5; }
+.about ul { margin: 0; padding-left: 18px; }
+.about a { color: var(--ochre); }
+.about-close { float: right; }
+
 /* ---------- Turn-by-turn ---------- */
 .steps-card > summary { cursor: pointer; list-style: none; }
 .steps-card > summary::-webkit-details-marker { display: none; }

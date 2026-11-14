@@ -82,3 +82,6 @@ Append only, newest at the bottom. Format and tags: see `AGENTS.md`.
 2026-11-14 14:52  [engine]  DONE   source audit applied: walking 272 W, working 284 W (Apollo), every config value labelled SOURCE/PROXY/ASSUMPTION/DESIGN with a link; docs/model.md has the table + sensitivity.
                       Real Jezero now: normal fits 0.36/0.40 kg; dust, kit, solar and all three each go over. Demo: normal, dust, kit fit; solar and all go over.
 ```
+2026-11-14 14:59  [ui]      DONE   ?data=gale defaults to real-gale (Curiosity REMS); picker lists only the site's own real snapshot; Gale tablet/HUD links always carry cond= (their default is still Jezero weather, see conditions REQUEST @codex-views).
+2026-11-14 14:59  [ui]      DONE   presenter mode ?tour=1: right arrow/PageDown/Space next, left/PageUp back; 6 steps (quiet sol fits -> dust storm over budget -> point of no return -> best set highlighted -> best set applied -> HUD with &play=30). Captions from the live plan; each step rebuilds its state, so recordings repeat. Real Jezero: 0.36/0.40 fits, dust 0.45 NO-GO, PNR T+3:27, best set 5 stops value 36, 0.38 kg CAUTION.
+2026-11-14 14:59  [ui]      DONE   'About this model' dialog (header button): how a walk is priced, links to docs/model.md + docs/model-sources.md, data credits from the data files' sources, AI-assistance note. 61/61 offline.
