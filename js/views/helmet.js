@@ -130,8 +130,7 @@ export function mountHelmet(walk) {
     if (heading === null) pointAt(frame.heading ?? 0);
     const nextPhoto = walk.targets.get(frame.upcoming?.id)?.photos?.[0];
     const warning = frame.turnBack ? 'Turn back · O₂ reserve' : STORM_MESSAGES[frame.storm];
-    const target = frame.upcoming ? `${frame.upcoming.id} · ${Math.round(frame.rangeM)} m direct` :
-      frame.complete ? 'EVA complete' : `Habitat · ${Math.round(frame.rangeM)} m direct`;
+    const target = frame.complete ? 'EVA complete' : frame.upcoming?.name ?? 'Habitat';
     for (const eye of eyes) {
       eye.arrow.toggleAttribute('hidden', frame.heading === null);
       if (frame.heading !== null) eye.arrow.setAttribute('transform', `rotate(${relativeBearingDeg(frame.heading, heading)})`);
@@ -139,7 +138,8 @@ export function mountHelmet(walk) {
       eye.warning.dataset.state = frame.turnBack ? 'active' : frame.storm ?? '';
       eye.warning.textContent = warning ?? '';
       eye.stop.textContent = target;
-      eye.instruction.textContent = instructionText(instruction);
+      eye.range.textContent = frame.complete ? '' : `${Math.round(frame.rangeM)} m direct`;
+      eye.instruction.textContent = instructionText(instruction, { includeDestination: false });
       eye.oxygen.textContent = `${frame.o2MarginKg.toFixed(3)} kg`;
       const critical = frame.o2MarginKg < 0 || frame.turnBack;
       eye.oxygen.classList.toggle('helmet-critical', critical);

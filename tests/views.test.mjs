@@ -167,8 +167,9 @@ test('dust-storm guidance distinguishes approaching, passed, and safe routes', (
 });
 
 test('instructions advance through engine steps and end at the habitat', () => {
-  const legs = buildSteps(plan, terrain);
-  assert.equal(currentInstruction(legs, 0, plan).destination, plan.order[0]);
+  const names = new Map(targets.targets.map(({ id, name }) => [id, name]));
+  const legs = buildSteps(plan, terrain, names);
+  assert.equal(currentInstruction(legs, 0, plan).destination, names.get(plan.order[0]));
   for (const leg of legs) {
     for (const step of leg.steps) {
       const initial = currentInstruction(legs, step.startIndex, plan);

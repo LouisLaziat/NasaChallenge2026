@@ -60,7 +60,7 @@ export async function loadWalk() {
   return {
     url, dataset, terrain, habitat, plan,
     targets: new Map(targets.map((target) => [target.id, target])),
-    routeSteps: buildSteps(plan, terrain),
+    routeSteps: buildSteps(plan, terrain, new Map(targets.map(({ id, name }) => [id, name]))),
     progress: clampProgress(Number(params.get('p'))),
     playMs: Number.isFinite(playSeconds * 1000) && playSeconds > 0 ? playSeconds * 1000 : 0,
     verdict: verdict(plan),
@@ -124,10 +124,11 @@ export function bindProgress(walk, draw, { autoplay = true, startAt = walk.playM
   return { play, pause, seek, isPlaying: () => animation !== null };
 }
 
-export function instructionText(instruction) {
+export function instructionText(instruction, { includeDestination = true } = {}) {
   if (!instruction) return '';
   const { step, destination, remainingM } = instruction;
-  return `${step.text} · ${Math.round(remainingM)} m toward ${destination}`;
+  const distance = `${step.text} · ${Math.round(remainingM)} m`;
+  return includeDestination ? `${distance} toward ${destination}` : distance;
 }
 
 export function showLoadError(error) {

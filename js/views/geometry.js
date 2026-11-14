@@ -137,7 +137,7 @@ export function currentInstruction(legs, pathIndex, plan) {
     const remainingM = here !== null && end !== null
       ? Math.max(0, end - here)
       : step.distanceM * (step.endIndex - pathIndex) / (step.endIndex - step.startIndex);
-    return { step, destination: leg.to, remainingM };
+    return { step, destination: leg.to === 'habitat' ? 'habitat' : leg.toName, remainingM };
   }
   return null;
 }
