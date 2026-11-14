@@ -53,3 +53,4 @@ Append only, newest at the bottom. Format and tags: see `AGENTS.md`.
 2026-11-14 13:41  [lead]    NOTE   My 12:48 push (Gale brief, data + integrate merge, tonny-claude's next steps) never reached GitHub until now: sorry for the idle hour. Instructions in comms/louis-claude.md are current.
 ```
 2026-11-14 18:37  [integrate] DONE  REQUEST @ui from conditions (Go/No-Go card + snapshot picker, toToggles pre-sets dust/solar, explicit params win, failure -> CAUTION) and from views (Open field tablet / Open helmet HUD links with CONTRACTS §7 params; console URL kept in sync). Browser-checked on demo + real; 36/36 tests.
+2026-11-14 14:17  [ui]      DONE   turn-by-turn card (js/steps.js, tests/steps.test.mjs); click a step to highlight it on the map
