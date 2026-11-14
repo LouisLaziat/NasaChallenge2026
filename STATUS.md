@@ -22,8 +22,17 @@ Append only, newest at the bottom. Format and tags: see `AGENTS.md`.
 2026-11-14 12:03  [lead]    NOTE   CONTRACTS.md: §4 shapes fixed for profile / bestSubset / turnBackLatest (feature-detect until the engine's CONTRACT line), new §6 conditions file, new §7 page URL parameters.
 2026-11-14 12:03  [engine]  START  engine lane: citations + docs/model.md, max slope 20 deg, profile, bestSubset, turnBackLatest, speed
 ```
+2026-11-14 12:15  [conditions] START  codex-conditions on conditions from cached origin/develop 1f51735; pull blocked by invalid GitHub credentials. Implementing docs/briefs/conditions.md within owned files.
+2026-11-14 12:21  [conditions] NOTE   Verified HTTP 200 with Node/browser User-Agent: https://mars.nasa.gov/rss/api/?feed=weather&category=mars2020&feedtype=json . Latest returned MEDA sol 1133, observation 2024-04-27: archival, not current EVA weather; date retained in source note. Real snapshot fetched; dustTau/evaWindowLocal remain null/manual.
+2026-11-14 12:21  [conditions] NOTE   Verified HTTP 200: https://ccmc.gsfc.nasa.gov/DONKI-API/get/SEP?startDate=2026-10-15&endDate=2026-11-14 -> []; saved historical May 2024 response for offline tests. Old kauai URL replaced per https://ccmc.gsfc.nasa.gov/news/major-updates/ (September 2026 migration). Earth-side detection used as a proxy for Mars.
+2026-11-14 12:21  [conditions] QUESTION @lead: missing/invalid inputs provisionally cause CAUTION (ASSUMPTION); failed DONKI status is null under CONTRACTS unknown-values rule, never quiet. What weather/snapshot freshness threshold should a later version enforce? Archival MEDA date is prominent in provenance.
+2026-11-14 12:21  [conditions] REQUEST @engine: centralise brief decision thresholds (dust tau >1.0, O2 margin <10%, dose >80%, SEP age 2/7 days) in CONFIG when ready. Lane ownership forbids editing config; local constants are tagged ASSUMPTION in js/conditions.js and scripts/fetch_conditions.mjs.
+2026-11-14 12:25  [conditions] REQUEST @ui: mount renderConditions near console switches; integration snippet in docs/conditions-demo.html (CONSOLE INTEGRATION comment) covers loadConditions(?cond=), toToggles before planning, preserving heavyKit/user overrides, rendering after each plan and carrying cond in view links.
+2026-11-14 12:25  [conditions] NOTE   Browser QA passed at /docs/conditions-demo.html: three cards show GO / CAUTION / NO-GO with actual demo plans; real card shows CAUTION, unknown/manual dust and EVA window, archival MEDA observation date, source links and proxy credits. All source/data files are small; no dependencies added.
+2026-11-14 12:25  [conditions] DONE   conditions ready for lead merge: js/conditions.js, Node fetcher, real snapshot + 3 synthetic demos, saved MEDA/DONKI fixtures, conditions demo + console snippet. npm test: 27/27 in network-restricted sandbox, no node_modules and no npm install. Remote pull/fetch cannot authenticate; based on cached origin/develop 1f51735. Louis may need to refresh develop and push conditions.
 
 ```
 2026-11-14 12:46  [views]  REQUEST @ui: Add Open tablet and Open HUD links carrying the CONTRACTS §7 URL parameters.
 2026-11-14 12:46  [views]  DONE   views branch: field tablet and helmet HUD, 20/20 offline Node tests, demo and turn-back verified in Chrome, screenshots in docs/screenshots/.
 ```
+2026-11-14 12:53  [views]  NOTE   Synced with origin/develop 48c1369; 34/34 tests offline. Chrome verified GO, CAUTION and NO-GO with the conditions module, and turn-back on both views.

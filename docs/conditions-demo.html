@@ -1,0 +1,105 @@
+<!-- Generated with AI assistance for NASA Space Apps 2026; reviewed by the team -->
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Marswalk Budget · Conditions demo</title>
+  <style>
+    * { box-sizing:border-box; }
+    body { margin:0; background:#09131e; color:#edf4fb; font:16px/1.6 system-ui,sans-serif; }
+    main { max-width:1520px; padding:40px 24px 64px; margin:auto; }
+    .eyebrow { color:#ffb98a; letter-spacing:.14em; font-size:.8rem; font-weight:700; }
+    h1 { font-size:clamp(2rem,4vw,3.4rem); line-height:1.15; margin:12px 0; }
+    .intro { max-width:850px; color:#bdcddd; margin-bottom:28px; }
+    .cards { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:20px; align-items:start; }
+    .scenario { margin:0 0 10px; color:#d4e2ef; font-size:1rem; }
+    a { color:#acd6ff; }
+    code { color:#ffdbb3; }
+    .note { padding:18px 20px; border:1px solid #34475a; border-radius:10px; margin:28px 0; color:#bdcddd; }
+    .real { max-width:680px; }
+    summary { cursor:pointer; color:#acd6ff; }
+    .error { color:#ff9eaa; white-space:pre-wrap; }
+    @media(max-width:1050px) { .cards { grid-template-columns:1fr; } main { max-width:720px; padding:28px 16px; } }
+  </style>
+</head>
+<body>
+<main>
+  <p class="eyebrow">MARSWALK BUDGET / JEZERO CRATER</p>
+  <h1>Before you step outside.</h1>
+  <p class="intro">Three saved, synthetic scenarios applied to the same demo science stops.
+    Each scenario replans the walk using the engine’s existing condition switches.
+    Radiation uses Curiosity RAD measurements at Gale Crater as a proxy for Jezero.</p>
+  <p id="status" role="status">Loading local snapshots and calculating demo routes…</p>
+  <div class="cards">
+    <div><h2 class="scenario">01 / Quiet conditions</h2><div id="quiet"></div></div>
+    <div><h2 class="scenario">02 / Dusty traverse</h2><div id="dusty"></div></div>
+    <div><h2 class="scenario">03 / Solar particle alert</h2><div id="solar"></div></div>
+  </div>
+  <div class="note">All three scenarios are invented demonstrations, labelled <code>synthetic: true</code>.
+    GO means the planning thresholds pass. CAUTION calls for review. NO-GO means a solar alert or a failed route budget.
+    Unknown inputs also cause CAUTION (ASSUMPTION). Temperature, pressure and the manual EVA window are shown for context;
+    this version does not model thermal suit limits or enforce a clock window.</div>
+  <details class="real">
+    <summary>Inspect the saved real-data snapshot (conditions only)</summary>
+    <p>Refresh with <code>node scripts/fetch_conditions.mjs</code>. A new retrieval timestamp does not make archival weather current.
+      Dust and the EVA window need manual entries and source notes. A failed solar query leaves an unknown status.</p>
+    <div id="real"></div>
+  </details>
+  <p><a href="../index.html?data=demo&amp;cond=demo-quiet">Open the console</a> · Integration snippet is in this page’s source.</p>
+</main>
+<!--
+CONSOLE INTEGRATION — REQUEST @ui (tonny-claude), CONTRACTS sections 6 and 7.
+Mount <div id="conditions-card" aria-live="polite"></div> near the existing switches.
+
+import { loadConditions, toToggles, renderConditions } from './js/conditions.js';
+const condName = new URLSearchParams(location.search).get('cond') || 'real';
+const cond = await loadConditions(condName); // catch errors; show unavailable, never invent quiet
+const suggested = toToggles(cond); // { dustStorm, solarEvent }; heavyKit is never changed
+// Before planning, pre-set dust/solar from suggested. Explicit ?dust=1 / ?solar=1
+// can enable a user override; preserve manual switch choices on subsequent replans.
+// Store cond=condName in console/tablet/HUD links together with effective switches.
+// Run the existing planner with those switches, then after every result:
+renderConditions(document.querySelector('#conditions-card'), cond, plan);
+// With plan=null the card explicitly evaluates conditions only.
+// Do not multiply costs or dose outside planWalk; the engine already applies the switches.
+// On load failure retain the astronaut's switches and call renderConditions(mount, null, plan)
+// for CAUTION / unknown data. loadConditions rejects unknown names and HTTP failures.
+-->
+<script type="module">
+  import { loadConditions, toToggles, renderConditions } from '../js/conditions.js';
+  import { planWalk } from '../js/engine.js';
+
+  const status = document.querySelector('#status');
+  async function localJSON(path) {
+    const response = await fetch(new URL(path, import.meta.url));
+    if (!response.ok) throw new Error(`Cannot load ${path}: HTTP ${response.status}`);
+    return response.json();
+  }
+  try {
+    const [terrain, targets, ...snapshots] = await Promise.all([
+      localJSON('../data/demo/terrain.json'), localJSON('../data/demo/targets.json'),
+      loadConditions('demo-quiet'), loadConditions('demo-dusty'), loadConditions('demo-solar'),
+    ]);
+    // Give the loading message a paint before the synchronous, dependency-free engine runs.
+    await new Promise(requestAnimationFrame);
+    const levels = [];
+    for (const [i, id] of ['quiet', 'dusty', 'solar'].entries()) {
+      const cond = snapshots[i];
+      const plan = planWalk(terrain, targets, { conditions: toToggles(cond) });
+      levels.push(renderConditions(document.getElementById(id), cond, plan).level);
+    }
+    status.textContent = `Local demo ready · ${levels.join(' / ')}`;
+    status.dataset.ready = 'true';
+  } catch (error) {
+    status.textContent = `Demo unavailable: ${error.message}. Serve the repository over HTTP with npm run serve.`;
+    status.className = 'error';
+  }
+  try {
+    renderConditions(document.querySelector('#real'), await loadConditions('real'), null);
+  } catch (error) {
+    document.querySelector('#real').textContent = `Real snapshot unavailable: ${error.message}`;
+  }
+</script>
+</body>
+</html>
