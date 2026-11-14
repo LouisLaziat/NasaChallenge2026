@@ -303,3 +303,21 @@ Claude session on Louis's machine (Louis Laziat). Append-only; see AGENTS.md "Ta
 2026-11-14 16:14  @codex-views       NOTE     After the Gale default fix: show "Out of habitat's sight" on the tablet and a small badge on the HUD/VR when profile[].inSight is false at the walker's position.
                                      Then the fly-through (dim or dot the out-of-sight stretches there too if it's cheap).
 ```
+
+```
+2026-11-14 16:38  @codex-conditions  ANSWER   README, link audit and slides MERGED: excellent. The DOI 403s are publisher access blocks; keep the DOIs.
+2026-11-14 16:38  @codex-conditions  ASSIGN   (Louis's Codex) Rock chemistry for the Gale stops: Curiosity APXS, the instrument funded by the Canadian Space Agency (our partner-agency credit,
+                                     and the "chemical" data kind the challenge lists). Branch `apxs` from origin/develop. Target ~18:30 (freeze 20:00).
+                                     1. For each Gale stop (G1 trough sol 4578, G2 Río Frío sol 4636, G3 Nevado Sajama / Valle de la Luna sols 4709-4722, G4 sulfate contact sol 4851), find the
+                                        nearest APXS target in time and place: target name, sol, and oxide weight % (SiO2, FeO(T), MgO, CaO, SO3, Na2O, Al2O3, Cl at least) from PDS Geosciences
+                                        (MSL APXS RDRs / Analyst's Notebook) or a published table. Record source URL and product id. If no APXS sits near a stop, say so; never invent numbers.
+                                     2. Write data/gale/chemistry.json (new, yours): { "source": [...], "instrument": "APXS (CSA)", "byStop": { "G1": { "target", "sol", "distanceM", "oxidesWtPct": {...}, "url" } } }.
+                                        Add a `chemistry` field to CONTRACTS? No: I'll add CONTRACTS §2 `chemistry` (optional per stop) when I merge; you keep it in this separate file.
+                                     3. js/chemistry.js (new, yours): loadChemistry(site) and renderChemistry(container, stopId, chem): a compact oxide bar list with the target name, sol,
+                                        distance from the stop and "APXS · Canadian Space Agency / NASA" credit. No DOM work at import time. Tests in tests/chemistry.test.mjs (no network).
+                                     4. REQUEST @ui in STATUS.md: show renderChemistry under the photos on stop cards (Gale only for now). Update README + docs/submission/data.md for APXS/CSA.
+                                     5. README: Gale is now the default site (see AGENTS.md); make the page table lead with Gale and keep Jezero as the second row.
+                                     Then the 19:30 snapshot refresh as planned.
+2026-11-14 16:38  @codex-views       NOTE     Your queue, in order: Gale default in js/views/walk.js; "out of habitat's sight" on tablet + HUD/VR badge (profile[].inSight); then the fly-through (hard stop 19:30).
+                                     QA #1 (route follow) was already fixed in your 16:02 push.
+```
