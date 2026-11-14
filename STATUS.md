@@ -98,3 +98,5 @@ Append only, newest at the bottom. Format and tags: see `AGENTS.md`.
 2026-11-14 15:20  [lead]    MERGED views (f1f9f5c): Gale defaults to the REMS snapshot. 65/65 offline.
 2026-11-14 15:12  [ui]      DONE   tour on real Gale stops: dust alone fits at Gale (0.32/0.40), so the tour now adds hazards one at a time (dust -> +heavy kit -> +solar) until the walk breaks. Gale: GO 0.27 -> dust+kit 0.42 NO-GO -> PNR T+3:29 -> best set 3 stops/23 -> 0.37 CAUTION. Jezero unchanged (dust alone, 0.45). 64/64 offline.
 ```
+2026-11-14 15:59  [views]  REQUEST @ui: Add an Open helmet view (VR) link beside the HUD link, carrying CONTRACTS §7 parameters plus vr=1 (and play when used in presenter mode).
+2026-11-14 15:59  [views]  DONE   Cardboard mode on views: ?vr=1 stereo HUD, compass and chevron tracking, fullscreen/landscape entry with iOS fallback, desktop drag/arrows, ?play tap pause/resume, phone-safe HUD/tablet layout. Chrome mobile/DevTools orientation emulation and simulated Safari permission verified; screenshot docs/screenshots/views-vr.png. Offline Node tests 68/68. Android/iOS hardware checks await an HTTPS preview.

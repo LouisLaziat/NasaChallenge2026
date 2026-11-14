@@ -66,11 +66,13 @@ export async function loadWalk() {
   };
 }
 
-export function bindProgress(walk, draw) {
+export function bindProgress(walk, draw, { autoplay = true } = {}) {
   const slider = byId('progress');
   const output = byId('progress-value');
-  let animation;
-  let started;
+  let animation = null;
+  let started = null;
+  let elapsed = 0;
+  const canPlay = walk.playMs > 0 && walk.plan.totals.totalTimeS > 0;
   slider.value = walk.playMs ? 0 : walk.progress;
   const update = (progress) => {
     output.value = `${Math.round(progress * 100)}%`;
@@ -79,8 +81,31 @@ export function bindProgress(walk, draw) {
     const instruction = frame.complete ? null : currentInstruction(walk.routeSteps, frame.routeIndex, walk.plan);
     draw(frame, instruction);
   };
-  slider.addEventListener('input', () => {
+  const advance = (now) => {
+    started ??= now;
+    const progress = clampProgress((elapsed + now - started) / walk.playMs);
+    slider.value = progress;
+    update(progress);
+    animation = progress < 1 ? requestAnimationFrame(advance) : null;
+    if (progress === 1) {
+      elapsed = walk.playMs;
+      started = null;
+    }
+  };
+  const play = () => {
+    if (!canPlay || elapsed >= walk.playMs || animation !== null) return;
+    animation = requestAnimationFrame(advance);
+  };
+  const pause = () => {
+    if (animation === null) return;
     cancelAnimationFrame(animation);
+    animation = null;
+    if (started !== null) elapsed += performance.now() - started;
+    started = null;
+  };
+  slider.addEventListener('input', () => {
+    pause();
+    elapsed = slider.valueAsNumber * walk.playMs;
     update(slider.valueAsNumber);
   });
   // A committed slider change updates the shareable link without adding a history entry.
@@ -90,14 +115,8 @@ export function bindProgress(walk, draw) {
     history.replaceState(history.state, '', walk.url);
   });
   update(slider.valueAsNumber);
-  const advance = (now) => {
-    started ??= now;
-    const progress = clampProgress((now - started) / walk.playMs);
-    slider.value = progress;
-    update(progress);
-    if (progress < 1) animation = requestAnimationFrame(advance);
-  };
-  if (walk.playMs && walk.plan.totals.totalTimeS > 0) animation = requestAnimationFrame(advance);
+  if (autoplay) play();
+  return { play, pause, isPlaying: () => animation !== null };
 }
 
 export function instructionText(instruction) {

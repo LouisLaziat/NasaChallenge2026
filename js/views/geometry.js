@@ -194,7 +194,36 @@ export function walkSnapshot(plan, terrain, habitat, p) {
 }
 
 export function relativeBearingDeg(bearing, heading) {
-  return ((bearing - heading + 540) % 360) - 180;
+  return wrapHeadingDeg(bearing - heading + 180) - 180;
+}
+
+export function wrapHeadingDeg(degrees) {
+  return ((degrees % 360) + 360) % 360;
+}
+
+export function smoothHeadingDeg(previous, next, fraction) {
+  if (!Number.isFinite(previous)) return wrapHeadingDeg(next);
+  return wrapHeadingDeg(previous + relativeBearingDeg(next, previous) * clampProgress(fraction));
+}
+
+// Horizontal projection of the back-of-screen direction (W3C Device Orientation, A.1).
+export function deviceHeadingDeg(alpha, beta = 0, gamma = 0) {
+  if (!Number.isFinite(alpha)) return null;
+  const pitch = (beta ?? 0) * RAD;
+  const roll = (gamma ?? 0) * RAD;
+  const east = -Math.sin(roll);
+  const north = Math.sin(pitch) * Math.cos(roll);
+  const bearing = Math.hypot(east, north) < 0.01 ? 0 : Math.atan2(east, north) / RAD;
+  return wrapHeadingDeg(bearing - alpha);
+}
+
+export function stereoEyes(width) {
+  const eyeWidth = width / 2;
+  const inward = Math.min(6, eyeWidth * 0.015);
+  return [
+    { left: 0, width: eyeWidth, offset: inward },
+    { left: eyeWidth, width: eyeWidth, offset: -inward },
+  ];
 }
 
 export function compassTicks(heading) {
