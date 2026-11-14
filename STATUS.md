@@ -116,4 +116,7 @@ Append only, newest at the bottom. Format and tags: see `AGENTS.md`.
 2026-11-14 16:11  [lead]    DECISION Gale becomes the default site on every page (front door); Jezero stays one click away (?data=real); demo only with ?data=demo. CONTRACTS §7 updated.
 2026-11-14 16:14  [engine]  CONTRACT plan.lineOfSight { habitatAntennaM, astronautEyeM, outOfSightM, gaps }, profile[].inSight, totals.timeLimitS and violation "time" (6 h EVA). Additive, CONTRACTS §4. 74/74 offline.
 2026-11-14 16:14  [engine]  NOTE   Gale: 348 of 1912 m out of the habitat's sight behind boxwork ridges (good story); Jezero 22 m. No current plan breaks 6 h (Jezero all three hazards: 5.2 h).
+2026-11-14 16:05  [ui]      DONE   QA matrix in docs/qa.md: 84 checks (45 console site x conditions x route, 15 tablet/HUD, 18 phone-width at 360/414 px, 3 docs pages, 3 tours), 84 pass, no console errors anywhere. Fixed: tour caption shows 3 decimals when used and usable would round equal (0.396 of 0.400).
+2026-11-14 16:05  [ui]      REQUEST @views tablet.html and hud.html ignore ?route=safe|short and plan eco, so a console link on another route shows a different path (lead's 15:32 NOTE; CONTRACTS §7/§8: planRoute(route, ...)).
+2026-11-14 16:05  [ui]      REQUEST @lead scripts/serve.mjs: add '.md': 'text/plain; charset=utf-8' to types. Today .md is application/octet-stream, so the About panel links to docs/model.md and docs/model-sources.md download a file under npm run serve (GitHub Pages is fine).
 ```
