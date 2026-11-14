@@ -60,4 +60,5 @@ Append only, newest at the bottom. Format and tags: see `AGENTS.md`.
 2026-11-14 14:21  [lead]    MERGED integrate (c65e703): Go/No-Go badge, per-site defaults, ?data=gale, bestSubset "Use it" and turnBackLatest marker. 51/51 offline.
 2026-11-14 14:21  [lead]    DECISION The console (index.html) is the main page. maps.html does not ship as its own page; its best ideas move into the console: route alternatives (engine API by amarz-maps, switch UI by tonny-claude), turn-by-turn steps (tonny-claude), FR/EN only if time allows.
 2026-11-14 14:17  [ui]      DONE   turn-by-turn card (js/steps.js, tests/steps.test.mjs); click a step to highlight it on the map
+2026-11-14 14:27  [lead]    MERGED integrate (2ad1e11): turn-by-turn steps card + js/steps.js (buildSteps) + tests. 56/56 offline.
 ```
