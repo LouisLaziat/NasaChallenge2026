@@ -244,10 +244,11 @@ test('turnBackLatest: a dust storm starting late is survivable, starting early m
   const { t, s } = demo();
   // Comfortable plan: a dust storm from anywhere still gets you home -> null.
   assert.equal(planWalk(t, s).turnBackLatest, null);
-  // Tight suit (0.305 kg; the plan needs 0.241 of 0.244 usable): it fits as planned, but a storm
-  // starting on the last leg would eat into the reserve.
+  // Tight suit: 1% more usable O2 than the plan needs. It fits as planned, but a storm starting
+  // on the last leg would eat into the reserve.
+  const need = planWalk(t, s, { contingency: false }).totals.o2UsedKg;
   const tight = structuredClone(CONFIG);
-  tight.suit.o2CapacityKg = 0.305;
+  tight.suit.o2CapacityKg = (need / (1 - CONFIG.suit.reserveFraction)) * 1.01;
   const r = planWalk(t, s, { config: tight });
   assert.equal(r.withinBudget, true);
   assert.equal(r.turnBack, null);
