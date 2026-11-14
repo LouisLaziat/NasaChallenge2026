@@ -384,6 +384,28 @@ export function resolveTargets(terrain, targetsFile) {
   return { ...targetsFile, habitat: fix(targetsFile.habitat), targets: targetsFile.targets.map(fix) };
 }
 
+/**
+ * Can an observer hA metres above cell a see a target hB metres above cell b? Straight sight line
+ * over the elevation grid, with Mars curvature. Cells without elevation do not block.
+ */
+export function canSee(g, a, b, hA, hB) {
+  const W = g.width;
+  const ax = a % W, ay = (a - ax) / W, bx = b % W, by = (b - bx) / W;
+  const n = Math.max(Math.abs(bx - ax), Math.abs(by - ay));
+  if (n <= 1) return true;
+  const zA = g.elev[a] + hA, zB = g.elev[b] + hB;
+  const d = Math.hypot(bx - ax, by - ay) * g.cellSize;
+  for (let i = 1; i < n; i++) {
+    const t = i / n;
+    const x = Math.round(ax + (bx - ax) * t), y = Math.round(ay + (by - ay) * t);
+    const z = g.elev[y * W + x];
+    if (!Number.isFinite(z)) continue;
+    const bulge = (t * (1 - t) * d * d) / (2 * MARS_RADIUS_M); // the ground rises toward the middle
+    if (z + bulge > zA + (zB - zA) * t) return false;
+  }
+  return true;
+}
+
 // ---------------------------------------------------------------------------
 // The planner
 // ---------------------------------------------------------------------------
@@ -415,6 +437,7 @@ export function resolveTargets(terrain, targetsFile) {
  *   profile,            // <= 300 points: { pathIndex, elapsedS, distanceM, o2RemainingKg, o2ToHomeKg, doseMSv, elevationM }
  *   bestSubset,         // null if within budget or nothing fits, else { ids, order, scienceValue, o2UsedKg, doseMSv, totalTimeS }
  *   turnBackLatest,     // last point you can turn back from if the contingency (a dust storm) starts there; null if always OK
+ *   lineOfSight,        // { habitatAntennaM, astronautEyeM, outOfSightM, gaps: [[fromPathIndex, toPathIndex], ...] }
  * }
  */
 export function planWalk(terrain, targetsFile, options = {}) {
@@ -477,6 +500,7 @@ export function planWalk(terrain, targetsFile, options = {}) {
   const dwellPowerW = config.metabolic.dwellW * p.metabolicFactor;
   const usable = config.suit.o2CapacityKg * (1 - config.suit.reserveFraction);
   const doseLimit = config.radiation.walkLimitMSv;
+  const timeLimitS = (config.eva?.maxHours ?? Infinity) * 3600;
 
   const evaluate = (order) => {
     let energyJ = 0, walkTimeS = 0, distanceM = 0, dwellTimeS = 0, scienceValue = 0;
@@ -504,10 +528,12 @@ export function planWalk(terrain, targetsFile, options = {}) {
     o2UsableKg: usable,
     o2CapacityKg: config.suit.o2CapacityKg,
     doseLimitMSv: doseLimit,
+    timeLimitS,
   };
   const violations = [];
   if (totals.o2UsedKg > usable) violations.push('oxygen');
   if (totals.doseMSv > doseLimit) violations.push('radiation');
+  if (totals.totalTimeS > timeLimitS) violations.push('time');
   const withinBudget = violations.length === 0;
 
   // Assemble legs and the full path.
@@ -588,6 +614,24 @@ export function planWalk(terrain, targetsFile, options = {}) {
     turnBackLatest = turnBack;
   }
 
+  // Line of sight from the habitat (antenna) to the astronaut (eye height) at every route point.
+  const ls = config.safety ?? {};
+  const inSight = new Uint8Array(L);
+  const gaps = [];
+  let outOfSightM = 0;
+  for (let k = 0; k < L; k++) {
+    inSight[k] = canSee(g, hCell, path[k], ls.habitatAntennaM ?? 3, ls.astronautEyeM ?? 1.8) ? 1 : 0;
+    if (!inSight[k]) {
+      if (k > 0) outOfSightM += arrD[k] - arrD[k - 1];
+      const last = gaps[gaps.length - 1];
+      if (last && last[1] === k - 1) last[1] = k; else gaps.push([k, k]);
+    }
+  }
+  const lineOfSight = {
+    habitatAntennaM: ls.habitatAntennaM ?? 3, astronautEyeM: ls.astronautEyeM ?? 1.8,
+    outOfSightM, gaps,
+  };
+
   // Profile for charts: O2 left, O2 needed to get home, dose and elevation along the route.
   const capacity = config.suit.o2CapacityKg;
   const raw = [];
@@ -597,6 +641,7 @@ export function planWalk(terrain, targetsFile, options = {}) {
     o2ToHomeKg: energyToO2Kg(toHome[path[k]], config),
     doseMSv: doseMSv(t, config, p.doseFactor),
     elevationM: g.elev[path[k]],
+    inSight: Boolean(inSight[k]),
   });
   const keep = new Set([0]);
   for (let k = 0; k < L; k++) {
@@ -625,7 +670,7 @@ export function planWalk(terrain, targetsFile, options = {}) {
       const rest = order.filter((q) => q !== j);
       const restOrder = bestOrder(E, rest, config.planner.bruteForceMaxStops);
       const r = restOrder.length ? evaluate(restOrder) : evaluate([]);
-      const feasible = r.o2UsedKg <= usable && r.doseMSv <= doseLimit;
+      const feasible = r.o2UsedKg <= usable && r.doseMSv <= doseLimit && r.totalTimeS <= timeLimitS;
       const cand = {
         id: nodes[j].id, name: nodes[j].name, value: nodes[j].value,
         o2SavedKg: totals.o2UsedKg - r.o2UsedKg,
@@ -648,7 +693,7 @@ export function planWalk(terrain, targetsFile, options = {}) {
   // If over budget, the highest-value set of stops that fits (exact up to 10 stops, greedy above).
   let bestSubset = null;
   if (!withinBudget && reachable.length > 0) {
-    const fits = (r) => r.o2UsedKg <= usable && r.doseMSv <= doseLimit;
+    const fits = (r) => r.o2UsedKg <= usable && r.doseMSv <= doseLimit && r.totalTimeS <= timeLimitS;
     const pack = (subset) => {
       const o = bestOrder(E, subset, config.planner.bruteForceMaxStops);
       return { o, r: evaluate(o) };
@@ -717,6 +762,7 @@ export function planWalk(terrain, targetsFile, options = {}) {
     dropSuggestion,
     profile,
     bestSubset,
+    lineOfSight,
     turnBackLatest,
   };
 }

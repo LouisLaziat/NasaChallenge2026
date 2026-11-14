@@ -31,6 +31,9 @@ Status: **SOURCE** = published value. **PROXY** = published value from Earth, th
 | `suit.reserveFraction` | 0.2 | DESIGN | team reserve policy: 20% of the primary O2 is never planned. | [Jeng et al. 2009, NTRS 20090013081](https://ntrs.nasa.gov/citations/20090013081) |
 | `suit.o2JoulesPerLitre` | 20100 | SOURCE | ~20.1 kJ per litre of O2 (indirect calorimetry, RQ about 0.85). | [Weir 1949](https://doi.org/10.1113/jphysiol.1949.sp004363) |
 | `suit.o2KgPerLitre` | 0.001429 | SOURCE | O2 density 1.429 g/L at 0 °C and 1 atm. | [NBS Circular 279](https://nvlpubs.nist.gov/nistpubs/Legacy/circ/nbscircular279.pdf) |
+| `eva.maxHours` | 6 | ASSUMPTION | planned EVA length including work and a margin; Artemis timeline studies run on this scale. | [Scoville et al., NTRS 20210026296](https://ntrs.nasa.gov/api/citations/20210026296/downloads/Scoville%20Final%20presentation%20-%20compressed.pptx.pdf) |
+| `safety.habitatAntennaM` | 3 | DESIGN | observer height at the habitat for line of sight. | — |
+| `safety.astronautEyeM` | 1.8 | DESIGN | suited astronaut's helmet height for line of sight. | [NTRS 20230012314](https://ntrs.nasa.gov/api/citations/20230012314/downloads/EarlyArtemisSurfaceNavigation_v1-ION23-XXX-v3.docx) |
 | `radiation.surfaceMSvPerDay` | 0.64 | SOURCE | Curiosity RAD dose equivalent at Gale, 0.64 ± 0.12 mSv/day; a proxy at Jezero. | [Hassler et al. 2014, Science 343](https://doi.org/10.1126/science.1244797) |
 | `radiation.walkLimitMSv` | 1.0 | DESIGN | educational per-walk allocation, not a NASA exposure limit. | [NASA-STD-3001 Vol. 1, 4.8](https://www.nasa.gov/reference/4-0-human-performance/) |
 | `conditions.dustStorm.speedFactor` | 0.7 | ASSUMPTION | visibility scenario; no measured link to suited walking speed. | [NASA Mars environment handbook, NTRS 20010046858](https://ntrs.nasa.gov/citations/20010046858) |
@@ -61,6 +64,16 @@ Real Jezero walk, all six stops; ✓ fits, ✗ over budget. The story the demo t
 
 Usable O₂ is 0.40 kg (0.5 kg × 80%); dose budget 1 mSv per walk.
 
+## Line of sight and EVA length
+
+Two checks from NASA traverse planning sit next to oxygen and dose. **Line of sight:** for every
+point of the route, a straight sight line from the habitat antenna (3 m) to the astronaut's helmet
+(1.8 m) over the elevation grid, including Mars curvature; segments where the habitat loses sight of
+the astronaut are flagged (Artemis traverse plans weigh line of sight to the lander, NTRS 20230012314).
+On Gale's boxwork about 350 m of the 1.9 km walk is out of sight behind ridges; at Jezero, about 20 m.
+**EVA length:** the whole walk, work included, must fit in 6 hours (`eva.maxHours`, an assumption on
+the scale of Artemis EVA timeline studies, NTRS 20210026296); going over is a third budget violation.
+
 ## Route options
 
 The console can compare three routes for the same stops (`js/routes.js`): **least oxygen** (the
@@ -80,5 +93,6 @@ safest 2.63 km / 0.359 kg, shortest 2.54 km / 0.364 kg.
 
 ## Changes
 
+- 2026-11-14 16:30: line of sight to the habitat and a 6 h EVA limit (third budget).
 - 2026-11-14 (afternoon): source audit by `codex-conditions` applied. Walking power 300 → **272 W** and working power 200 → **284 W** (Apollo EVA averages); every parameter now has a status and a link; the 20° limit is labelled a lunar proxy; the 1 mSv walk budget is labelled an educational allocation, not a NASA limit.
 - 2026-11-14: max walkable slope 25° → **20°** (NASA exploration EVA concept, NTRS 20210000827). Dust storm and heavy kit no longer lower it further: 15° cut off half the demo stops. Added `profile`, `bestSubset`, `turnBackLatest` (dust-storm contingency) and the Go/No-Go thresholds (`goNoGo`).
