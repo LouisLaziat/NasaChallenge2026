@@ -676,6 +676,7 @@ function updateLinks() {
   $('open-tablet').href = `tablet.html?${qs}`;
   $('open-hud').href = `hud.html?${qs}`;
   $('open-vr').href = `hud.html?${[qs, 'vr=1'].filter(Boolean).join('&')}`; // views lane: Cardboard helmet mode
+  $('open-flyover').href = `flyover.html?${qs}`; // views lane: 3D fly-through, same §7 params
   const hasCustom = state.targets.some((t) => t.custom && state.included.has(t.id));
   $('view-links-note').hidden = !hasCustom;
   updateSiteSwitch();
