@@ -1,10 +1,13 @@
 // Marswalk Budget — app entry: loads data, runs the planner off the main thread, wires the UI.
 // Owner: UI lane (Claude 1). Drawing helpers live in js/render.js.
 
-import { latLonToCell, planWalk } from './engine.js';
+import { latLonToCell } from './engine.js';
+import { planRoute, slopeProfile, MODE_LABELS, ROUTE_MODES } from './routes.js';
 import { CONFIG } from './config.js';
 import { renderPhotos } from './photos.js';
 import { addBaseLayers } from './basemap.js';
+import { buildSteps } from './steps.js';
+import { loadConditions, toToggles, verdict as conditionsVerdict, renderConditions as renderConditionsCard } from './conditions.js';
 import {
   el, fmtClock, fmtDuration, fmtKg, fmtMSv, cellLatLng, terrainBounds,
   LAYER_INFO, rampCss, paintHillshade, paintSlope, paintScalar, imageLayer,
@@ -14,13 +17,44 @@ import {
 const L = window.L;
 const $ = (id) => document.getElementById(id);
 
-const DATASET = new URLSearchParams(location.search).get('data') === 'real' ? 'real' : 'demo';
+// Page URL parameters shared by console, tablet and HUD (CONTRACTS §7).
+const PARAMS = new URLSearchParams(location.search);
+const SITES = {
+  demo: {
+    label: 'Demo data', defaultCond: 'demo-quiet', siteName: 'Demo terrain',
+    radNote: 'Dose rate: Curiosity RAD measurements at <em>Gale Crater</em> (Hassler et al. 2014, ~0.64 mSv/day), applied to this synthetic demo terrain.',
+  },
+  real: {
+    label: 'Real data · Jezero', defaultCond: 'real', siteName: 'Jezero Crater',
+    radNote: 'Dose rate: Curiosity RAD measurements at <em>Gale Crater</em> (Hassler et al. 2014, ~0.64 mSv/day), used as a proxy for Jezero — no surface dosimeter has flown there.',
+  },
+  gale: {
+    // Gale has its own real snapshot (Curiosity REMS, by Spain's CAB); Jezero (MEDA) weather is never shown here.
+    label: 'Real data · Gale', defaultCond: 'real-gale', siteName: 'Gale Crater',
+    radNote: 'Dose rate: Curiosity RAD measured <em>here</em> at Gale Crater (Hassler et al. 2014, ~0.64 mSv/day on the surface).',
+  },
+};
+// Gale is the front door (CONTRACTS §7, 2026-11-14 16:11): no ?data= means Gale; Jezero is ?data=real.
+const DEFAULT_DATASET = 'gale';
+const DATASET = Object.hasOwn(SITES, PARAMS.get('data')) ? PARAMS.get('data') : DEFAULT_DATASET;
+const SITE = SITES[DATASET];
 const DATA_DIR = new URL(`../data/${DATASET}/`, import.meta.url);
 
 const CONDITIONS = [
-  { key: 'dustStorm', name: 'Dust storm' },
-  { key: 'solarEvent', name: 'Solar particle event' },
-  { key: 'heavyKit', name: 'Heavy sample kit' },
+  { key: 'dustStorm', name: 'Dust storm', param: 'dust' },
+  { key: 'solarEvent', name: 'Solar particle event', param: 'solar' },
+  { key: 'heavyKit', name: 'Heavy sample kit', param: 'kit' },
+];
+
+// Conditions snapshots (CONTRACTS §6), loaded by js/conditions.js.
+// Each site lists only its own real weather: Jezero (Perseverance MEDA) or Gale (Curiosity REMS).
+const COND_SNAPSHOTS = [
+  DATASET === 'gale'
+    ? { name: 'real-gale', label: 'Latest real data · Gale (Curiosity REMS)' }
+    : { name: 'real', label: 'Latest real data · Jezero (Perseverance MEDA)' },
+  { name: 'demo-quiet', label: 'Demo: quiet sol' },
+  { name: 'demo-dusty', label: 'Demo: dust storm' },
+  { name: 'demo-solar', label: 'Demo: solar alert' },
 ];
 
 const state = {
@@ -33,9 +67,15 @@ const state = {
   timeline: null,
   selectedId: null,
   customCount: 0,
+  condName: COND_SNAPSHOTS.some((s) => s.name === PARAMS.get('cond')) ? PARAMS.get('cond') : SITE.defaultCond,
+  route: ROUTE_MODES.includes(PARAMS.get('route')) ? PARAMS.get('route') : 'eco', // route option (CONTRACTS §8)
+  alts: {},               // { eco, safe, short } plans for the current stops and conditions, filled in the background
+  cond: null,             // loaded conditions snapshot, or null if it could not be loaded
+  condError: null,
+  chemistry: null,        // Gale APXS card loader (promise), see loadChemistryCard()
 };
 
-let map, overlays = {}, routeLayer, markerLayer;
+let map, overlays = {}, routeLayer, markerLayer, stepHighlight = null, turnBackMarker = null;
 
 // ---------------------------------------------------------------------------
 // Planner: Web Worker (module worker from a Blob that imports engine.js), with
@@ -46,9 +86,9 @@ const planner = (() => {
   let worker = null, seq = 0;
   const pending = new Map();
   try {
-    const engineUrl = new URL('./engine.js', import.meta.url).href;
+    const routesUrl = new URL('./routes.js', import.meta.url).href;
     const src = `
-      import { planWalk } from ${JSON.stringify(engineUrl)};
+      import { planRoute } from ${JSON.stringify(routesUrl)};
       let terrain = null;
       self.onmessage = async (e) => {
         const m = e.data;
@@ -57,7 +97,7 @@ const planner = (() => {
             terrain = await (await fetch(m.terrainUrl)).json();
             self.postMessage({ id: m.id, ok: true });
           } else {
-            const plan = planWalk(terrain, m.targetsFile, m.options);
+            const plan = planRoute(m.mode || 'eco', terrain, m.targetsFile, m.options); // eco = planWalk exactly (CONTRACTS §8)
             self.postMessage({ id: m.id, plan });
           }
         } catch (err) { self.postMessage({ id: m.id, error: String(err && err.message || err) }); }
@@ -85,13 +125,13 @@ const planner = (() => {
       if (!worker) return;
       try { await call({ type: 'init', terrainUrl }); } catch { worker = null; }
     },
-    async plan(targetsFile, options) {
+    async plan(targetsFile, options, mode = 'eco') {
       if (worker) {
-        try { return (await call({ type: 'plan', targetsFile, options })).plan; }
+        try { return (await call({ type: 'plan', targetsFile, options, mode })).plan; }
         catch (err) { if (worker) throw err; } // worker died: fall through to main thread
       }
       await new Promise((r) => setTimeout(r, 30)); // let the "planning…" state paint
-      return planWalk(state.terrain, targetsFile, options);
+      return planRoute(mode, state.terrain, targetsFile, options);
     },
   };
 })();
@@ -101,7 +141,16 @@ const planner = (() => {
 // ---------------------------------------------------------------------------
 
 async function boot() {
-  $('dataset-label').textContent = DATASET === 'real' ? 'Real data · Jezero' : 'Demo data';
+  $('dataset-label').textContent = SITE.label;
+  $('rad-note').innerHTML = SITE.radNote;
+  $('site-name').textContent = SITE.siteName;
+  document.title = `Marswalk Budget — ${SITE.siteName} EVA planner`;
+  for (const a of document.querySelectorAll('.site-switch a, .loc-marker')) {
+    if (a.dataset.site === DATASET) a.setAttribute('aria-current', 'page');
+  }
+  for (const dot of document.querySelectorAll('.loc-dot')) dot.classList.toggle('is-current', dot.dataset.site === DATASET);
+  initMarsLocator();
+  initMarsIntro();
   let terrain, targetsFile;
   try {
     const terrainUrl = new URL('terrain.json', DATA_DIR).href;
@@ -113,7 +162,7 @@ async function boot() {
   } catch (err) {
     const hint = location.protocol === 'file:'
       ? 'Open the app over http (npm run serve), not file://.'
-      : DATASET === 'real' ? 'The real-data files may not be generated yet; try the demo (remove ?data=real).' : '';
+      : DATASET !== 'demo' ? `The ${DATASET} data files may not be generated yet; try the default site (remove ?data=${DATASET}).` : '';
     showError(`Could not load data/${DATASET}/ (${err.message}). ${hint}`);
     $('verdict').textContent = 'No data';
     return;
@@ -127,14 +176,29 @@ async function boot() {
     if (!(Number.isInteger(t.x) && Number.isInteger(t.y)) && t.lat != null) Object.assign(t, latLonToCell(terrain, t.lat, t.lon));
   }
   state.included = new Set(state.targets.map((t) => t.id));
+  if (PARAMS.get('stops')) {
+    const wanted = new Set(PARAMS.get('stops').split(','));
+    state.included = new Set(state.targets.filter((t) => wanted.has(t.id)).map((t) => t.id));
+  }
+
+  // Conditions snapshot pre-sets dust/solar; explicit ?dust= / ?solar= / ?kit= win. Kit is never suggested.
+  await loadCondSnapshot(state.condName);
+  const suggested = state.cond ? toToggles(state.cond) : {};
+  for (const c of CONDITIONS) {
+    const v = PARAMS.get(c.param);
+    if (v === '1' || (v !== '0' && suggested[c.key])) state.conditions[c.key] = true;
+  }
 
   $('synthetic-banner').hidden = !terrain.synthetic;
   if (terrain.name) $('dataset-label').textContent += ` · ${terrain.name}`;
+  // APXS rock chemistry for Gale stops (codex-conditions, js/chemistry.js). Loaded lazily so the
+  // console still works if the module or data is missing; other sites never fetch it.
+  if (DATASET === 'gale') state.chemistry = loadChemistryCard();
   renderCredits();
   initMap();
   renderConditions();
   renderLayerControls();
-  replan();
+  if (TOUR) startTour(); else replan();
 }
 
 function showError(msg) {
@@ -156,7 +220,8 @@ function initMap() {
   map.setMaxBounds(bounds.pad(0.6));
   L.control.scale({ imperial: false, position: 'bottomleft' }).addTo(map);
 
-  map.createPane('terrain'); map.getPane('terrain').style.zIndex = 250;
+  // 300: above the NASA imagery pane from basemap.js (pbBasemap, 250), below vector overlays (400).
+  map.createPane('terrain'); map.getPane('terrain').style.zIndex = 300;
   map.createPane('route'); map.getPane('route').style.zIndex = 450;
 
   // NASA base layers from the photos lane (empty stub on develop).
@@ -175,7 +240,11 @@ function initMap() {
   if (ti) overlays.thermalInertia = imageLayer(ti, bounds, LAYER_INFO.thermalInertia.opacity, 'terrain');
   const ro = paintScalar(t, 'roughness', LAYER_INFO.roughness.ramp, [0, 1]);
   if (ro) overlays.roughness = imageLayer(ro, bounds, LAYER_INFO.roughness.opacity, 'terrain');
-  for (const [k, layer] of Object.entries(overlays)) if (LAYER_INFO[k].defaultOn) layer.addTo(map);
+  // On real terrain the HiRISE imagery is the base map, so the opaque hillshade starts off.
+  for (const [k, layer] of Object.entries(overlays)) {
+    if (k === 'hillshade' && !t.synthetic) continue;
+    if (LAYER_INFO[k].defaultOn) layer.addTo(map);
+  }
   L.rectangle(bounds, { color: '#e0a14a', weight: 1, fill: false, dashArray: '4 4', interactive: false, pane: 'terrain' }).addTo(map);
 
   routeLayer = L.layerGroup().addTo(map);
@@ -217,6 +286,7 @@ function addStopAt(latlng) {
 function drawMap() {
   const { terrain: t, plan } = state;
   routeLayer.clearLayers();
+  $('map-legend').hidden = true;
   markerLayer.clearLayers();
 
   if (plan && plan.path.length > 1) {
@@ -229,6 +299,15 @@ function drawMap() {
       L.polyline(beyond, { pane: 'route', color: '#1a0f0a', weight: 7, opacity: 0.6, interactive: false }).addTo(routeLayer);
       L.polyline(beyond, { pane: 'route', color: '#ef4b3f', weight: 4, dashArray: '8 6', interactive: false }).addTo(routeLayer);
     }
+    // Stretches the habitat can't see (CONTRACTS §4 lineOfSight.gaps): dark dashes over the route line = dotted.
+    const gaps = plan.lineOfSight?.gaps ?? [];
+    for (const [a, b] of gaps) {
+      const seg = ll.slice(Math.max(0, a - 1), Math.min(ll.length, b + 2));
+      if (seg.length > 1) L.polyline(seg, { pane: 'route', color: '#1a0f0a', weight: 4, dashArray: '3 7', lineCap: 'butt', interactive: false }).addTo(routeLayer);
+    }
+    const legend = $('map-legend');
+    legend.hidden = !(plan.lineOfSight?.outOfSightM >= 1);
+    if (!legend.hidden) $('map-legend-text').textContent = `Out of sight of the habitat · ${Math.round(plan.lineOfSight.outOfSightM)} m`;
     // Wide invisible line for hover: elapsed time and O2 at the nearest path point.
     const hover = L.polyline(ll, { pane: 'route', weight: 18, opacity: 0 }).addTo(routeLayer);
     hover.on('mousemove', (e) => {
@@ -236,7 +315,8 @@ function drawMap() {
       const tl = state.timeline;
       const left = plan.totals.o2CapacityKg - tl.o2[kk];
       const pastTurn = plan.turnBack && kk > plan.turnBack.pathIndex;
-      hover.setTooltipContent(`${tl.exact ? '' : '≈ '}${fmtClock(tl.t[kk])} · O₂ left ${fmtKg(left)} kg${pastTurn ? '<br><b style="color:#ff8a80">beyond the point of no return</b>' : ''}`);
+      const hidden = gaps.some(([a, b]) => kk >= a && kk <= b);
+      hover.setTooltipContent(`${tl.exact ? '' : '≈ '}${fmtClock(tl.t[kk])} · O₂ left ${fmtKg(left)} kg${hidden ? '<br>out of the habitat’s sight' : ''}${pastTurn ? '<br><b style="color:#ff8a80">beyond the point of no return</b>' : ''}`);
       hover.openTooltip(e.latlng);
     });
     hover.bindTooltip('', { className: 'tip', sticky: true, direction: 'top', offset: [0, -8] });
@@ -273,9 +353,18 @@ function drawMap() {
   // Point of no return
   if (plan?.turnBack) {
     const tb = plan.turnBack;
-    L.marker(cellLatLng(t, tb.x, tb.y), { icon: turnBackIcon(), zIndexOffset: 2000 })
+    turnBackMarker = L.marker(cellLatLng(t, tb.x, tb.y), { icon: turnBackIcon(), zIndexOffset: 2000 })
       .bindTooltip(`<b>Point of no return</b><br>${fmtClock(tb.elapsedS)} · ${fmtKg(tb.o2UsedKg)} kg O₂ used<br>Past here you can't get home without the reserve.`,
         { className: 'tip', direction: 'top', offset: [0, -18], permanent: false })
+      .addTo(markerLayer);
+  }
+
+  // Latest safe turn-around on a route that fits (CONTRACTS §4, feature-detected): softer than the red marker.
+  if (plan && !plan.turnBack && plan.turnBackLatest) {
+    const tl = plan.turnBackLatest;
+    turnBackMarker = L.marker(cellLatLng(t, tl.x, tl.y), { icon: turnBackIcon('soft'), zIndexOffset: 1500 })
+      .bindTooltip(`<b>Dust-storm turn-back</b><br>${fmtClock(tl.elapsedS)} · ${fmtKg(tl.o2UsedKg)} kg O₂ used<br>If a dust storm starts, turn home by here to keep the full O₂ reserve.`,
+        { className: 'tip', direction: 'top', offset: [0, -16], permanent: false })
       .addTo(markerLayer);
   }
 }
@@ -294,16 +383,100 @@ function nearestPathIndex(ll, p) {
 // ---------------------------------------------------------------------------
 
 let planSeq = 0;
+
+/** The two route options not on screen, planned after the main plan so the page never waits (CONTRACTS §8). */
+async function planOtherRoutes(mine, file, options, shown) {
+  // Same reachability target as planAlternatives: safe relaxes its slope cap until it reaches as many stops as eco.
+  const extra = shown.mode === 'eco' ? { ...options, ecoUnreachable: shown.unreachable.length } : options;
+  for (const mode of ROUTE_MODES) {
+    if (mode === state.route) continue;
+    try {
+      const p = await planner.plan(file, extra, mode);
+      if (mine !== planSeq) return; // stops or conditions changed meanwhile
+      state.alts = { ...state.alts, [mode]: p };
+    } catch (err) {
+      if (mine !== planSeq) return;
+      console.warn(`route option ${mode} failed`, err);
+      state.alts = { ...state.alts, [mode]: { error: err.message } };
+    }
+    renderRoutes();
+    drawAltRoutes();
+  }
+}
+
+/** Route option cards: least oxygen / safest / shortest for the same stops and conditions. */
+function renderRoutes() {
+  const box = $('routes');
+  if (!box) return;
+  box.replaceChildren();
+  if (!state.plan?.order?.length) {
+    box.append(el('p', { class: 'muted' }, 'Select at least one stop to compare routes.'));
+    return;
+  }
+  for (const mode of ROUTE_MODES) {
+    const p = state.alts[mode];
+    const lab = MODE_LABELS[mode] || { name: mode, blurb: '' };
+    const on = mode === state.route;
+    let body;
+    if (!p) body = el('div', { class: 'route-meta muted' }, 'planning…');
+    else if (p.error) body = el('div', { class: 'route-meta muted' }, 'not available');
+    else {
+      const prof = slopeProfile(state.terrain, p);
+      const steep = prof[2] + prof[3];
+      const T = p.totals;
+      body = el('div', { class: 'route-meta' },
+        el('span', {}, `${(T.distanceM / 1000).toFixed(2)} km · ${fmtDuration(T.totalTimeS)}`),
+        // 3 decimals here only: the options often differ by a few grams of O₂.
+        el('span', { class: T.o2UsedKg > T.o2UsableKg ? 'over' : '' }, `${T.o2UsedKg.toFixed(3)} kg O₂ · ${fmtMSv(T.doseMSv)} mSv`),
+        el('span', {}, `${steep.toFixed(0)} m over 15°${p.slopeCapDeg ? ` · kept under ${p.slopeCapDeg}°` : ''}`),
+        p.withinBudget ? null : el('span', { class: 'over' }, 'over budget'));
+    }
+    const card = el('button', {
+      type: 'button', class: `route-opt${on ? ' on' : ''}`, 'aria-pressed': on ? 'true' : 'false',
+      disabled: !p || p.error ? true : null, 'data-mode': mode,
+    }, el('b', {}, lab.name), el('small', {}, lab.blurb), body);
+    card.addEventListener('click', () => chooseRoute(mode));
+    box.append(card);
+  }
+}
+
+function chooseRoute(mode) {
+  const p = state.alts[mode];
+  if (!p || p.error || mode === state.route) return;
+  state.route = mode;
+  state.plan = p;
+  state.timeline = pathTimeline(p);
+  renderAll();
+}
+
+/** The other route options as thin lines under the chosen one. */
+let altLayer = null;
+function drawAltRoutes() {
+  if (!map) return;
+  altLayer ??= L.layerGroup().addTo(map);
+  altLayer.clearLayers();
+  for (const mode of ROUTE_MODES) {
+    const p = state.alts[mode];
+    if (mode === state.route || !p?.path || p.path.length < 2) continue;
+    L.polyline(p.path.map(([x, y]) => cellLatLng(state.terrain, x, y)),
+      { pane: 'route', color: '#d9c7b8', weight: 2, opacity: 0.55, dashArray: '2 6', interactive: false })
+      .bindTooltip(MODE_LABELS[mode]?.name || mode, { className: 'tip', sticky: true })
+      .addTo(altLayer);
+  }
+}
+
 async function replan() {
   const mine = ++planSeq;
   $('planning').hidden = false;
   const stopIds = state.targets.filter((t) => state.included.has(t.id)).map((t) => t.id);
   try {
-    const plan = await planner.plan(
-      { habitat: state.habitat, targets: state.targets },
-      { stopIds, conditions: { ...state.conditions } });
+    const file = { habitat: state.habitat, targets: state.targets };
+    const options = { stopIds, conditions: { ...state.conditions } };
+    const plan = await planner.plan(file, options, state.route);
     if (mine !== planSeq) return; // a newer request superseded this one
     state.plan = plan;
+    state.alts = { [state.route]: plan };
+    state.altsPromise = planOtherRoutes(mine, file, options, plan);
     state.timeline = pathTimeline(plan);
     showError('');
   } catch (err) {
@@ -319,35 +492,114 @@ async function replan() {
 function renderAll() {
   drawMap();
   renderVerdict();
+  renderGoNoGo();
+  updateLinks();
   if (state.plan) {
     renderBudget($('budget'), state.plan);
     renderChart($('chart'), state.plan, state.timeline);
   }
+  renderRoutes();
+  drawAltRoutes();
   renderStops();
+  renderSteps();
   renderSelected();
+}
+
+/** Turn-by-turn card (js/steps.js): one group per leg, click a step to highlight it on the map. */
+function renderSteps() {
+  const box = $('steps');
+  box.replaceChildren();
+  if (stepHighlight) { stepHighlight.remove(); stepHighlight = null; }
+  const p = state.plan;
+  if (!p?.legs?.length || !p.order.length) {
+    $('steps-count').textContent = '';
+    box.append(el('p', { class: 'muted' }, 'Select at least one stop to get directions.'));
+    return;
+  }
+  const legs = buildSteps(p, state.terrain, new Map(state.targets.map((t) => [t.id, t.name])));
+  const n = legs.reduce((a, l) => a + l.steps.length, 0);
+  $('steps-count').textContent = `${n} steps`;
+  let clock = 0;
+  legs.forEach((leg, li) => {
+    const list = el('ol', { class: 'steps-list' });
+    for (const s of leg.steps) {
+      const climb = Math.abs(s.climbM) >= 1 ? ` · ${s.climbM > 0 ? '↑' : '↓'} ${Math.abs(s.climbM).toFixed(0)} m` : '';
+      const row = el('li', { class: 'step', tabindex: '0' },
+        el('span', { class: 'step-text' }, s.text),
+        el('span', { class: 'step-meta' }, `${s.distanceM.toFixed(0)} m · ${fmtDuration(s.timeS)}${climb}`),
+        s.sandy ? el('span', { class: 'step-tag' }, 'loose sand') : null);
+      const show = () => highlightStep(s, row);
+      row.addEventListener('click', show);
+      row.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); show(); } });
+      list.append(row);
+    }
+    clock += leg.timeS;
+    const arrive = leg.to === 'habitat'
+      ? `Back at the habitat · ${fmtClock(clock)}`
+      : `Arrive at ${leg.toName} · ${fmtClock(clock)} · work ${leg.dwellMin} min`;
+    clock += (leg.dwellMin || 0) * 60;
+    box.append(el('div', { class: 'steps-leg' },
+      el('div', { class: 'steps-leg-head' }, `${li + 1}. To ${leg.toName}`, el('small', {}, ` ${(leg.distanceM / 1000).toFixed(2)} km`)),
+      list,
+      el('div', { class: 'steps-arrive' }, arrive)));
+  });
+}
+
+function highlightStep(s, row) {
+  if (stepHighlight) stepHighlight.remove();
+  document.querySelectorAll('.step.on').forEach((r) => r.classList.remove('on'));
+  row.classList.add('on');
+  const ll = state.plan.path.slice(s.startIndex, s.endIndex + 1).map(([x, y]) => cellLatLng(state.terrain, x, y));
+  stepHighlight = L.polyline(ll, { pane: 'route', color: '#7fd3ff', weight: 7, opacity: 0.95, interactive: false }).addTo(map);
+  const b = stepHighlight.getBounds();
+  if (!map.getBounds().contains(b)) map.fitBounds(b, { padding: [60, 60], maxZoom: map.getZoom() });
 }
 
 // ---------------------------------------------------------------------------
 // Side panel
 // ---------------------------------------------------------------------------
 
+/** "Over budget on oxygen and radiation", "Over the 6 h EVA", or both (CONTRACTS §4 violations). */
+function violationText(p) {
+  const budgets = p.violations.filter((x) => x === 'oxygen' || x === 'radiation');
+  const time = p.violations.includes('time') ? `over the ${evaHours(p)} h EVA` : '';
+  if (!budgets.length) return time ? time[0].toUpperCase() + time.slice(1) : 'Over budget';
+  return `Over budget on ${budgets.join(' and ')}${time ? ` and ${time}` : ''}`;
+}
+const evaHours = (p) => +((p.totals.timeLimitS ?? 21600) / 3600).toFixed(1);
+/** Summary tail: how much of the route the habitat can't see (CONTRACTS §4 lineOfSight). */
+function outOfSightText(p, sep = ' · ') {
+  const m = p.lineOfSight?.outOfSightM;
+  return m >= 1 ? `${sep}${Math.round(m)} m out of the habitat's sight (dotted)${sep === ' ' ? '.' : ''}` : '';
+}
+
 function renderVerdict() {
   const p = state.plan;
   const v = $('verdict'), sub = $('verdict-sub'), btn = $('drop-btn');
   btn.hidden = true;
+  renderBestSubset(p);
   if (!p) return;
   const nStops = p.order.length;
   if (p.withinBudget) {
     v.className = 'verdict ok';
     v.textContent = nStops ? `Fits the budget · ${nStops} stop${nStops > 1 ? 's' : ''}` : 'No stops selected';
     sub.textContent = `${fmtDuration(p.totals.totalTimeS)} out and back · science value ${p.totals.scienceValue}`;
+    // CONTRACTS §4: turnBackLatest null on a feasible plan = survivable even if a dust storm starts anywhere.
+    if (nStops && 'turnBackLatest' in p) {
+      sub.textContent += p.turnBackLatest
+        ? ` · if a dust storm starts, turn back by ${fmtClock(p.turnBackLatest.elapsedS)} (amber ↩)`
+        : ' · dust-storm safe all the way';
+    }
+    sub.textContent += outOfSightText(p);
   } else {
     v.className = 'verdict over';
-    const what = p.violations.map((x) => (x === 'oxygen' ? 'oxygen' : 'radiation')).join(' and ');
-    v.textContent = `Over budget on ${what}`;
+    v.textContent = violationText(p);
     sub.textContent = p.turnBack
       ? `Turn back by ${fmtClock(p.turnBack.elapsedS)} (red ↩ on the map) or drop a stop.`
-      : 'O₂ still gets you home, but the dose limit is exceeded. Drop a stop or shorten the walk.';
+      : p.violations.includes('radiation')
+        ? 'O₂ still gets you home, but the dose limit is exceeded. Drop a stop or shorten the walk.'
+        : `O₂ still gets you home, but the walk runs past the ${evaHours(p)} h EVA limit. Drop a stop or shorten the walk.`;
+    sub.textContent += outOfSightText(p, ' ');
   }
   if (p.unreachable.length) {
     sub.textContent += ` ${p.unreachable.length} stop${p.unreachable.length > 1 ? 's' : ''} unreachable.`;
@@ -362,9 +614,200 @@ function renderVerdict() {
   }
 }
 
+/** Engine's best stop set that fits (CONTRACTS §4, feature-detected: absent until the engine lane lands it). */
+function renderBestSubset(p) {
+  const box = $('best-subset');
+  box.replaceChildren();
+  box.hidden = true;
+  const bs = p?.bestSubset;
+  if (!bs || !Array.isArray(bs.ids) || !bs.ids.length) return;
+  const byId = new Map(state.targets.map((t) => [t.id, t]));
+  const names = (bs.order?.length ? bs.order : bs.ids).map((id) => byId.get(id)?.name || id);
+  const same = bs.ids.length === state.included.size && bs.ids.every((id) => state.included.has(id));
+  if (same) return;
+  const use = el('button', { type: 'button', class: 'best-use' }, 'Use it');
+  use.onclick = () => { state.included = new Set(bs.ids); replan(); };
+  box.append(
+    el('div', { class: 'best-text' },
+      el('b', {}, 'Best set that fits: '), names.join(' → '),
+      el('small', {}, ` science ${bs.scienceValue} · ${fmtKg(bs.o2UsedKg)} kg O₂ · ${fmtMSv(bs.doseMSv)} mSv`)),
+    use);
+  box.hidden = false;
+}
+
+async function loadCondSnapshot(name) {
+  state.condName = name;
+  try {
+    state.cond = await loadConditions(name);
+    state.condError = null;
+  } catch (err) {
+    // Never invent "quiet": the card shows CAUTION / unknown data instead.
+    state.cond = null;
+    state.condError = err.message;
+    console.warn('conditions snapshot unavailable', err);
+  }
+}
+
+/** GO / CAUTION / NO-GO card from the conditions lane, refreshed after every plan. */
+/**
+ * The Go/No-Go card (js/conditions.js) is long: the level and its reasons stay visible, and everything after
+ * the reasons (weather readings, radiation note, sources, fine print) goes into a closed <details>.
+ * Only moves the nodes conditions.js made; if its layout changes and no reasons list is found, nothing moves.
+ */
+function foldConditionsDetails(box) {
+  const card = box.querySelector('.conditions-card');
+  const reasons = card?.querySelector(':scope > ul');
+  if (!reasons) return;
+  const rest = [];
+  for (let n = reasons.nextElementSibling; n; n = n.nextElementSibling) if (n.tagName !== 'STYLE') rest.push(n);
+  if (!rest.length) return;
+  const more = el('details', { class: 'cond-more' }, el('summary', {}, 'Weather readings, radiation and sources'));
+  more.open = !!state.condDetailsOpen;
+  more.addEventListener('toggle', () => { state.condDetailsOpen = more.open; });
+  more.append(...rest);
+  card.append(more);
+  compactSources(more);
+}
+
+/**
+ * Sources list from js/conditions.js: each item is a link, a "Retrieved / recorded: <ISO time>" line and a long
+ * note. Show each as one line (name · date) with the note behind a click. Items that don't match are left alone.
+ */
+function compactSources(scope) {
+  for (const li of scope.querySelectorAll(':scope > ul > li')) {
+    const link = li.querySelector(':scope > a');
+    const smalls = [...li.querySelectorAll(':scope > small')];
+    if (!smalls.length) continue;
+    const when = smalls.find((s) => /^Retrieved/i.test(s.textContent));
+    const date = when?.textContent.match(/\d{4}-\d{2}-\d{2}/)?.[0];
+    const notes = smalls.filter((s) => s !== when).map((s) => s.textContent.trim()).filter(Boolean);
+    const name = link ?? el('span', {}, li.firstChild?.textContent?.trim() || 'Source');
+    const summary = el('summary', {}, name, date ? el('span', { class: 'src-date' }, ` · ${date}`) : null);
+    const item = el('details', { class: 'src-item' }, summary, ...notes.map((n) => el('p', { class: 'src-note' }, n)));
+    if (when) item.title = when.textContent.trim();
+    li.replaceChildren(item);
+    li.classList.add('src-li');
+  }
+}
+
+function renderGoNoGo() {
+  const box = $('conditions-card');
+  if (!box) return;
+  // Level badge next to the verdict, so GO / CAUTION / NO-GO is visible without scrolling.
+  const badge = $('go-badge');
+  try {
+    const { level } = conditionsVerdict(state.cond, state.plan);
+    badge.textContent = level;
+    badge.className = `go-badge go-${level.toLowerCase().replace(/[^a-z]/g, '')}`;
+    badge.hidden = false;
+  } catch { badge.hidden = true; }
+  try {
+    renderConditionsCard(box, state.cond, state.plan);
+    foldConditionsDetails(box);
+    if (state.condError) box.append(el('p', { class: 'note' }, `Conditions snapshot unavailable: ${state.condError}`));
+  } catch (err) {
+    box.textContent = `Go/No-Go unavailable: ${err.message}`;
+  }
+}
+
+/** Links to the tablet and HUD (CONTRACTS §7), and keep this page's URL in sync so a reload keeps the plan. */
+function updateLinks() {
+  const q = new URLSearchParams();
+  q.set('data', DATASET); // explicit, so links still work if the default site changes again
+  // Stops the user added on the map exist only in this page, so they can't travel in a link.
+  const fileIds = state.targets.filter((t) => !t.custom && state.included.has(t.id)).map((t) => t.id);
+  if (fileIds.length !== state.targets.filter((t) => !t.custom).length) q.set('stops', fileIds.join(','));
+  for (const c of CONDITIONS) if (state.conditions[c.key]) q.set(c.param, '1');
+  if (state.route !== 'eco') q.set('route', state.route); // CONTRACTS §7: tablet and HUD plan the same option
+  // Gale always names its snapshot: the tablet/HUD default is Jezero weather (codex-views is changing that).
+  if (state.condName !== SITE.defaultCond || DATASET === 'gale') q.set('cond', state.condName);
+  const qs = q.toString().replace(/%2C/g, ','); // readable stop lists; URLSearchParams accepts both
+  $('open-tablet').href = `tablet.html?${qs}`;
+  $('open-hud').href = `hud.html?${qs}`;
+  $('open-flyover').href = `flyover.html?${qs}`; // views lane: 3D fly-through, same §7 params
+  $('open-checklist').href = `checklist.html?${qs}`; // EVA cuff checklist (js/checklist.js)
+  const hasCustom = state.targets.some((t) => t.custom && state.included.has(t.id));
+  $('view-links-note').hidden = !hasCustom;
+  updateSiteSwitch();
+  const own = TOUR ? [qs, 'tour=1'].filter(Boolean).join('&') : qs; // presenter mode survives a reload
+  try { history.replaceState(null, '', `?${own}`); } catch { /* sandboxed previews */ }
+}
+
+/** Header site switch: same conditions and route on the other site; site-specific stops and weather are dropped. */
+// "Where on Mars?" panel: a <details>, so it opens without JS; this only closes it on Escape or an outside click.
+function initMarsLocator() {
+  const box = $('mars-locator');
+  if (!box) return;
+  document.addEventListener('click', (e) => { if (box.open && !box.contains(e.target)) box.open = false; });
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && box.open) { box.open = false; box.querySelector('summary').focus(); }
+  });
+}
+
+// Full-screen Mars intro (index.html's inline script adds <html class="intro"> on the bare site, once per tab).
+// Picking the site already loaded underneath zooms in and reveals it; the other site zooms in, then loads.
+function initMarsIntro() {
+  const root = document.documentElement;
+  const box = $('mars-intro');
+  if (!box || !root.classList.contains('intro')) return;
+  try { sessionStorage.setItem('marswalk-intro', '1'); } catch { /* private mode: intro may show again */ }
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const choose = (a) => {
+    if (box.classList.contains('zooming')) return;
+    const here = a.dataset.site === DATASET;
+    $('intro-map').style.transformOrigin = `${a.style.left} ${a.style.top}`;
+    box.classList.add('zooming');
+    if (here) box.classList.add('reveal');
+    setTimeout(() => {
+      if (here) { root.classList.remove('intro'); map?.invalidateSize(); }
+      else location.href = a.getAttribute('href');
+    }, reduce ? 350 : 1500);
+  };
+  const sites = [...box.querySelectorAll('.intro-site')];
+  const current = sites.find((a) => a.dataset.site === DATASET) ?? sites[0];
+  for (const a of sites) a.addEventListener('click', (e) => { e.preventDefault(); choose(a); });
+  $('intro-skip').addEventListener('click', () => choose(current));
+  box.addEventListener('keydown', (e) => { if (e.key === 'Escape') choose(current); });
+  current.focus({ preventScroll: true });
+}
+
+function updateSiteSwitch() {
+  for (const a of document.querySelectorAll('.site-switch a, .loc-marker')) {
+    const q = new URLSearchParams();
+    if (a.dataset.site !== DEFAULT_DATASET) q.set('data', a.dataset.site);
+    if (TOUR) q.set('tour', '1');
+    else {
+      for (const c of CONDITIONS) if (state.conditions[c.key]) q.set(c.param, '1');
+      if (state.route !== 'eco') q.set('route', state.route);
+      if (state.condName.startsWith('demo-')) q.set('cond', state.condName); // demo snapshots exist on every site
+    }
+    const qs = q.toString();
+    a.href = qs ? `./?${qs}` : './';
+  }
+}
+
 function renderConditions() {
   const box = $('conditions');
   box.replaceChildren();
+  // Which conditions snapshot drives the Go/No-Go card and the suggested switches.
+  const select = el('select', { 'aria-label': 'Conditions snapshot', class: 'cond-source' });
+  for (const s of COND_SNAPSHOTS) {
+    const o = el('option', { value: s.name }, s.label);
+    if (s.name === state.condName) o.selected = true;
+    select.append(o);
+  }
+  select.addEventListener('change', async () => {
+    await loadCondSnapshot(select.value);
+    const sug = state.cond ? toToggles(state.cond) : {};
+    // A new snapshot re-applies its suggestions for dust and solar; the kit switch stays as the astronaut set it.
+    for (const key of ['dustStorm', 'solarEvent']) {
+      if (sug[key]) state.conditions[key] = true; else delete state.conditions[key];
+    }
+    renderConditions();
+    refreshSlopeLayer();
+    replan();
+  });
+  box.append(el('label', { class: 'cond-source-row' }, el('span', {}, 'Snapshot'), select));
   for (const c of CONDITIONS) {
     const cfg = CONFIG.conditions[c.key] || {};
     const fx = [];
@@ -469,6 +912,7 @@ function selectStop(id) {
 function renderSelected() {
   const t = state.targets.find((x) => x.id === state.selectedId);
   const box = $('photos');
+  renderChemistryCard(t);
   if (!t) {
     $('photo-title').textContent = 'Stop details';
     $('photo-meta').textContent = '';
@@ -479,7 +923,7 @@ function renderSelected() {
   const ps = state.plan?.stops.find((s) => s.id === t.id);
   const bits = [`science value ${t.value}`, `${t.dwellMin} min on site`];
   if (ps) bits.push(`arrive ${fmtClock(ps.arriveS)} with ${fmtKg(ps.arriveO2Kg)} kg O₂ used`);
-  if (t.sol != null) bits.push(`Perseverance sol ${t.sol}`);
+  if (t.sol != null) bits.push(`${DATASET === 'gale' ? 'Curiosity' : 'Perseverance'} sol ${t.sol}`);
   $('photo-meta').textContent = bits.join(' · ');
   try {
     renderPhotos(box, t);
@@ -487,6 +931,29 @@ function renderSelected() {
     console.warn('renderPhotos failed', err);
     box.replaceChildren(el('p', {}, t.note || ''));
   }
+}
+
+/** { render, chem } once js/chemistry.js loads; chem is null when the data failed (explicit unavailable state). */
+async function loadChemistryCard() {
+  try {
+    const mod = await import('./chemistry.js');
+    const chem = await mod.loadChemistry('gale').catch((err) => { console.warn('APXS chemistry', err); return null; });
+    return { render: mod.renderChemistry, chem };
+  } catch (err) {
+    console.warn('APXS chemistry module not available', err);
+    return null;
+  }
+}
+
+/** APXS card under the selected stop's photos (Gale only); hidden elsewhere or until it loads. */
+async function renderChemistryCard(t) {
+  const box = $('chemistry');
+  if (!t || !state.chemistry) { box.hidden = true; box.replaceChildren(); return; }
+  const card = await state.chemistry;
+  if (state.selectedId !== t.id) return; // another stop was picked meanwhile
+  if (!card) { box.hidden = true; return; }
+  card.render(box, t.id, card.chem);
+  box.hidden = false;
 }
 
 function renderLayerControls() {
@@ -524,6 +991,256 @@ function esc(s) {
 }
 
 // Handle for debugging from the console.
-window.marswalk = { state, get map() { return map; }, get planner() { return planner.mode; }, replan };
+// ---------------------------------------------------------------------------
+// Presenter mode (?tour=1) for the demo video. Right arrow / PageDown / Space = next step,
+// left arrow / PageUp = back. Every step rebuilds its state from scratch, so a recording is the
+// same every time. The only extra UI is the one-line caption over the map.
+// ---------------------------------------------------------------------------
+
+const TOUR = PARAMS.get('tour') === '1';
+let tourStep = -1, tourBest = null, tourBusy = false, tourHaz = 0;
+
+// Hazards are added one at a time until the walk breaks, so the story works on every site
+// (Jezero: dust alone is enough; Gale needs more). Deterministic, so recordings still repeat.
+const TOUR_HAZARDS = [
+  { conditions: { dustStorm: true }, text: 'Dust storm forecast: slower walking, more effort.', short: 'dust storm on' },
+  { conditions: { dustStorm: true, heavyKit: true }, text: 'Dust storm plus a heavy sample kit: slower, harder walking.', short: 'dust storm + heavy kit' },
+  { conditions: { dustStorm: true, heavyKit: true, solarEvent: true }, text: 'Dust storm, heavy kit and a solar particle event.', short: 'all three hazards' },
+];
+const tourHazSet = (included) => tourSet({ cond: 'demo-dusty', conditions: TOUR_HAZARDS[tourHaz].conditions, included });
+
+const tourFileIds = () => state.targets.filter((t) => !t.custom).map((t) => t.id);
+const tourStops = (p) => `${p.order.length} stop${p.order.length === 1 ? '' : 's'}`;
+const tourO2 = (p) => {
+  const { o2UsedKg: u, o2UsableKg: a } = p.totals;
+  const d = fmtKg(u) === fmtKg(a) && u !== a ? 3 : 2; // "0.40 of 0.40" would hide whether it fits
+  return `${u.toFixed(d)} of ${a.toFixed(d)} kg O₂`;
+};
+
+async function tourSet({ cond, conditions, included }) {
+  if (state.condName !== cond) await loadCondSnapshot(cond);
+  state.conditions = { ...conditions };
+  state.included = new Set(included);
+  state.selectedId = null;
+  state.route = 'eco'; // the tour always narrates the least-oxygen route; step 6 compares the others
+  renderConditions();
+  refreshSlopeLayer();
+  await replan();
+}
+
+/** Scroll the side panel (or the page, on phones) so this element is in view. */
+function tourReveal(node) {
+  const panel = document.querySelector('.panel');
+  const scroller = panel.scrollHeight > panel.clientHeight + 1 && getComputedStyle(panel).overflowY !== 'visible' ? panel : document.scrollingElement;
+  const top = node.getBoundingClientRect().top - (scroller === panel ? panel.getBoundingClientRect().top : 0) + scroller.scrollTop - 12;
+  scroller.scrollTo({ top: Math.max(0, top) });
+}
+
+function tourFitRoute() {
+  if (!state.plan?.path?.length) return;
+  const b = L.latLngBounds(state.plan.path.map(([x, y]) => cellLatLng(state.terrain, x, y)));
+  map.flyToBounds(b, { padding: [70, 70], duration: 0.8 });
+}
+
+const TOUR_STEPS = [
+  {
+    run: () => tourSet({ cond: 'demo-quiet', conditions: {}, included: tourFileIds() }),
+    after: tourFitRoute,
+    caption: (p) => p.withinBudget
+      ? `A quiet sol: ${tourStops(p)}, ${fmtDuration(p.totals.totalTimeS)} out and back, ${tourO2(p)}. The walk fits.`
+      : `A quiet sol: ${tourStops(p)}, ${tourO2(p)}. Even this walk is over budget.`,
+  },
+  {
+    run: async () => {
+      for (tourHaz = 0; tourHaz < TOUR_HAZARDS.length; tourHaz++) {
+        await tourHazSet(tourFileIds());
+        if (!state.plan?.withinBudget) break;
+      }
+      tourHaz = Math.min(tourHaz, TOUR_HAZARDS.length - 1);
+    },
+    after: () => { tourBest = state.plan?.bestSubset || null; tourFitRoute(); },
+    caption: (p) => p.withinBudget
+      ? `${TOUR_HAZARDS[tourHaz].text} Still fits: ${tourO2(p)}.`
+      : p.violations.includes('oxygen')
+        ? `${TOUR_HAZARDS[tourHaz].text} Same stops now need ${tourO2(p)}: over budget.`
+        : `${TOUR_HAZARDS[tourHaz].text} O₂ is fine, but the radiation dose goes over the per-walk limit.`,
+  },
+  {
+    run: () => tourHazSet(tourFileIds()),
+    after: () => {
+      if (!turnBackMarker) return;
+      map.flyTo(turnBackMarker.getLatLng(), Math.max(map.getZoom(), 16), { duration: 0.8 });
+      map.once('moveend', () => turnBackMarker?.openTooltip());
+    },
+    caption: (p) => p.turnBack
+      ? `Point of no return at ${fmtClock(p.turnBack.elapsedS)}: past the red marker, the suit can't get home without the O₂ reserve.`
+      : 'No point of no return on this walk: oxygen gets the astronaut home.',
+  },
+  {
+    run: () => tourHazSet(tourFileIds()),
+    after: () => {
+      tourFitRoute();
+      const box = $('best-subset');
+      if (!box.hidden) { box.classList.add('tour-focus'); tourReveal(box); }
+    },
+    caption: (p) => p.bestSubset?.ids?.length
+      ? `The planner searches every set of stops for the most science that still fits: ${p.bestSubset.ids.length} stops, value ${p.bestSubset.scienceValue}.`
+      : 'The planner looks for the most science that still fits the budget.',
+  },
+  {
+    run: () => tourHazSet(tourBest?.ids || tourFileIds()),
+    after: tourFitRoute,
+    caption: (p) => {
+      let level = '';
+      try { level = conditionsVerdict(state.cond, p).level; } catch { /* card shows the error */ }
+      const fit = p.withinBudget ? `fits${level ? `, ${level}` : ''}` : 'still over budget';
+      return `Best set, ${TOUR_HAZARDS[tourHaz].short}: ${tourStops(p)}, science ${p.totals.scienceValue}, ${tourO2(p)}: ${fit}.`;
+    },
+  },
+  {
+    // Same stops and hazards as the best set; wait for the other two route options, then show the cards.
+    run: async () => { await tourHazSet(tourBest?.ids || tourFileIds()); await state.altsPromise; },
+    after: () => {
+      const box = $('routes-card');
+      box.classList.add('tour-focus');
+      tourReveal(box);
+    },
+    caption: () => {
+      const parts = ROUTE_MODES.filter((m) => state.alts[m]?.totals).map((m) => {
+        const p = state.alts[m];
+        const steep = slopeProfile(state.terrain, p);
+        return `${MODE_LABELS[m].name} ${p.totals.o2UsedKg.toFixed(3)} kg, ${Math.round(steep[2] + steep[3])} m over 15°`;
+      });
+      return `Compare routes for the same stops: ${parts.join(' · ')}.`;
+    },
+  },
+  {
+    run: async () => {},
+    after: () => setTimeout(() => { location.href = `${$('open-hud').href}&play=30`; }, 1800),
+    caption: () => 'Same plan in the helmet HUD the astronaut follows, and on a one-page cuff checklist (Print EVA checklist).',
+  },
+];
+
+function tourCaption(text) {
+  let box = $('tour-caption');
+  if (!box) {
+    box = el('div', { id: 'tour-caption', class: 'tour-caption', 'aria-live': 'polite' });
+    document.querySelector('.map-wrap').append(box);
+  }
+  box.replaceChildren(
+    el('span', { class: 'tour-count' }, `${tourStep + 1}/${TOUR_STEPS.length}`),
+    el('span', { class: 'tour-text' }, text));
+}
+
+async function tourGo(i) {
+  if (tourBusy || i < 0 || i >= TOUR_STEPS.length) return;
+  tourBusy = true;
+  try {
+    tourStep = i;
+    document.querySelectorAll('.tour-focus').forEach((n) => n.classList.remove('tour-focus'));
+    const s = TOUR_STEPS[i];
+    // The best set comes from the full dust-storm plan: if we jump straight to it, compute that first.
+    if (i >= 4 && i < TOUR_STEPS.length - 1 && !tourBest) { await TOUR_STEPS[1].run(); tourBest = state.plan?.bestSubset || null; }
+    await s.run();
+    tourCaption(state.plan ? s.caption(state.plan) : '');
+    s.after?.();
+  } finally { tourBusy = false; }
+}
+
+// "About this model" dialog (index.html). Native <dialog>: Esc and the Close button close it.
+// Two tabs: "The model" and "Site data: history and latest" (js/sitedata.js, loaded the first time it is shown).
+function showAboutTab(which) {
+  for (const [tab, panel] of [['tab-model', 'panel-model'], ['tab-sites', 'panel-sites']]) {
+    const on = tab === which;
+    $(tab).setAttribute('aria-selected', String(on));
+    $(tab).tabIndex = on ? 0 : -1;
+    $(panel).hidden = !on;
+  }
+  if (which === 'tab-sites') {
+    import('./sitedata.js')
+      .then((m) => m.renderSiteData($('site-data'), DATASET))
+      .catch((err) => { console.warn('Site data', err); $('site-data').textContent = 'Site data could not be loaded.'; });
+  }
+}
+$('about-open')?.addEventListener('click', () => { showAboutTab('tab-model'); $('about').showModal(); });
+$('sites-open')?.addEventListener('click', () => { showAboutTab('tab-sites'); $('about').showModal(); });
+for (const id of ['tab-model', 'tab-sites']) {
+  $(id)?.addEventListener('click', () => showAboutTab(id));
+  $(id)?.addEventListener('keydown', (e) => {
+    if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return;
+    e.preventDefault(); e.stopPropagation();
+    const next = id === 'tab-model' ? 'tab-sites' : 'tab-model';
+    showAboutTab(next); $(next).focus();
+  });
+}
+
+// Side panel width, adjustable by the user: drag the handle, or focus it and use the arrow keys
+// (Home/End = narrowest/widest, double-click or Enter = default). Remembered in this browser.
+const PANEL_DEFAULT = 390, PANEL_MIN = 320, PANEL_KEY = 'marswalk-panel-w';
+function initPanelResizer() {
+  const handle = $('panel-resizer');
+  const layout = document.querySelector('.layout');
+  if (!handle || !layout) return;
+  const maxW = () => Math.max(PANEL_MIN, Math.min(900, layout.clientWidth - 360)); // keep at least 360 px of map
+  const setW = (w, save = true) => {
+    const px = Math.round(Math.min(maxW(), Math.max(PANEL_MIN, w)));
+    layout.style.setProperty('--panel-w', `${px}px`);
+    handle.setAttribute('aria-valuenow', String(px));
+    handle.setAttribute('aria-valuemin', String(PANEL_MIN));
+    handle.setAttribute('aria-valuemax', String(maxW()));
+    if (save) { try { localStorage.setItem(PANEL_KEY, String(px)); } catch { /* storage blocked: width just isn't remembered */ } }
+    return px;
+  };
+  let saved = null;
+  try { saved = Number(localStorage.getItem(PANEL_KEY)) || null; } catch { /* ignore */ }
+  setW(saved ?? PANEL_DEFAULT, false);
+
+  handle.addEventListener('pointerdown', (e) => {
+    if (e.button !== 0) return;
+    e.preventDefault();
+    handle.setPointerCapture(e.pointerId);
+    document.body.classList.add('resizing');
+    const move = (ev) => setW(layout.getBoundingClientRect().right - ev.clientX, false);
+    const up = (ev) => {
+      handle.releasePointerCapture(ev.pointerId);
+      handle.removeEventListener('pointermove', move);
+      handle.removeEventListener('pointerup', up);
+      handle.removeEventListener('pointercancel', up);
+      document.body.classList.remove('resizing');
+      setW(parseFloat(layout.style.getPropertyValue('--panel-w')));
+    };
+    handle.addEventListener('pointermove', move);
+    handle.addEventListener('pointerup', up);
+    handle.addEventListener('pointercancel', up);
+  });
+  handle.addEventListener('dblclick', () => setW(PANEL_DEFAULT));
+  handle.addEventListener('keydown', (e) => {
+    const now = parseFloat(layout.style.getPropertyValue('--panel-w')) || PANEL_DEFAULT;
+    const step = e.shiftKey ? 80 : 20;
+    const next = { ArrowLeft: now + step, ArrowRight: now - step, Home: PANEL_MIN, End: maxW(), Enter: PANEL_DEFAULT }[e.key];
+    if (next == null) return;
+    e.preventDefault(); e.stopPropagation(); // don't step the tour
+    setW(next);
+  });
+  // Window got smaller: keep the panel within the new limit without forgetting the user's choice.
+  addEventListener('resize', () => {
+    const now = parseFloat(layout.style.getPropertyValue('--panel-w')) || PANEL_DEFAULT;
+    if (now > maxW()) setW(now, false);
+  });
+}
+initPanelResizer();
+
+function startTour() {
+  document.body.classList.add('touring');
+  $('map-hint').hidden = true;
+  document.addEventListener('keydown', (e) => {
+    if (e.target.closest?.('input, select, textarea')) return;
+    if (['ArrowRight', 'PageDown', ' '].includes(e.key)) { e.preventDefault(); tourGo(tourStep + 1); }
+    if (['ArrowLeft', 'PageUp'].includes(e.key)) { e.preventDefault(); tourGo(tourStep - 1); }
+  });
+  tourGo(0);
+}
+
+window.marswalk = { state, get map() { return map; }, get planner() { return planner.mode; }, replan, render: renderAll };
 
 boot();

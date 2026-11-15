@@ -52,7 +52,8 @@ is the target for real data.
       "note": "Why it matters, one sentence.",
       "sol": 420,                  // OPTIONAL rover day; used to find nearby Perseverance photos
       "photos": [                  // OPTIONAL, filled by the photos lane
-        { "url": "https://...", "sol": 420, "camera": "MCZ_LEFT", "caption": "..." }
+        { "url": "https://...", "sol": 420, "camera": "MCZ_LEFT", "caption": "...",
+          "credit": "NASA/JPL-Caltech/ASU" }   // credit OPTIONAL; default NASA/JPL-Caltech/ASU
       ]
     }
   ]
@@ -97,29 +98,41 @@ The one shared decision about *where* the real walk happens. The data lane crops
 `turnBack` is the last point on the route from which the astronaut can still walk home on the
 cheapest path without dipping into the O2 reserve. It is `null` when the whole route fits.
 
-**Coming from the engine lane (additive; shapes fixed now so other lanes can build against
-them).** Until the engine posts a `CONTRACT` line in `STATUS.md`, these fields are missing:
-feature-detect (`if (plan.profile) ...`) and fall back to the fields above.
+**Added by the engine lane (2026-11-14, additive).** Every plan result now also has:
 
 ```jsonc
 {
-  "profile": [                         // ≤ 300 points along `path`, in order, first = habitat
-    { "pathIndex": 0, "elapsedS": 0, "distanceM": 0,
+  "profile": [                         // ≤ 300 points along `path`, in order, first = habitat.
+    { "pathIndex": 0, "elapsedS": 0,   // Each stop appears twice (arrival, then after the dwell),
+      "distanceM": 0,                  // so a chart shows the O2 used while working there.
       "o2RemainingKg": 0.5,            // O2 left in the suit (capacity − used so far)
       "o2ToHomeKg": 0.0,               // O2 needed to walk home from here on the cheapest path
       "doseMSv": 0.0,                  // dose so far
       "elevationM": -2549.3 }
   ],
-  "bestSubset": {                      // highest total value that fits the budget; null when
-    "ids": ["R1", "R3"],               // the chosen stops already fit, or nothing fits
-    "order": ["R3", "R1"],
+  "bestSubset": {                      // null when the chosen stops already fit, or nothing fits.
+    "ids": ["R1", "R3"],               // highest total value that fits O2 AND dose (exact up to
+    "order": ["R3", "R1"],             // 10 stops, greedy above); ties -> least O2
     "scienceValue": 13, "o2UsedKg": 0.31, "doseMSv": 0.02, "totalTimeS": 9000 },
   "turnBackLatest": { "pathIndex", "x", "y", "elapsedS", "o2UsedKg" }
-                                       // last point where turning home still keeps the full
-                                       // reserve, also on a feasible route; null if that is
-                                       // the end of the route
 }
 ```
+
+**Added 2026-11-14 16:30 (additive):** `totals.timeLimitS` (`CONFIG.eva.maxHours`, 6 h) and a third
+violation `"time"` when `totals.totalTimeS` is over it (`withinBudget`, `dropSuggestion` and `bestSubset`
+all respect it); `profile[].inSight` and
+
+```jsonc
+"lineOfSight": { "habitatAntennaM": 3, "astronautEyeM": 1.8,
+                 "outOfSightM": 348,            // route metres where the habitat can't see the astronaut
+                 "gaps": [[120, 141], ...] }    // path index ranges out of sight, for the map
+```
+
+`turnBackLatest` is the "turn back by here" point for a surprise: the last point from which the
+astronaut could still get home without touching the O2 reserve **if a dust storm started right
+there** (the contingency is `CONFIG.planner.contingency`). `null` means a storm starting anywhere
+on the route is still survivable. When the dust-storm switch is already on, it equals `turnBack`.
+Pass `options.contingency = false` to skip it (saves one reverse search, ~150 ms on 400 × 400).
 
 ## 5. UI ↔ photos hook
 
@@ -173,9 +186,25 @@ All three pages read and write the same parameters, so a link carries the whole 
 
 | Param | Values | Meaning |
 |---|---|---|
-| `data` | `demo` (default), `real`, later `gale` | data set folder under `data/` |
+| `data` | `gale` (default), `real` (Jezero), `demo` (synthetic) | data set folder under `data/` |
 | `stops` | `R1,R3,R5` | chosen stop ids; omitted = the page's default |
 | `dust`, `solar`, `kit` | `1` | condition switches on (`dustStorm`, `solarEvent`, `heavyKit`) |
 | `cond` | `real`, `demo-quiet`, `demo-dusty`, `demo-solar` | conditions file to load (§6) |
 | `p` | `0` … `1` | EVA progress along the route (tablet and HUD only) |
+| `route` | `eco` (default), `safe`, `short` | route option (§8); tablet and HUD plan the same option |
+
+## 8. Route options — `js/routes.js` (engine lane)
+
+```js
+import { planAlternatives, planRoute, slopeProfile, MODE_LABELS, ROUTE_MODES } from './routes.js';
+planAlternatives(terrain, targetsFile, options)  // -> { eco, safe, short }, ~1-1.5 s on 400 x 400: run it in the worker
+planRoute(mode, terrain, targetsFile, options)   // -> one option, for on-demand use
+slopeProfile(terrain, plan)                      // -> metres on [< 10°, 10-15°, 15-20°, >= 20°] ground
+```
+
+Each option is a full plan result (§4) plus `mode` (and `slopeCapDeg` for `safe`). `eco` is
+`planWalk` exactly. `safe` and `short` only change how paths and order are **chosen**
+(`CONFIG.routeModes`, labelled DESIGN); time, O₂, dose, turn-back points and the best set are always
+measured with the real model, so the cards compare fairly. `safe` keeps to 15° (relaxed to 18°, then
+the suit limit, if a stop would become unreachable). `MODE_LABELS[mode]` = `{ name, blurb }` for the UI.
 

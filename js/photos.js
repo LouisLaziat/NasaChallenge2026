@@ -1,4 +1,4 @@
-// Real Perseverance photos for a science stop. Owner: photos lane (Claude 2).
+// Real rover photos (Perseverance at Jezero, Curiosity at Gale) for a science stop. Owner: photos lane (Claude 2).
 // Contract: CONTRACTS.md §5. `stop.photos` is filled by scripts/fetch_photos.mjs (CONTRACTS §2).
 //
 // The image files are loaded straight from mars.nasa.gov with <img>, which needs no CORS.
@@ -10,7 +10,20 @@ const CAMERA_NAMES = {
   MCZ_RIGHT: 'Mastcam-Z (right)',
   NAVCAM_LEFT: 'Navcam (left)',
   NAVCAM_RIGHT: 'Navcam (right)',
+  // Curiosity (Gale)
+  NAV_LEFT_A: 'Navcam (left)', NAV_LEFT_B: 'Navcam (left)',
+  NAV_RIGHT_A: 'Navcam (right)', NAV_RIGHT_B: 'Navcam (right)',
+  MAST_LEFT: 'Mastcam (left)', MAST_RIGHT: 'Mastcam (right)',
+  MAHLI: 'MAHLI (hand lens)', MARDI: 'MARDI (descent camera)',
+  CHEMCAM_RMI: 'ChemCam RMI',
+  FHAZ_LEFT_A: 'Front Hazcam', FHAZ_LEFT_B: 'Front Hazcam', RHAZ_LEFT_A: 'Rear Hazcam', RHAZ_LEFT_B: 'Rear Hazcam',
 };
+
+/** Which rover took a photo: Curiosity images live under /msl-raw-images/, Perseverance's under /mars2020. */
+export function roverOf(p) {
+  return /\/msl(-raw-images)?\//.test(String(p?.url ?? '')) ? 'Curiosity' : 'Perseverance';
+}
+const creditOf = (p) => p?.credit || CREDIT;
 
 const STYLE = `
 .pb-photos { font: inherit; color: inherit; }
@@ -57,7 +70,7 @@ const validPhotos = (stop) =>
   (Array.isArray(stop?.photos) ? stop.photos : []).filter((p) => p && typeof p.url === 'string');
 
 function captionText(p) {
-  const cam = CAMERA_NAMES[p.camera] || p.camera || 'Perseverance';
+  const cam = CAMERA_NAMES[p.camera] || p.camera || roverOf(p);
   const where = Number.isFinite(p.distanceM) ? `, rover ${p.distanceM} m from stop` : '';
   return `Sol ${p.sol ?? '?'} · ${cam}${where}`;
 }
@@ -78,7 +91,7 @@ export function renderPhotos(container, stop) {
   if (!photos.length) {
     const msg = stop?.lat == null
       ? 'No rover photo: this stop is on the synthetic demo terrain.'
-      : 'No Perseverance photo was taken near this stop.';
+      : 'No rover photo was taken near this stop.';
     root.append(...[el('div', { class: 'pb-empty' }, msg), note].filter(Boolean));
     return;
   }
@@ -86,8 +99,8 @@ export function renderPhotos(container, stop) {
   const img = el('img', { alt: '', loading: 'lazy', decoding: 'async' });
   const link = el('a', { target: '_blank', rel: 'noopener' }, img);
   const capMain = el('span');
-  const caption = el('figcaption', {}, capMain, el('br'),
-    el('span', { class: 'pb-credit' }, `Credit: ${CREDIT}`));
+  const capCredit = el('span', { class: 'pb-credit' });
+  const caption = el('figcaption', {}, capMain, el('br'), capCredit);
   const figure = el('figure', { class: 'pb-main' }, link, caption);
   const thumbs = el('div', { class: 'pb-thumbs', role: 'group', 'aria-label': 'Photos near this stop' });
   const buttons = [];
@@ -98,10 +111,11 @@ export function renderPhotos(container, stop) {
     current = i;
     const p = photos[i];
     img.src = p.url;
-    img.alt = `Perseverance ${CAMERA_NAMES[p.camera] || p.camera || ''} image, sol ${p.sol}, near ${stop.name}`;
+    img.alt = `${roverOf(p)} ${CAMERA_NAMES[p.camera] || p.camera || ''} image, sol ${p.sol}, near ${stop.name}`;
     link.href = p.link || p.full || p.url;
     link.title = 'Open the original on mars.nasa.gov';
     capMain.textContent = captionText(p);
+    capCredit.textContent = `Credit: ${creditOf(p)}`;
     buttons.forEach((b, j) => b.setAttribute('aria-pressed', String(j === i)));
   }
 
@@ -147,3 +161,4 @@ export function photoMarkerIcon(stop) {
 }
 
 export const PHOTO_CREDIT = CREDIT;
+export { CAMERA_NAMES, captionText };

@@ -3,9 +3,13 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="theme-color" content="#101514">
   <title>Helmet HUD | Marswalk Budget</title>
-  <link rel="icon" href="data:,">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="js/views/icon-192.png">
+  <link rel="apple-touch-icon" href="js/views/icon-192.png">
   <link rel="stylesheet" href="css/views.css">
   <script type="module" src="js/views/hud.js"></script>
 </head>
@@ -13,14 +17,22 @@
   <main class="hud-stage">
     <h1 class="visually-hidden">Helmet HUD</h1>
     <img id="hud-photo" class="hud-photo" alt="" hidden>
+    <p id="offline-banner" class="offline-banner" role="status" hidden>Offline: using the plan saved on this device</p>
     <p id="load-status" class="hud-status" role="status">Loading EVA plan…</p>
+    <p id="hud-rotate" class="hud-rotate" role="status" hidden>Rotate your phone to landscape for the helmet HUD.</p>
+    <p id="helmet-landscape-hint" class="visually-hidden" role="status"></p>
     <svg id="hud-overlay" viewBox="0 0 1280 720" role="group" aria-label="Helmet display" hidden>
       <g class="hud-header">
         <text x="60" y="62" class="hud-title">Marswalk Budget</text>
         <text id="hud-dataset" x="60" y="89" class="hud-label"></text>
+        <g id="hud-sight" hidden>
+          <rect x="60" y="104" width="238" height="33" rx="5" class="hud-panel"/>
+          <text x="179" y="125" text-anchor="middle">Out of habitat’s sight</text>
+        </g>
         <g id="conditions-badge" hidden>
           <rect x="1030" y="38" width="190" height="56" rx="6" fill="var(--hud-panel)" stroke="currentColor"/>
-          <text id="conditions-level" x="1125" y="74" text-anchor="middle"></text>
+          <text id="conditions-level" x="1125" y="61" text-anchor="middle"></text>
+          <text id="conditions-source" x="1125" y="82" text-anchor="middle" class="hud-credit"></text>
         </g>
       </g>
 
@@ -36,6 +48,10 @@
         <rect x="484" y="162" width="312" height="52" rx="6"/>
         <text x="640" y="195">TURN BACK · O₂ RESERVE</text>
       </g>
+      <g id="hud-storm" text-anchor="middle" hidden>
+        <rect x="440" y="162" width="400" height="42" rx="6" class="hud-panel"/>
+        <text id="hud-storm-text" x="640" y="189" class="hud-label"></text>
+      </g>
 
       <g class="hud-target" text-anchor="middle">
         <path d="M589 302v-30h30 M661 272h30v30 M691 323v30h-30 M619 353h-30v-30"
@@ -46,6 +62,7 @@
         <text id="hud-destination-label" x="640" y="388" class="hud-label"></text>
         <text id="hud-destination" x="640" y="426" class="hud-target-name"></text>
         <text id="hud-distance" x="640" y="459" class="hud-range"></text>
+        <text id="hud-instruction" x="640" y="494" class="hud-instruction" hidden></text>
       </g>
 
       <text id="hud-photo-credit" x="1220" y="516" text-anchor="end" class="hud-credit" hidden></text>
@@ -80,7 +97,52 @@
       <input id="progress" type="range" min="0" max="1" step="0.001" value="0">
       <output id="progress-value" for="progress">0%</output>
       <span class="hud-shortcut"><kbd>H</kbd> Hide controls</span>
+      <a id="hud-to-vr" class="hud-mode" href="hud.html?vr=1" title="Phone in a Cardboard-style headset: stereo HUD that follows your head">VR (Cardboard)</a>
     </div>
+    <a id="helmet-exit" class="helmet-exit" href="hud.html" hidden>Flat HUD</a>
+    <div id="helmet-stereo" class="helmet-stereo" aria-label="Stereo helmet display" hidden></div>
+    <div id="helmet-entry" class="helmet-entry" hidden>
+      <h2>Cardboard helmet</h2>
+      <p>Turn your phone to look around. On desktop, drag or use the arrow keys.</p>
+      <p id="helmet-tap-hint" hidden>Tap the view to pause or resume playback.</p>
+      <p id="helmet-fullscreen-hint" hidden>Rotate your phone and add it to the home screen for full screen.</p>
+      <button id="helmet-enter" type="button">Enter helmet view</button>
+      <a id="helmet-to-flat" class="helmet-flat" href="hud.html">No headset? Use the flat HUD</a>
+    </div>
+    <template id="helmet-eye">
+      <section class="helmet-eye">
+        <img class="helmet-photo" alt="" hidden>
+        <div class="helmet-readout">
+          <div class="helmet-compass">
+            <svg viewBox="0 0 260 39" aria-hidden="true"><g data-eye="ticks" transform="translate(130 25)"></g></svg>
+            <b data-eye="heading"></b>
+          </div>
+          <p data-eye="warning" class="helmet-warning" hidden></p>
+          <div class="helmet-target">
+            <svg viewBox="-24 -24 48 48" aria-hidden="true">
+              <path class="hud-reticle" d="M-22-12v-10h10m24 0h10v10m0 24v10H12m-24 0h-10V12"/>
+              <path data-eye="arrow" class="hud-accent" d="M-10 8 0-11 10 8 0 4Z"/>
+            </svg>
+            <b data-eye="stop"></b>
+            <p data-eye="range"></p>
+            <p data-eye="instruction"></p>
+          </div>
+          <dl class="helmet-metrics">
+            <div><dt>O₂ margin</dt><dd data-eye="oxygen"></dd></div>
+            <div><dt>Time left</dt><dd data-eye="time"></dd></div>
+            <div><dt>Slope</dt><dd data-eye="slope"></dd></div>
+            <div><dt>Dose</dt><dd data-eye="dose"></dd></div>
+          </dl>
+          <div class="helmet-gauge" aria-hidden="true"><span data-eye="gauge"></span></div>
+          <p class="helmet-meta"><span data-eye="site"></span><span data-eye="conditions"></span><span data-eye="sight" hidden>Out of habitat’s sight</span></p>
+          <p class="helmet-offline">Offline: using the plan saved on this device</p>
+          <p class="helmet-credit">
+            <span data-eye="radiation"></span>
+            <span data-eye="credit" hidden></span>
+          </p>
+        </div>
+      </section>
+    </template>
   </main>
 </body>
 </html>

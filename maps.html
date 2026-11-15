@@ -1,0 +1,122 @@
+<!-- Generated with AI assistance for NASA Space Apps 2026; reviewed by the team -->
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Mars Maps — walking directions at Jezero</title>
+  <meta name="description" content="Google-Maps-style walking directions for astronauts on Mars: least-oxygen, safest and shortest routes over real Jezero terrain, priced in oxygen, time and radiation.">
+  <meta name="theme-color" content="#05060d">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+        integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@500;600;700&display=swap">
+  <link rel="stylesheet" href="css/maps.css">
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+          integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+  <script type="module" src="js/maps/app.js"></script>
+</head>
+<body>
+  <canvas id="stars" aria-hidden="true"></canvas>
+  <div id="map" aria-label="Map of the walk area"></div>
+
+  <aside id="panel" class="glass panel" aria-label="Directions">
+    <button class="grab" id="grab" type="button" aria-label="Expand or collapse"></button>
+    <header class="brand">
+      <svg class="logo" viewBox="0 0 40 40" aria-hidden="true">
+        <defs>
+          <radialGradient id="lg" cx="35%" cy="30%" r="75%">
+            <stop offset="0" stop-color="#ffc28a"/><stop offset=".55" stop-color="#ff6b3d"/><stop offset="1" stop-color="#7a1d10"/>
+          </radialGradient>
+        </defs>
+        <circle cx="20" cy="20" r="13" fill="url(#lg)"/>
+        <ellipse cx="20" cy="20" rx="19" ry="6" fill="none" stroke="#5ee7ff" stroke-width="1.4" opacity=".85" transform="rotate(-20 20 20)"/>
+        <path d="M20 11.5c-3.3 0-6 2.6-6 5.9 0 4.3 6 10.6 6 10.6s6-6.3 6-10.6c0-3.3-2.7-5.9-6-5.9Z" fill="#05060d" opacity=".78"/>
+        <circle cx="20" cy="17.4" r="2.2" fill="#5ee7ff"/>
+      </svg>
+      <div class="brand-text">
+        <h1>Mars Maps</h1>
+        <p id="tagline">Walking directions on Mars</p>
+      </div>
+      <button class="chip-btn" id="lang" type="button" aria-label="Switch language">FR</button>
+    </header>
+
+    <div class="search">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4.5 4.5"/></svg>
+      <input id="search" type="search" autocomplete="off" spellcheck="false" placeholder="Search places on Mars…" aria-label="Search places">
+      <ul id="search-results" class="search-results glass-strong" role="listbox" hidden></ul>
+    </div>
+
+    <div class="banner" id="banner" hidden></div>
+
+    <section class="card dir" aria-labelledby="dir-h">
+      <div class="sec-head"><h2 id="dir-h" data-i="directions">Directions</h2><span class="tag" id="dataset"></span></div>
+      <ol class="waypoints" id="waypoints"></ol>
+      <div class="dir-foot">
+        <label class="leave"><span data-i="leaveAt">Leave at</span>
+          <input id="leave" type="time" value="09:00" step="300"><span class="unit" data-i="lmst">LMST</span></label>
+        <span class="hint" id="order-hint" data-i="optimizedOrder">Visiting order is optimised for you</span>
+      </div>
+    </section>
+
+    <section class="conds" id="conds" aria-label="Conditions"></section>
+
+    <section aria-labelledby="routes-h">
+      <div class="sec-head"><h2 id="routes-h" data-i="routes">Routes</h2></div>
+      <div class="routes" id="routes" role="radiogroup"></div>
+    </section>
+
+    <section class="card summary" id="summary" aria-live="polite"></section>
+
+    <section aria-labelledby="steps-h">
+      <div class="sec-head"><h2 id="steps-h" data-i="steps">Step by step</h2></div>
+      <div id="steps" class="steps"></div>
+    </section>
+
+    <details class="card sources" id="sources">
+      <summary data-i="sources">Data &amp; assumptions</summary>
+      <div id="sources-body"></div>
+    </details>
+  </aside>
+
+  <button id="go" class="glass go-chip" type="button" aria-expanded="false">
+    <span class="go-dot"></span><span class="go-level">…</span><span class="go-reason"></span>
+  </button>
+  <div id="go-pop" class="glass-strong go-pop" hidden></div>
+
+  <div class="ctrl" role="toolbar" aria-label="Map controls">
+    <button class="glass ctrl-btn" id="btn-layers" type="button" aria-label="Map layers" aria-expanded="false">
+      <svg viewBox="0 0 24 24"><path d="m12 3 9 5-9 5-9-5 9-5Z"/><path d="m3 13 9 5 9-5"/></svg>
+    </button>
+    <div class="glass ctrl-stack">
+      <button class="ctrl-btn" id="btn-in" type="button" aria-label="Zoom in"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button>
+      <button class="ctrl-btn" id="btn-out" type="button" aria-label="Zoom out"><svg viewBox="0 0 24 24"><path d="M5 12h14"/></svg></button>
+    </div>
+    <button class="glass ctrl-btn" id="btn-fit" type="button" aria-label="Fit area">
+      <svg viewBox="0 0 24 24"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/><circle cx="12" cy="12" r="2.2"/></svg>
+    </button>
+  </div>
+  <div id="layers-pop" class="glass-strong layers-pop" hidden></div>
+
+  <article id="place" class="glass-strong place" hidden aria-live="polite"></article>
+
+  <section id="sheet" class="glass sheet" aria-labelledby="sheet-h">
+    <div class="sheet-head">
+      <h2 id="sheet-h" data-i="profile">Elevation &amp; oxygen</h2>
+      <div class="sheet-legend" id="sheet-legend"></div>
+    </div>
+    <div class="chart-wrap">
+      <canvas id="chart"></canvas>
+      <div class="chart-tip glass-strong" id="chart-tip" hidden></div>
+    </div>
+  </section>
+
+  <div class="hud-strip" id="hud">
+    <div class="scale"><span class="scale-bar" id="scale-bar"></span><span id="scale-label"></span></div>
+    <span class="coords" id="coords"></span>
+  </div>
+
+  <div class="loader" id="loader"><div class="orbit"><span></span></div><p>Mars Maps</p></div>
+</body>
+</html>

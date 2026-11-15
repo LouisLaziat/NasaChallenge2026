@@ -31,8 +31,8 @@
 <body>
   <header>
     <h1>Marswalk Budget — photos & NASA layers test page</h1>
-    <p>Real stops from <code>data/real/targets.json</code> on Mars Trek HiRISE imagery with Perseverance's traverse (dashed).
-      Box = <code>data/real/area.json</code>. Photos: NASA/JPL-Caltech/ASU.</p>
+    <p id="about">Real stops on HiRISE imagery with the rover's traverse (dashed). Box = the site's <code>area.json</code>.
+      Site: <a href="?data=real">Jezero (Perseverance)</a> · <a href="?data=gale">Gale (Curiosity)</a></p>
   </header>
   <main>
     <div id="map"></div>
@@ -42,16 +42,19 @@
     import { renderPhotos, photoMarkerIcon } from '../js/photos.js';
     import { addBaseLayers } from '../js/basemap.js';
 
-    const [targets, area] = await Promise.all([
-      fetch('../data/real/targets.json').then((r) => r.json()),
-      fetch('../data/real/area.json').then((r) => r.json()),
+    const SITE = new URLSearchParams(location.search).get('data') === 'gale' ? 'gale' : 'real';
+    const [targets, area, terrain] = await Promise.all([
+      fetch(`../data/${SITE}/targets.json`).then((r) => r.json()),
+      fetch(`../data/${SITE}/area.json`).then((r) => r.json()),
+      fetch(`../data/${SITE}/terrain.json`).then((r) => (r.ok ? r.json() : null)).catch(() => null),
     ]);
+    document.title = `Photos & NASA layers — ${SITE === 'gale' ? 'Gale' : 'Jezero'}`;
     const b = area.bounds;
     const map = L.map('map', { zoomSnap: 0.25, maxZoom: 19 });
     map.invalidateSize();
     map.fitBounds([[b.south, b.west], [b.north, b.east]]);
-    // No terrain yet (data lane), so addBaseLayers falls back to area.json bounds.
-    const { control } = addBaseLayers(map, null);
+    // addBaseLayers picks Jezero (Mars Trek) or Gale (own HiRISE crop) from where the terrain is.
+    const { control } = addBaseLayers(map, terrain);
     L.rectangle([[b.south, b.west], [b.north, b.east]], { color: '#e8a25f', weight: 1.5, fill: false, dashArray: '2 4' }).addTo(map);
 
     const h = targets.habitat;

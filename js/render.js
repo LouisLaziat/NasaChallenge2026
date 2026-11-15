@@ -203,7 +203,10 @@ export function habitatIcon() {
   return L.divIcon({ className: '', iconSize: [30, 30], iconAnchor: [15, 15], html: '<div class="mk-hab" title="Habitat">H</div>' });
 }
 
-export function turnBackIcon() {
+export function turnBackIcon(variant = 'hard') {
+  if (variant === 'soft') {
+    return L.divIcon({ className: '', iconSize: [28, 28], iconAnchor: [14, 14], html: '<div class="mk-turn soft" title="Latest safe turn-around">↩</div>' });
+  }
   return L.divIcon({ className: '', iconSize: [34, 34], iconAnchor: [17, 17], html: '<div class="mk-turn" title="Point of no return">↩</div>' });
 }
 
@@ -286,15 +289,20 @@ export function renderBudget(container, plan) {
       el('span', {}, `${Math.round(o2Frac * 100)}% of usable`),
       el('span', {}, `reserve ${fmtKg(cap - T.o2UsableKg)} kg kept untouched`))));
 
-  // Time: walk vs dwell split (no hard limit; O2 is what bounds the walk).
-  const total = T.totalTimeS || 1;
-  container.append(el('div', { class: 'metric' },
+  // EVA time: walk vs dwell split against the EVA limit (CONTRACTS §4 totals.timeLimitS; 6 h).
+  const limit = Number.isFinite(T.timeLimitS) ? T.timeLimitS : null;
+  const total = Math.max(T.totalTimeS, limit ?? 0) || 1;
+  const pct = (s) => (s / total) * 100;
+  const tFrac = limit ? T.totalTimeS / limit : 0;
+  container.append(el('div', { class: `metric ${limit ? level(tFrac) : ''}` },
     el('div', { class: 'metric-head' },
-      el('span', { class: 'metric-label' }, 'Total time'),
-      el('span', { class: 'metric-value' }, fmtDuration(T.totalTimeS))),
+      el('span', { class: 'metric-label' }, limit ? 'EVA time' : 'Total time'),
+      el('span', { class: 'metric-value', html: `${fmtDuration(T.totalTimeS)}${limit ? ` <small>/ ${limit % 3600 ? fmtDuration(limit) : `${limit / 3600} h`}</small>` : ''}` })),
     el('div', { class: 'bar' },
-      el('div', { class: 'bar-fill', style: `width:${(T.walkTimeS / total) * 100}%;background:var(--ochre)` }),
-      el('div', { class: 'bar-fill dwell', style: `left:${(T.walkTimeS / total) * 100}%;width:${(T.dwellTimeS / total) * 100}%` })),
+      el('div', { class: 'bar-fill', style: `width:${pct(T.walkTimeS)}%;background:var(--ochre)` }),
+      el('div', { class: 'bar-fill dwell', style: `left:${pct(T.walkTimeS)}%;width:${pct(T.dwellTimeS)}%` }),
+      limit && tFrac > 1 ? el('div', { class: 'bar-over', style: `left:${pct(limit)}%;width:${pct(T.totalTimeS - limit)}%` }) : null,
+      limit ? el('div', { class: 'bar-tick', style: `left:calc(${pct(limit)}% - 1px)`, title: 'EVA time limit' }) : null),
     el('div', { class: 'metric-foot' },
       el('span', {}, `walking ${fmtDuration(T.walkTimeS)} · ${fmtKm(T.distanceM)} km`),
       el('span', {}, `at stops ${fmtDuration(T.dwellTimeS)}`))));
@@ -338,6 +346,14 @@ export function renderChart(container, plan, timeline) {
   svg += `<rect x="${pl}" y="${Y(reserve)}" width="${Wd - pl - pr}" height="${Y(0) - Y(reserve)}" fill="#ef4b3f22"/>`;
   svg += `<line x1="${pl}" x2="${Wd - pr}" y1="${Y(reserve)}" y2="${Y(reserve)}" stroke="#ef4b3f" stroke-dasharray="4 3"/>`;
   svg += `<text x="${Wd - pr}" y="${Y(reserve) - 3}" text-anchor="end">reserve ${fmtKg(reserve)} kg</text>`;
+  // Stretches out of the habitat's sight (CONTRACTS §4 lineOfSight.gaps, path indices -> time).
+  const gaps = plan.lineOfSight?.gaps ?? [];
+  for (const [a, b] of gaps) {
+    const t0 = timeline.t[a], t1 = timeline.t[Math.min(b + 1, timeline.t.length - 1)];
+    if (Number.isFinite(t0) && Number.isFinite(t1) && t1 > t0) {
+      svg += `<rect x="${X(t0).toFixed(1)}" y="${pt}" width="${Math.max(1, X(t1) - X(t0)).toFixed(1)}" height="${Y(0) - pt}" fill="#9fb4c826"/>`;
+    }
+  }
   svg += `<path d="${area}" fill="${over ? '#ef4b3f33' : '#e0a14a33'}"/>`;
   svg += `<path d="${line}" fill="none" stroke="${over ? '#ef4b3f' : '#ffcf6e'}" stroke-width="2"/>`;
   for (const s of plan.stops) {
@@ -359,5 +375,5 @@ export function renderChart(container, plan, timeline) {
   svg += '</svg>';
   container.innerHTML = svg;
   container.append(el('div', { class: 'chart-legend' },
-    `kg O₂ left in the suit vs mission time; grey ticks = arrival at stops.${timeline.exact ? '' : ' Between stops the curve is interpolated.'}`));
+    `kg O₂ left in the suit vs mission time; grey ticks = arrival at stops${gaps.length ? "; blue-grey bands = out of the habitat's sight" : ''}.${timeline.exact ? '' : ' Between stops the curve is interpolated.'}`));
 }

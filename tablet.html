@@ -3,9 +3,12 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#1c1310">
   <title>Field tablet | Marswalk Budget</title>
-  <link rel="icon" href="data:,">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="js/views/icon-192.png">
+  <link rel="apple-touch-icon" href="js/views/icon-192.png">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
         integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
   <link rel="stylesheet" href="css/views.css">
@@ -20,6 +23,7 @@
   </header>
   <main class="tablet-main">
     <h1>Field tablet</h1>
+    <p id="offline-banner" class="offline-banner" role="status" hidden>Offline: using the plan saved on this device</p>
     <p id="load-status" role="status">Loading EVA plan…</p>
     <div id="walk" class="tablet-layout" hidden>
       <div class="tablet-nav">
@@ -36,6 +40,9 @@
           <strong>Turn back</strong>
           <span>You’ve passed the last planned point for returning with your O₂ reserve intact.</span>
         </div>
+        <p class="storm-guidance" id="storm-guidance" role="status" hidden></p>
+        <p class="storm-guidance" id="tablet-sight" role="status" hidden>Out of habitat’s sight</p>
+        <a class="best-set" id="best-set" hidden></a>
 
         <section class="card destination-card" aria-labelledby="destination">
           <div class="destination-top">
@@ -48,6 +55,7 @@
               <span id="bearing-value"></span>
             </div>
           </div>
+          <p class="next-maneuver" id="next-maneuver" hidden></p>
           <dl class="tablet-readings">
             <div><dt>Direct range</dt><dd id="distance"></dd></div>
             <div><dt>Elapsed</dt><dd id="elapsed"></dd></div>

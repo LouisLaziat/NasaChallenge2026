@@ -1,20 +1,33 @@
 // Generated with AI assistance for NASA Space Apps 2026; reviewed by the team
 import { CONFIG } from './config.js';
 
-// ASSUMPTION: decision thresholds assigned in docs/briefs/conditions.md; not EVA certification.
-// Keep these local to this lane until the engine owner centralises them in CONFIG.
-const DUST_TAU_LIMIT = 1.0;
-const O2_CAUTION_FRACTION = 0.90; // less than 10% of usable oxygen left
-const DOSE_CAUTION_FRACTION = 0.80;
+// Decision thresholds belong to the engine-owned CONFIG.goNoGo (ASSUMPTION policies).
+// ASSUMPTION: weather older than 7 sols is not current; approved in STATUS.md at 12:48.
+// The lead has not yet moved this additional freshness policy into CONFIG.
+const WEATHER_MAX_AGE_SOLS = 7;
+// SOURCE: NASA GISS Mars24 algorithm C-2, mean solar sol / Earth day.
+// https://www.giss.nasa.gov/tools/mars24/help/algorithm.html
+const SOL_MS = 1.0274912517 * 86400000;
 const finite = (v) => typeof v === 'number' && Number.isFinite(v);
 const nonnegative = (v) => finite(v) && v >= 0;
 const knownSEP = (s) => ['quiet', 'watch', 'alert'].includes(s);
 const MODEL_SOURCE = 'Marswalk planning model (team-assigned ASSUMPTION thresholds)';
 const RAD_PROXY = 'Curiosity RAD measured at Gale Crater, used as a proxy for Jezero';
+const radDescription = (cond) => cond?.site === 'gale'
+  ? 'Curiosity RAD measured at Gale Crater, the same crater as this dataset'
+  : RAD_PROXY;
+const percent = (value) => Number((value * 100).toFixed(2));
+
+function observationDate(cond) {
+  const source = cond?.sources?.find((s) => /MEDA|REMS/i.test(s.name));
+  const date = /Weather observation date:\s*(\d{4}-\d{2}-\d{2})\b/.exec(source?.note || '')?.[1];
+  const at = date ? Date.parse(`${date}T00:00:00Z`) : NaN;
+  return Number.isFinite(at) && new Date(at).toISOString().slice(0, 10) === date ? date : null;
+}
 
 /** Module-relative URL works from the console, tablet and docs/ demo page alike. */
 export async function loadConditions(name = 'real') {
-  if (!['real', 'demo-quiet', 'demo-dusty', 'demo-solar'].includes(name)) {
+  if (!['real', 'real-gale', 'demo-quiet', 'demo-dusty', 'demo-solar'].includes(name)) {
     throw new Error(`Unknown conditions snapshot: ${name}`);
   }
   const response = await fetch(new URL(`../data/conditions/${name}.json`, import.meta.url));
@@ -25,7 +38,7 @@ export async function loadConditions(name = 'real') {
 /** False means no positive trigger; unknown readings are explained by verdict(). */
 export function toToggles(cond) {
   return {
-    dustStorm: nonnegative(cond?.dustTau) && cond.dustTau > DUST_TAU_LIMIT,
+    dustStorm: nonnegative(cond?.dustTau) && cond.dustTau > CONFIG.goNoGo.dustTauStorm,
     solarEvent: cond?.sep?.status === 'alert',
   };
 }
@@ -51,7 +64,24 @@ export function verdict(cond, plan = null) {
     add('CAUTION', 'sep-watch', 'Solar particle event watch. Earth-side detection used as a proxy for Mars.', sepSource);
   }
   if (toToggles(cond).dustStorm) {
-    add('CAUTION', 'dust', 'Dust optical depth exceeds 1.0; enable the dust-storm walking model (ASSUMPTION).', dustSource);
+    add('CAUTION', 'dust', `Dust optical depth exceeds ${CONFIG.goNoGo.dustTauStorm}; enable the dust-storm walking model (ASSUMPTION).`, dustSource);
+  }
+
+  if (cond?.synthetic === false) {
+    const date = observationDate(cond);
+    const weatherSource = sourceFor(cond, /MEDA|REMS/i, 'Weather snapshot provenance');
+    if (!date) {
+      add('CAUTION', 'weather-date-unknown', `Weather sol ${cond.sol ?? 'unknown'} has no valid observation date; freshness is unknown.`, weatherSource);
+    } else {
+      // Feed dates have day precision. Use the end of that UTC date, so an observation
+      // is called old only once every possible time on its date exceeds the policy.
+      const end = Date.parse(`${date}T23:59:59.999Z`);
+      if (Date.now() - end > WEATHER_MAX_AGE_SOLS * SOL_MS) {
+        add('CAUTION', 'weather-stale', `Weather sol ${cond.sol ?? 'unknown'} (${date}) is not current: more than ${WEATHER_MAX_AGE_SOLS} sols old (ASSUMPTION freshness policy; age estimated from the observation date).`, weatherSource);
+      } else if (Date.now() < Date.parse(`${date}T00:00:00Z`)) {
+        add('CAUTION', 'weather-date-future', `Weather sol ${cond.sol ?? 'unknown'} has a future observation date (${date}); check the source.`, weatherSource);
+      }
+    }
   }
 
   // ASSUMPTION: missing condition inputs require review rather than a reassuring GO.
@@ -78,12 +108,12 @@ export function verdict(cond, plan = null) {
     if (!validO2 || !validDose || typeof plan.withinBudget !== 'boolean') {
       add('CAUTION', 'unknown-budget', 'Route budget readings are incomplete or invalid; check the plan.', 'Route engine');
     }
-    // Compare products to keep exactly 90% O2 / 80% dose on the non-caution side.
-    if (validO2 && totals.o2UsedKg > O2_CAUTION_FRACTION * totals.o2UsableKg) {
-      add('CAUTION', 'oxygen-margin', 'Less than 10% of usable oxygen remains above the suit reserve (ASSUMPTION).', MODEL_SOURCE);
+    // Compare products so equality remains on the non-caution side.
+    if (validO2 && totals.o2UsedKg > (1 - CONFIG.goNoGo.o2MarginCaution) * totals.o2UsableKg) {
+      add('CAUTION', 'oxygen-margin', `Less than ${percent(CONFIG.goNoGo.o2MarginCaution)}% of usable oxygen remains above the suit reserve (ASSUMPTION).`, MODEL_SOURCE);
     }
-    if (validDose && totals.doseMSv > DOSE_CAUTION_FRACTION * totals.doseLimitMSv) {
-      add('CAUTION', 'dose-margin', `Planned dose exceeds 80% of the EVA limit (ASSUMPTION). ${RAD_PROXY}.`, MODEL_SOURCE);
+    if (validDose && totals.doseMSv > CONFIG.goNoGo.doseCautionFraction * totals.doseLimitMSv) {
+      add('CAUTION', 'dose-margin', `Planned dose exceeds ${percent(CONFIG.goNoGo.doseCautionFraction)}% of the EVA limit (ASSUMPTION). ${radDescription(cond)}.`, MODEL_SOURCE);
     }
   }
   if (!reasons.length) reasons.push({
@@ -105,9 +135,11 @@ export function renderConditions(container, cond, plan = null) {
     return el;
   };
   const result = verdict(cond, plan);
+  const site = cond?.site === 'gale' ? 'Gale Crater' : cond?.site === 'jezero' ? 'Jezero' : 'Unknown site';
   const card = make('section', undefined, null, 'conditions-card');
   card.dataset.level = result.level;
-  card.setAttribute('aria-label', `Jezero conditions: ${result.level}`);
+  card.dataset.site = cond?.site || 'unknown';
+  card.setAttribute('aria-label', `${site} conditions: ${result.level}`);
   // Scoped styles travel with the module; no changes to another lane's CSS are needed.
   make('style', `
     .conditions-card { box-sizing:border-box; padding:1.3rem; border:1px solid #8295a8; border-top:5px solid var(--cond-accent); border-radius:12px; background:#12202e; color:#edf4fb; font:15px/1.5 system-ui,sans-serif; overflow-wrap:anywhere; --cond-accent:#8ae0b2; }
@@ -127,7 +159,7 @@ export function renderConditions(container, cond, plan = null) {
     .conditions-card .conditions-badge { display:inline-block; margin-left:.4rem; padding:0 .35rem; border:1px solid #b9a36d; border-radius:4px; color:#ffe0a1; font-size:.75rem; }
     .conditions-card .conditions-label { font-weight:600; color:#bdcddd; }
   `, card);
-  make('p', cond?.synthetic === true ? 'SYNTHETIC DEMO · JEZERO' : 'JEZERO · SAVED CONDITIONS', card, 'conditions-label');
+  make('p', cond?.synthetic === true ? `SYNTHETIC DEMO · ${site.toUpperCase()}` : `${site.toUpperCase()} · SAVED CONDITIONS`, card, 'conditions-label');
   make('h2', result.level, card);
   make('p', plan ? 'Conditions + route budget' : 'Conditions only · route budget not evaluated', card);
   const list = make('ul', undefined, card);
@@ -145,6 +177,7 @@ export function renderConditions(container, cond, plan = null) {
   };
   const number = (v, unit, digits = 1) => finite(v) ? `${v.toFixed(digits)} ${unit}`.trim() : 'Unknown';
   row('Weather sol', number(cond?.sol, '', 0), 'sol');
+  row('Weather observation date', observationDate(cond) || (cond?.synthetic === true ? 'Synthetic scenario' : 'Unknown'), '');
   row('Air temperature', cond?.tempC ? `${number(cond.tempC.min, '°C')} to ${number(cond.tempC.max, '°C')}` : 'Unknown', 'tempC');
   row('Pressure', number(cond?.pressurePa, 'Pa'), 'pressurePa');
   row('Dust optical depth', number(cond?.dustTau, 'τ'), 'dustTau');
@@ -156,7 +189,7 @@ export function renderConditions(container, cond, plan = null) {
     row('Route O₂ / usable', `${number(plan.totals.o2UsedKg, 'kg', 3)} / ${number(plan.totals.o2UsableKg, 'kg', 3)}`, '');
     row('Route dose / limit', `${number(plan.totals.doseMSv, 'mSv', 3)} / ${number(plan.totals.doseLimitMSv, 'mSv', 3)}`, '');
   }
-  make('p', `${RAD_PROXY}. Published surface baseline: ${CONFIG.radiation.surfaceMSvPerDay} mSv/day; solar factors are planning assumptions.`, card);
+  make('p', `${radDescription(cond)}. Historical surface baseline; solar factors are planning assumptions.`, card);
   make('small', `Snapshot written: ${cond?.asOf || 'Unknown'}. This is a retrieval time, not a weather observation time; read the source notes.`, card);
   make('h3', 'Sources & provenance', card);
   const sources = make('ul', undefined, card);

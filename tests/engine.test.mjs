@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import {
   buildCostGrid, findPath, search, planWalk, bestOrder,
-  cellToLatLon, latLonToCell, energyToO2Kg,
+  cellToLatLon, latLonToCell, energyToO2Kg, canSee,
 } from '../js/engine.js';
 import { CONFIG } from '../js/config.js';
 
@@ -176,4 +176,132 @@ test('cellToLatLon and latLonToCell round-trip', () => {
     const { lat, lon } = cellToLatLon(t, x, y);
     assert.deepEqual(latLonToCell(t, lat, lon), { x, y });
   }
+});
+
+// ---- profile, bestSubset, turnBackLatest (CONTRACTS §4 additions) ---------
+
+const demo = () => ({
+  t: JSON.parse(readFileSync(new URL('../data/demo/terrain.json', import.meta.url))),
+  s: JSON.parse(readFileSync(new URL('../data/demo/targets.json', import.meta.url))),
+});
+
+test('profile: <= 300 ordered points, starts full at the habitat, ends at the totals', () => {
+  const { t, s } = demo();
+  const r = planWalk(t, s);
+  const P = r.profile;
+  assert.ok(P.length > 10 && P.length <= 300);
+  assert.equal(P[0].pathIndex, 0);
+  assert.equal(P[0].elapsedS, 0);
+  assert.ok(Math.abs(P[0].o2RemainingKg - CONFIG.suit.o2CapacityKg) < 1e-12);
+  assert.ok(Math.abs(P[0].o2ToHomeKg) < 1e-12, 'no O2 needed to get home from home');
+  const last = P.at(-1);
+  assert.equal(last.pathIndex, r.path.length - 1);
+  assert.ok(Math.abs(last.elapsedS - r.totals.totalTimeS) < 1e-6);
+  assert.ok(Math.abs(CONFIG.suit.o2CapacityKg - last.o2RemainingKg - r.totals.o2UsedKg) < 1e-9);
+  assert.ok(Math.abs(last.doseMSv - r.totals.doseMSv) < 1e-9);
+  for (let i = 1; i < P.length; i++) {
+    assert.ok(P[i].pathIndex >= P[i - 1].pathIndex);
+    assert.ok(P[i].elapsedS >= P[i - 1].elapsedS);
+    assert.ok(P[i].o2RemainingKg <= P[i - 1].o2RemainingKg + 1e-12);
+    assert.ok(Number.isFinite(P[i].elevationM));
+  }
+  // Every stop shows up twice (arrival and after the dwell), so the chart has the dwell step.
+  for (const st of r.stops) {
+    const at = P.filter((q) => q.pathIndex === st.pathIndex);
+    assert.ok(at.length >= 2, `stop ${st.id} needs arrival + departure points`);
+  }
+});
+
+test('bestSubset: null when the plan fits; otherwise the best-value set that fits', () => {
+  const { t, s } = demo();
+  assert.equal(planWalk(t, s).bestSubset, null);
+  const tight = structuredClone(CONFIG);
+  tight.suit.o2CapacityKg = 0.2;
+  const r = planWalk(t, s, { config: tight });
+  const b = r.bestSubset;
+  assert.ok(b, 'over budget needs a best subset');
+  assert.ok(b.ids.length > 0 && b.ids.length < r.order.length);
+  assert.deepEqual([...b.order].sort(), [...b.ids].sort());
+  assert.ok(b.o2UsedKg <= tight.suit.o2CapacityKg * (1 - tight.suit.reserveFraction) + 1e-12);
+  assert.ok(b.doseMSv <= tight.radiation.walkLimitMSv);
+  // Re-planning with exactly those stops fits, with the same value.
+  const again = planWalk(t, s, { config: tight, stopIds: b.ids });
+  assert.equal(again.withinBudget, true);
+  assert.equal(again.totals.scienceValue, b.scienceValue);
+  // No other subset of the same stops is worth more and still fits (brute force check).
+  const ids = r.order;
+  let best = 0;
+  for (let mask = 1; mask < (1 << ids.length); mask++) {
+    const sub = ids.filter((_, i) => mask & (1 << i));
+    const v = s.targets.filter((x) => sub.includes(x.id)).reduce((a, x) => a + x.value, 0);
+    if (v <= best) continue;
+    if (planWalk(t, s, { config: tight, stopIds: sub, contingency: false }).withinBudget) best = v;
+  }
+  assert.equal(b.scienceValue, best);
+});
+
+test('turnBackLatest: a dust storm starting late is survivable, starting early may not be', () => {
+  const { t, s } = demo();
+  // Comfortable plan: a dust storm from anywhere still gets you home -> null.
+  assert.equal(planWalk(t, s).turnBackLatest, null);
+  // Tight suit: 1% more usable O2 than the plan needs. It fits as planned, but a storm starting
+  // on the last leg would eat into the reserve.
+  const need = planWalk(t, s, { contingency: false }).totals.o2UsedKg;
+  const tight = structuredClone(CONFIG);
+  tight.suit.o2CapacityKg = (need / (1 - CONFIG.suit.reserveFraction)) * 1.01;
+  const r = planWalk(t, s, { config: tight });
+  assert.equal(r.withinBudget, true);
+  assert.equal(r.turnBack, null);
+  const tb = r.turnBackLatest;
+  assert.ok(tb, 'needs a storm turn-back point');
+  assert.ok(tb.pathIndex > 0 && tb.pathIndex < r.path.length - 1);
+  assert.deepEqual(r.path[tb.pathIndex], [tb.x, tb.y]);
+  // With the storm already on, the contingency adds nothing: turnBackLatest equals turnBack.
+  const storm = planWalk(t, s, { config: tight, conditions: { dustStorm: true } });
+  assert.deepEqual(storm.turnBackLatest, storm.turnBack);
+});
+
+test('plan on a 400 x 400 grid stays under ~1.5 s', () => {
+  const t = JSON.parse(readFileSync(new URL('../data/real/terrain.json', import.meta.url)));
+  const s = JSON.parse(readFileSync(new URL('../data/real/targets.json', import.meta.url)));
+  planWalk(t, s); // warm-up (JIT)
+  const t0 = performance.now();
+  const r = planWalk(t, s, { conditions: { heavyKit: true } });
+  const ms = performance.now() - t0;
+  assert.ok(r.ok);
+  assert.ok(ms < 1500, `took ${ms.toFixed(0)} ms`);
+});
+
+// ---- line of sight and EVA time limit -------------------------------------
+
+test('line of sight: open ground is all in view, a wall hides what is behind it', () => {
+  const flat = flatTerrain(60, 20, { cellSize: 5 });
+  const gf = buildCostGrid(flat);
+  assert.equal(canSee(gf, 10 * 60 + 2, 10 * 60 + 57, 3, 1.8), true);
+  // A 10 m wall at x = 30 with a gap at the top rows, so the walker can go round it.
+  const wall = flatTerrain(60, 20, { cellSize: 5, elev: (x, y) => (x === 30 && y > 3 ? 10 : 0) });
+  const gw = buildCostGrid(wall, { ...CONFIG, walk: { ...CONFIG.walk, maxSlopeDeg: 89 } });
+  assert.equal(canSee(gw, 10 * 60 + 2, 10 * 60 + 57, 3, 1.8), false);
+  const targets = { habitat: { name: 'H', x: 2, y: 10 }, targets: [{ id: 'B', name: 'Behind the wall', x: 57, y: 10, value: 5, dwellMin: 5, note: '' }] };
+  const open = planWalk(flat, targets);
+  assert.equal(open.lineOfSight.outOfSightM, 0);
+  assert.ok(open.profile.every((q) => q.inSight));
+  const hidden = planWalk(wall, targets, { config: { ...CONFIG, walk: { ...CONFIG.walk, maxSlopeDeg: 89 } } });
+  assert.ok(hidden.lineOfSight.outOfSightM > 0);
+  assert.ok(hidden.lineOfSight.gaps.length > 0);
+  assert.ok(hidden.profile.some((q) => !q.inSight));
+  for (const [a, b] of hidden.lineOfSight.gaps) assert.ok(a <= b && b < hidden.path.length);
+});
+
+test('EVA time limit: a long walk breaks the time budget and the best set respects it', () => {
+  const { t, s } = demo();
+  const r0 = planWalk(t, s, { contingency: false });
+  assert.equal(r0.totals.timeLimitS, CONFIG.eva.maxHours * 3600);
+  assert.ok(!r0.violations.includes('time'));
+  const short = structuredClone(CONFIG);
+  short.eva.maxHours = (r0.totals.totalTimeS / 3600) * 0.8;
+  const r = planWalk(t, s, { config: short, contingency: false });
+  assert.ok(r.violations.includes('time'));
+  assert.equal(r.withinBudget, false);
+  assert.ok(r.bestSubset && r.bestSubset.totalTimeS <= short.eva.maxHours * 3600);
 });
