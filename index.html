@@ -25,6 +25,29 @@
       </div>
     </div>
     <div class="topbar-right">
+      <details class="mars-locator" id="mars-locator">
+        <summary title="Where on Mars are the two sites?">
+          <span class="loc-thumb" aria-hidden="true">
+            <img src="data/mars/overview.jpg" alt="" width="56" height="28" decoding="async" fetchpriority="low">
+            <i class="loc-dot" data-site="gale" style="left:88.16%;top:52.66%"></i>
+            <i class="loc-dot" data-site="real" style="left:71.50%;top:39.74%"></i>
+          </span>
+          <span class="loc-label">Where on Mars?</span>
+        </summary>
+        <div class="loc-panel">
+          <div class="loc-map">
+            <img src="data/mars/overview.jpg" width="1000" height="500" decoding="async"
+              alt="Elevation map of the whole of Mars (blue low, red and white high) with Gale Crater and Jezero Crater marked">
+            <a class="loc-marker loc-left-below" data-site="gale" href="./" style="left:88.16%;top:52.66%"><span>Gale · Mount Sharp</span></a>
+            <a class="loc-marker loc-left-above" data-site="real" href="./?data=real" style="left:71.50%;top:39.74%"><span>Jezero · delta front</span></a>
+          </div>
+          <p class="loc-note">
+            <strong>Gale</strong> (4.8° S, 137.4° E) and <strong>Jezero</strong> (18.5° N, 77.4° E) are about 3,750 km apart.
+            Each planner covers a 2 × 2 km walk area. Click a site to open it.
+          </p>
+          <p class="loc-credit">Map: MGS MOLA colour shaded relief (NASA / JPL / GSFC), via NASA Mars Trek.</p>
+        </div>
+      </details>
       <nav class="site-switch" aria-label="Site">
         <a href="./" data-site="gale">Gale · Mount Sharp</a>
         <a href="./?data=real" data-site="real">Jezero · delta front</a>
@@ -60,6 +83,7 @@
         <a href="https://astrogeology.usgs.gov/search/map/mars_2020_terrain_relative_navigation_hirise_dtm_mosaic" target="_blank" rel="noopener">Jezero (Mars 2020 TRN)</a>.</li>
       <li>Ground hardness (Jezero only): <a href="https://doi.org/10.5281/zenodo.4931348" target="_blank" rel="noopener">THEMIS-derived thermal inertia of Jezero Crater</a> (Zenodo, CC BY 4.0).</li>
       <li>Imagery: <a href="https://trek.nasa.gov/mars/" target="_blank" rel="noopener">NASA Mars Trek</a> (MRO HiRISE / CTX) and the USGS Gale HiRISE colour mosaic; rover traverses from NASA/JPL MMGIS.</li>
+      <li>Mars overview map ("Where on Mars?"): <a href="https://trek.nasa.gov/mars/" target="_blank" rel="noopener">NASA Mars Trek</a> MGS MOLA colour shaded relief (NASA / JPL / GSFC), resized to 1000 × 500 px.</li>
       <li>Gale route context: NASA's <a href="https://science.nasa.gov/resource/curiositys-proposed-path-up-mount-sharp/" target="_blank" rel="noopener">Curiosity's proposed path up Mount Sharp</a>, the challenge's example map for the boxwork area.</li>
       <li>Stop photos: <a href="https://mars.nasa.gov/msl/multimedia/raw-images/" target="_blank" rel="noopener">Curiosity</a> and
         <a href="https://mars.nasa.gov/mars2020/multimedia/raw-images/" target="_blank" rel="noopener">Perseverance</a> raw images, NASA/JPL-Caltech; each photo shows its own credit.</li>

@@ -151,3 +151,4 @@ Append only, newest at the bottom. Format and tags: see `AGENTS.md`.
 2026-11-14 20:54  [lead]    MERGED apxs (846007e: cited Curiosity APXS chemistry for G1-G4, CSA credit), views (4a4ef8f: offline tablet/HUD, manifest + service worker), integrate (c7dd7bf: cuff checklist, chemistry card, fly-through link, QA run 2, About path link). 96/96 offline.
 2026-11-14 20:56  [lead]    DECISION Mars overview: GO as a small static locator (conditions in comms/louis-claude.md), hard stop 22:00. USGS geologic-unit layer: NO (one global unit at a 2 km site). Nothing else new after the freeze.
 ```
+2026-11-14 21:06  [ui]      DONE   "Where on Mars?" locator (lead GO 20:56): static 1000x500 MOLA image data/mars/overview.jpg (88 KB, credited), thumbnail by the site switch, panel with Gale/Jezero markers (current highlighted, links = switch links), works without JS (<details>). QA run 3 in docs/qa.md: 51/51 console rows incl. 360/414 px; 96/96 offline.

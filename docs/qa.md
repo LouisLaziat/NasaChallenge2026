@@ -179,6 +179,22 @@ harness's own probe lost the page when step 7 navigates; both run 1–7 with no 
   stops, value 36 · 5/7 0.38 kg, fits, CAUTION · 6/7 0.378 / 0.380 / 0.390 kg · 7/7 opens the HUD with R1–R5.
 - **Demo** (harness): pass. 6 captions, ending "6/7 Compare routes for the same stops: Least oxygen 0.396 kg…".
 
+## Run 3: "Where on Mars?" locator (ended 2026-11-14 21:06 Toronto)
+
+After the lead's post-freeze GO for the static Mars overview, the console rows were re-run on `integrate`
+(develop 6c49eb2 merged in, plus the locator), with the same harness and the same pass rule.
+**51 rows: the 45 console loads (3 sites × 5 conditions × 3 routes) and the console at 360 and 414 px on
+all three sites. All pass.** On every row the harness opened the panel and checked:
+- the 1000 × 500 map image (88 KB) loaded;
+- the panel stays inside the window, with no horizontal scroll while open;
+- the current site's marker and thumbnail dot are highlighted (Gale on `/`, Jezero on `?data=real`, neither on demo);
+- each marker's link equals the site switch's link, so the conditions and route carry over;
+- Escape closes it.
+
+Clicking the Jezero marker from `/?dust=1&route=safe` opened Jezero with the dust storm and the safest
+route kept (checked by hand in the in-app browser). The only failed request is finding 9 (the
+Perseverance traverse JSON in headless Chrome, Jezero and demo only). `npm test` offline: **96/96**.
+
 ## Run 1 (15:57–16:03, before the Gale default)
 
 84 checks on `integrate` 24bb75d: 45 console loads, 15 tablet/HUD, 18 phone-width, 3 docs, 3 tours;

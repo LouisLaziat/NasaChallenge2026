@@ -145,9 +145,11 @@ async function boot() {
   $('rad-note').innerHTML = SITE.radNote;
   $('site-name').textContent = SITE.siteName;
   document.title = `Marswalk Budget — ${SITE.siteName} EVA planner`;
-  for (const a of document.querySelectorAll('.site-switch a')) {
+  for (const a of document.querySelectorAll('.site-switch a, .loc-marker')) {
     if (a.dataset.site === DATASET) a.setAttribute('aria-current', 'page');
   }
+  for (const dot of document.querySelectorAll('.loc-dot')) dot.classList.toggle('is-current', dot.dataset.site === DATASET);
+  initMarsLocator();
   let terrain, targetsFile;
   try {
     const terrainUrl = new URL('terrain.json', DATA_DIR).href;
@@ -690,8 +692,18 @@ function updateLinks() {
 }
 
 /** Header site switch: same conditions and route on the other site; site-specific stops and weather are dropped. */
+// "Where on Mars?" panel: a <details>, so it opens without JS; this only closes it on Escape or an outside click.
+function initMarsLocator() {
+  const box = $('mars-locator');
+  if (!box) return;
+  document.addEventListener('click', (e) => { if (box.open && !box.contains(e.target)) box.open = false; });
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && box.open) { box.open = false; box.querySelector('summary').focus(); }
+  });
+}
+
 function updateSiteSwitch() {
-  for (const a of document.querySelectorAll('.site-switch a')) {
+  for (const a of document.querySelectorAll('.site-switch a, .loc-marker')) {
     const q = new URLSearchParams();
     if (a.dataset.site !== DEFAULT_DATASET) q.set('data', a.dataset.site);
     if (TOUR) q.set('tour', '1');
