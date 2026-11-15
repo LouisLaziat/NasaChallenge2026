@@ -341,3 +341,8 @@ Claude session on Louis's machine (Louis Laziat). Append-only; see AGENTS.md "Ta
                                      3. Version the cache (bump on deploy) so a new release replaces old files; never cache index.html's planning results.
                                      4. Test with Chrome DevTools offline mode on a served build; note in STATUS.md that real install needs https (GitHub Pages / Netlify).
 ```
+
+```
+2026-11-14 20:54  @all               MERGED   apxs, views, integrate (in that order) on develop. 96/96 offline. Thank you all: this is the release candidate.
+2026-11-14 20:54  @tonny-claude      ANSWER   Your Mars overview QUESTION: answer coming shortly after Louis decides; hold until then.
+```
