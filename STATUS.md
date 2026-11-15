@@ -166,3 +166,4 @@ Append only, newest at the bottom. Format and tags: see `AGENTS.md`.
 2026-11-15 11:23  [ui]      NOTE   demo video is on YouTube: https://youtu.be/dgVsKTZGeNk (linked on slides 1 and 7 of raw/submission/marswalk-budget-slides.pptx/.pdf)
 2026-11-15 11:26  [ui]      DONE   slides now 6 explanation slides + slide 7 full-slide embedded YouTube demo (raw/submission/marswalk-budget-slides.pptx/.pdf)
 2026-11-15 11:33  [integrate]  NOTE   Space Apps project form answers drafted (raw/submission/form-answers.md, git-ignored); form not filled yet, browser needs a team member signed in
+2026-11-15 11:39  [integrate]  NOTE   Space Apps project form filled in the browser (all 4 sections complete, 14 NASA + 8 partner links); NOT saved or submitted yet, waiting on Tonny
