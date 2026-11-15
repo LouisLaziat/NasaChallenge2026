@@ -248,7 +248,19 @@ body.resizing #map { pointer-events: none; }
   color: var(--ochre); text-decoration: none; font-size: 13px; font-weight: 600; text-align: center;
 }
 .view-links a:hover { border-color: var(--ochre); }
-#conditions-card { margin-bottom: 10px; }
+#conditions-card { margin-top: 10px; }
+/* Compact the Go/No-Go card from js/conditions.js to the panel's size (its own <style> uses 15 px text, 2.2 rem title). */
+#conditions-card .conditions-card { padding: 8px 12px; border-radius: 8px; font: 13px/1.4 var(--font); }
+#conditions-card .conditions-card h2 { font-size: 20px; line-height: 1.2; }
+#conditions-card .conditions-card p { margin: 2px 0; }
+#conditions-card .conditions-card ul { margin: 4px 0; padding-left: 16px; }
+#conditions-card .conditions-card li { margin: 3px 0; }
+#conditions-card .conditions-card h3 { font-size: 13px; margin: 10px 0 4px; }
+#conditions-card .conditions-card .conditions-row { padding: 3px 0; gap: 8px; }
+.cond-more { margin-top: 6px; border-top: 1px solid #34475a; padding-top: 6px; }
+.cond-more > summary { cursor: pointer; font-weight: 600; color: #acd6ff; }
+.cond-more > summary:focus-visible { outline: 2px solid var(--ochre); outline-offset: 2px; }
+.cond-more[open] > summary { margin-bottom: 4px; }
 .cond-source-row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; font-size: 13px; color: var(--muted); }
 .cond-source {
   flex: 1; min-width: 0; max-width: 100%; text-overflow: ellipsis;

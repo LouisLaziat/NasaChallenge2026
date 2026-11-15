@@ -649,6 +649,25 @@ async function loadCondSnapshot(name) {
 }
 
 /** GO / CAUTION / NO-GO card from the conditions lane, refreshed after every plan. */
+/**
+ * The Go/No-Go card (js/conditions.js) is long: the level and its reasons stay visible, and everything after
+ * the reasons (weather readings, radiation note, sources, fine print) goes into a closed <details>.
+ * Only moves the nodes conditions.js made; if its layout changes and no reasons list is found, nothing moves.
+ */
+function foldConditionsDetails(box) {
+  const card = box.querySelector('.conditions-card');
+  const reasons = card?.querySelector(':scope > ul');
+  if (!reasons) return;
+  const rest = [];
+  for (let n = reasons.nextElementSibling; n; n = n.nextElementSibling) if (n.tagName !== 'STYLE') rest.push(n);
+  if (!rest.length) return;
+  const more = el('details', { class: 'cond-more' }, el('summary', {}, 'Weather readings, radiation and sources'));
+  more.open = !!state.condDetailsOpen;
+  more.addEventListener('toggle', () => { state.condDetailsOpen = more.open; });
+  more.append(...rest);
+  card.append(more);
+}
+
 function renderGoNoGo() {
   const box = $('conditions-card');
   if (!box) return;
@@ -662,6 +681,7 @@ function renderGoNoGo() {
   } catch { badge.hidden = true; }
   try {
     renderConditionsCard(box, state.cond, state.plan);
+    foldConditionsDetails(box);
     if (state.condError) box.append(el('p', { class: 'note' }, `Conditions snapshot unavailable: ${state.condError}`));
   } catch (err) {
     box.textContent = `Go/No-Go unavailable: ${err.message}`;
