@@ -162,3 +162,4 @@ Append only, newest at the bottom. Format and tags: see `AGENTS.md`.
 2026-11-15 10:30  [ui]      DONE   tonny-demo only: one "Open helmet view (HUD / VR)" link; hud.html switches flat HUD <-> VR (Cardboard) keeping all params (touches views-lane files, demo branch only, not for merge)
 2026-11-15 15:40  [ui]      NOTE   read comms on origin/develop: nothing new from the lead since 2026-11-14 20:56; integrate 7099497 (Mars locator) still awaiting MERGED
 2026-11-15 10:47  [ui]      DONE   submission media in raw/submission/ (git-ignored): 30 s demo MP4 recorded from the real app (tonny-demo build) + 7-slide deck PPTX/PDF from docs/screenshots/kit; not committed, for upload to Drive/YouTube
+2026-11-15 10:55  [ui]      DONE   voiced demo raw/submission/marswalk-demo-30s-voice-mark.mp4 (Windows "Mark" TTS, script in narration-script.txt); Clipchamp natural voice not done: app window stayed blank
