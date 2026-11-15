@@ -97,7 +97,9 @@
       <input id="progress" type="range" min="0" max="1" step="0.001" value="0">
       <output id="progress-value" for="progress">0%</output>
       <span class="hud-shortcut"><kbd>H</kbd> Hide controls</span>
+      <a id="hud-to-vr" class="hud-mode" href="hud.html?vr=1" title="Phone in a Cardboard-style headset: stereo HUD that follows your head">VR (Cardboard)</a>
     </div>
+    <a id="helmet-exit" class="helmet-exit" href="hud.html" hidden>Flat HUD</a>
     <div id="helmet-stereo" class="helmet-stereo" aria-label="Stereo helmet display" hidden></div>
     <div id="helmet-entry" class="helmet-entry" hidden>
       <h2>Cardboard helmet</h2>
@@ -105,6 +107,7 @@
       <p id="helmet-tap-hint" hidden>Tap the view to pause or resume playback.</p>
       <p id="helmet-fullscreen-hint" hidden>Rotate your phone and add it to the home screen for full screen.</p>
       <button id="helmet-enter" type="button">Enter helmet view</button>
+      <a id="helmet-to-flat" class="helmet-flat" href="hud.html">No headset? Use the flat HUD</a>
     </div>
     <template id="helmet-eye">
       <section class="helmet-eye">

@@ -195,6 +195,7 @@ export function mountHelmet(walk) {
     void enterFullscreen(stage, rotate);
     entry.hidden = true;
     stereo.hidden = false;
+    byId('helmet-exit').hidden = false;
     rotate.hidden = false;
     updateOrientation();
   }, { once: true });

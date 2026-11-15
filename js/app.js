@@ -724,7 +724,6 @@ function updateLinks() {
   const qs = q.toString().replace(/%2C/g, ','); // readable stop lists; URLSearchParams accepts both
   $('open-tablet').href = `tablet.html?${qs}`;
   $('open-hud').href = `hud.html?${qs}`;
-  $('open-vr').href = `hud.html?${[qs, 'vr=1'].filter(Boolean).join('&')}`; // views lane: Cardboard helmet mode
   $('open-flyover').href = `flyover.html?${qs}`; // views lane: 3D fly-through, same §7 params
   $('open-checklist').href = `checklist.html?${qs}`; // EVA cuff checklist (js/checklist.js)
   const hasCustom = state.targets.some((t) => t.custom && state.included.has(t.id));

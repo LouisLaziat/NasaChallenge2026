@@ -48,6 +48,16 @@ function drawConditions({ verdict, conditionsSnapshot }) {
 async function start() {
   startOffline();
   const walk = await loadWalk();
+  // One helmet page, two modes: the flat HUD and the stereo Cardboard view (?vr=1). Each links to the other with the same plan.
+  const modeUrl = (vr) => {
+    const next = new URL(location.href);
+    if (vr) next.searchParams.set('vr', '1');
+    else next.searchParams.delete('vr');
+    return next.href;
+  };
+  byId('hud-to-vr').href = modeUrl(true);
+  byId('helmet-to-flat').href = modeUrl(false);
+  byId('helmet-exit').href = modeUrl(false);
   if (walk.url.searchParams.get('vr') === '1') {
     mountHelmet(walk);
     rememberFieldPlan(walk);
