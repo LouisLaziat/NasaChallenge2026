@@ -72,6 +72,7 @@ const state = {
   alts: {},               // { eco, safe, short } plans for the current stops and conditions, filled in the background
   cond: null,             // loaded conditions snapshot, or null if it could not be loaded
   condError: null,
+  chemistry: null,        // Gale APXS card loader (promise), see loadChemistryCard()
 };
 
 let map, overlays = {}, routeLayer, markerLayer, stepHighlight = null, turnBackMarker = null;
@@ -187,6 +188,9 @@ async function boot() {
 
   $('synthetic-banner').hidden = !terrain.synthetic;
   if (terrain.name) $('dataset-label').textContent += ` · ${terrain.name}`;
+  // APXS rock chemistry for Gale stops (codex-conditions, js/chemistry.js). Loaded lazily so the
+  // console still works if the module or data is missing; other sites never fetch it.
+  if (DATASET === 'gale') state.chemistry = loadChemistryCard();
   renderCredits();
   initMap();
   renderConditions();
@@ -827,6 +831,7 @@ function selectStop(id) {
 function renderSelected() {
   const t = state.targets.find((x) => x.id === state.selectedId);
   const box = $('photos');
+  renderChemistryCard(t);
   if (!t) {
     $('photo-title').textContent = 'Stop details';
     $('photo-meta').textContent = '';
@@ -837,7 +842,7 @@ function renderSelected() {
   const ps = state.plan?.stops.find((s) => s.id === t.id);
   const bits = [`science value ${t.value}`, `${t.dwellMin} min on site`];
   if (ps) bits.push(`arrive ${fmtClock(ps.arriveS)} with ${fmtKg(ps.arriveO2Kg)} kg O₂ used`);
-  if (t.sol != null) bits.push(`Perseverance sol ${t.sol}`);
+  if (t.sol != null) bits.push(`${DATASET === 'gale' ? 'Curiosity' : 'Perseverance'} sol ${t.sol}`);
   $('photo-meta').textContent = bits.join(' · ');
   try {
     renderPhotos(box, t);
@@ -845,6 +850,29 @@ function renderSelected() {
     console.warn('renderPhotos failed', err);
     box.replaceChildren(el('p', {}, t.note || ''));
   }
+}
+
+/** { render, chem } once js/chemistry.js loads; chem is null when the data failed (explicit unavailable state). */
+async function loadChemistryCard() {
+  try {
+    const mod = await import('./chemistry.js');
+    const chem = await mod.loadChemistry('gale').catch((err) => { console.warn('APXS chemistry', err); return null; });
+    return { render: mod.renderChemistry, chem };
+  } catch (err) {
+    console.warn('APXS chemistry module not available', err);
+    return null;
+  }
+}
+
+/** APXS card under the selected stop's photos (Gale only); hidden elsewhere or until it loads. */
+async function renderChemistryCard(t) {
+  const box = $('chemistry');
+  if (!t || !state.chemistry) { box.hidden = true; box.replaceChildren(); return; }
+  const card = await state.chemistry;
+  if (state.selectedId !== t.id) return; // another stop was picked meanwhile
+  if (!card) { box.hidden = true; return; }
+  card.render(box, t.id, card.chem);
+  box.hidden = false;
 }
 
 function renderLayerControls() {
