@@ -11,42 +11,11 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&display=swap">
   <link rel="stylesheet" href="css/app.css">
-  <script>
-    // Mars intro: only on the bare site (no URL params), once per browser tab. Decided here so the page never flashes.
-    try { if (!location.search && sessionStorage.getItem('marswalk-intro') !== '1') document.documentElement.classList.add('intro'); } catch (e) {}
-  </script>
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
           integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
   <script type="module" src="js/app.js"></script>
 </head>
 <body>
-  <div class="mars-intro" id="mars-intro" role="dialog" aria-modal="true" aria-labelledby="intro-title">
-    <div class="intro-inner">
-      <div class="intro-head">
-        <p class="intro-kicker">Marswalk Budget · EVA planner</p>
-        <h2 id="intro-title">Where do you want to walk on Mars?</h2>
-        <p class="intro-sub">Pick a crater. A rover is exploring each one today; the planner prices a 2 × 2 km walk there in oxygen, time, radiation and science.</p>
-      </div>
-      <div class="intro-stage">
-        <div class="intro-map" id="intro-map">
-          <img src="data/mars/overview.jpg" width="1000" height="500" decoding="async"
-            alt="Elevation map of the whole of Mars (blue low, red and white high) with Gale Crater and Jezero Crater marked">
-          <a class="intro-site intro-below" data-site="gale" href="./" style="left:88.16%;top:52.66%">
-            <span class="intro-pin" aria-hidden="true"></span>
-            <span class="intro-label"><strong>Gale Crater</strong><small>Mount Sharp boxwork · Curiosity</small></span>
-          </a>
-          <a class="intro-site intro-above" data-site="real" href="./?data=real" style="left:71.50%;top:39.74%">
-            <span class="intro-pin" aria-hidden="true"></span>
-            <span class="intro-label"><strong>Jezero Crater</strong><small>delta front · Perseverance</small></span>
-          </a>
-        </div>
-      </div>
-      <p class="intro-foot">
-        <button type="button" class="intro-skip" id="intro-skip">Skip, open Gale</button>
-        <span>Gale and Jezero are about 3,750 km apart. Map: MGS MOLA colour shaded relief (NASA / JPL / GSFC), via NASA Mars Trek.</span>
-      </p>
-    </div>
-  </div>
   <header class="topbar">
     <div class="brand">
       <span class="brand-mark" aria-hidden="true"></span>
