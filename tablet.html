@@ -4,8 +4,11 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#1c1310">
   <title>Field tablet | Marswalk Budget</title>
-  <link rel="icon" href="data:,">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="js/views/icon-192.png">
+  <link rel="apple-touch-icon" href="js/views/icon-192.png">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
         integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
   <link rel="stylesheet" href="css/views.css">
@@ -20,6 +23,7 @@
   </header>
   <main class="tablet-main">
     <h1>Field tablet</h1>
+    <p id="offline-banner" class="offline-banner" role="status" hidden>Offline: using the plan saved on this device</p>
     <p id="load-status" role="status">Loading EVA plan…</p>
     <div id="walk" class="tablet-layout" hidden>
       <div class="tablet-nav">
