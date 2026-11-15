@@ -150,6 +150,7 @@ async function boot() {
   }
   for (const dot of document.querySelectorAll('.loc-dot')) dot.classList.toggle('is-current', dot.dataset.site === DATASET);
   initMarsLocator();
+  initMarsIntro();
   let terrain, targetsFile;
   try {
     const terrainUrl = new URL('terrain.json', DATA_DIR).href;
@@ -700,6 +701,33 @@ function initMarsLocator() {
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape' && box.open) { box.open = false; box.querySelector('summary').focus(); }
   });
+}
+
+// Full-screen Mars intro (index.html's inline script adds <html class="intro"> on the bare site, once per tab).
+// Picking the site already loaded underneath zooms in and reveals it; the other site zooms in, then loads.
+function initMarsIntro() {
+  const root = document.documentElement;
+  const box = $('mars-intro');
+  if (!box || !root.classList.contains('intro')) return;
+  try { sessionStorage.setItem('marswalk-intro', '1'); } catch { /* private mode: intro may show again */ }
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const choose = (a) => {
+    if (box.classList.contains('zooming')) return;
+    const here = a.dataset.site === DATASET;
+    $('intro-map').style.transformOrigin = `${a.style.left} ${a.style.top}`;
+    box.classList.add('zooming');
+    if (here) box.classList.add('reveal');
+    setTimeout(() => {
+      if (here) { root.classList.remove('intro'); map?.invalidateSize(); }
+      else location.href = a.getAttribute('href');
+    }, reduce ? 350 : 1500);
+  };
+  const sites = [...box.querySelectorAll('.intro-site')];
+  const current = sites.find((a) => a.dataset.site === DATASET) ?? sites[0];
+  for (const a of sites) a.addEventListener('click', (e) => { e.preventDefault(); choose(a); });
+  $('intro-skip').addEventListener('click', () => choose(current));
+  box.addEventListener('keydown', (e) => { if (e.key === 'Escape') choose(current); });
+  current.focus({ preventScroll: true });
 }
 
 function updateSiteSwitch() {
