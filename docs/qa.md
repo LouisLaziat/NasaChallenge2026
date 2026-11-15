@@ -195,6 +195,16 @@ Clicking the Jezero marker from `/?dust=1&route=safe` opened Jezero with the dus
 route kept (checked by hand in the in-app browser). The only failed request is finding 9 (the
 Perseverance traverse JSON in headless Chrome, Jezero and demo only). `npm test` offline: **96/96**.
 
+**Full-screen Mars intro** (own commit, on top of the locator): the same 51 rows again, **all pass**. The
+intro showed on the first bare `/` load only; every URL with parameters, and `/` again in the same tab,
+skipped it. All 51 rows still planned all three routes, including the one under the intro. Checked by hand in
+the in-app browser:
+- Picking Gale zooms into it (map scale 1 → 9, then fades) and reveals the Gale planner already loaded underneath.
+- Picking Jezero zooms, then opens `?data=real`.
+- At 360 px the intro fits with no horizontal scroll and the two labels don't overlap.
+- Gale has keyboard focus; Escape or "Skip, open Gale" opens Gale.
+- Reduced-motion users get a fade with no zoom.
+
 ## Run 1 (15:57–16:03, before the Gale default)
 
 84 checks on `integrate` 24bb75d: 45 console loads, 15 tablet/HUD, 18 phone-width, 3 docs, 3 tours;
