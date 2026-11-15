@@ -53,6 +53,7 @@
         <a href="./?data=real" data-site="real">Jezero · delta front</a>
       </nav>
       <div class="dataset" id="dataset-label">loading…</div>
+      <button type="button" class="about-link" id="sites-open" aria-haspopup="dialog">Site data</button>
       <button type="button" class="about-link" id="about-open" aria-haspopup="dialog">About this model</button>
     </div>
   </header>
@@ -60,6 +61,14 @@
   <dialog class="about" id="about" aria-labelledby="about-title">
     <form method="dialog"><button class="about-link about-close" aria-label="Close">Close</button></form>
     <h2 id="about-title">About this model</h2>
+    <div class="about-tabs" role="tablist" aria-label="About">
+      <button type="button" role="tab" id="tab-model" aria-controls="panel-model" aria-selected="true">The model</button>
+      <button type="button" role="tab" id="tab-sites" aria-controls="panel-sites" aria-selected="false" tabindex="-1">Site data: history and latest</button>
+    </div>
+    <div class="about-panel" id="panel-sites" role="tabpanel" aria-labelledby="tab-sites" hidden>
+      <div id="site-data"><p>Loading the site data…</p></div>
+    </div>
+    <div class="about-panel" id="panel-model" role="tabpanel" aria-labelledby="tab-model">
     <p>
       The walk area is a grid of 5 m cells built from real elevation data (and, at Jezero, ground-hardness data). Each step between
       cells costs <strong>metabolic energy</strong>: walking speed follows a hiking law on the local slope and drops on
@@ -100,6 +109,7 @@
       working in its own part of the code, with the team reviewing and merging the work. Files carry an
       AI-assistance note on their first line. The science calls, story and presentation are the team's.
     </p>
+    </div>
   </dialog>
 
   <div class="banner" id="synthetic-banner" hidden>

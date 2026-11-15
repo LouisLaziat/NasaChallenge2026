@@ -1079,7 +1079,31 @@ async function tourGo(i) {
 }
 
 // "About this model" dialog (index.html). Native <dialog>: Esc and the Close button close it.
-$('about-open')?.addEventListener('click', () => $('about').showModal());
+// Two tabs: "The model" and "Site data: history and latest" (js/sitedata.js, loaded the first time it is shown).
+function showAboutTab(which) {
+  for (const [tab, panel] of [['tab-model', 'panel-model'], ['tab-sites', 'panel-sites']]) {
+    const on = tab === which;
+    $(tab).setAttribute('aria-selected', String(on));
+    $(tab).tabIndex = on ? 0 : -1;
+    $(panel).hidden = !on;
+  }
+  if (which === 'tab-sites') {
+    import('./sitedata.js')
+      .then((m) => m.renderSiteData($('site-data'), DATASET))
+      .catch((err) => { console.warn('Site data', err); $('site-data').textContent = 'Site data could not be loaded.'; });
+  }
+}
+$('about-open')?.addEventListener('click', () => { showAboutTab('tab-model'); $('about').showModal(); });
+$('sites-open')?.addEventListener('click', () => { showAboutTab('tab-sites'); $('about').showModal(); });
+for (const id of ['tab-model', 'tab-sites']) {
+  $(id)?.addEventListener('click', () => showAboutTab(id));
+  $(id)?.addEventListener('keydown', (e) => {
+    if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return;
+    e.preventDefault(); e.stopPropagation();
+    const next = id === 'tab-model' ? 'tab-sites' : 'tab-model';
+    showAboutTab(next); $(next).focus();
+  });
+}
 
 function startTour() {
   document.body.classList.add('touring');
