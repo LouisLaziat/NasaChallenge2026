@@ -15,9 +15,6 @@ are NASA/JPL MMGIS, stop photos are Curiosity (NASA/JPL-Caltech/MSSS) and Persev
 at Jezero. Conditions named "demo" or "simulated" and the `data=demo` terrain are synthetic and
 labelled so on screen. No NASA logos or mission insignia appear.
 
-Known gap: the HUD and helmet view in these shots name the next stop by id ("toward G4"); the views
-lane has fixed that on its branch, so retake `26`, `31`, `33`, `phone-05` and `vr-*` after it merges.
-
 ## Console (desktop)
 
 | File | Caption |
@@ -61,6 +58,14 @@ lane has fixed that on its branch, so retake `26`, `31`, `33`, `phone-05` and `v
 | `desktop-32-tablet-jezero.png` | Field tablet at Jezero. |
 | `desktop-33-hud-jezero.png` | Helmet HUD at Jezero (dose from Curiosity RAD at Gale, used as a proxy). |
 
+## 3D fly-through (desktop)
+
+| File | Caption |
+|---|---|
+| `desktop-34-flyover-gale.png` | 3D fly-through at Gale: chase camera over the HiRISE colour mosaic draped on the 1 m elevation (2× vertical exaggeration), named stops, out-of-sight stretches dimmed. |
+| `desktop-35-flyover-jezero.png` | 3D fly-through at Jezero over shaded relief from the HiRISE elevation; red marks slopes over 20°. |
+| `desktop-36-flyover-gale-overview.png` | The whole Gale walk from above before playback; drag to orbit, scroll to zoom. |
+
 ## Phone (414 × 896)
 
 | File | Caption |
@@ -83,4 +88,4 @@ lane has fixed that on its branch, so retake `26`, `31`, `33`, `phone-05` and `v
 Start `npm run serve`, then load each URL in Chrome at the sizes above: `/`,
 `/?dust=1&solar=1&kit=1`, `/?data=real`, `/?data=real&dust=1&solar=1&kit=1`, `/?data=demo&kit=1`,
 `/?tour=1` (arrow keys step the tour), `tablet.html?data=…`, `hud.html?data=…` and
-`hud.html?data=…&vr=1&play=30` (press "Enter helmet view").
+`hud.html?data=…&vr=1&play=30` (press "Enter helmet view") and `flyover.html?data=…&play=30`.

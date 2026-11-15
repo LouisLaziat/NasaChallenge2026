@@ -60,12 +60,14 @@
         <a href="https://astrogeology.usgs.gov/search/map/mars_2020_terrain_relative_navigation_hirise_dtm_mosaic" target="_blank" rel="noopener">Jezero (Mars 2020 TRN)</a>.</li>
       <li>Ground hardness (Jezero only): <a href="https://doi.org/10.5281/zenodo.4931348" target="_blank" rel="noopener">THEMIS-derived thermal inertia of Jezero Crater</a> (Zenodo, CC BY 4.0).</li>
       <li>Imagery: <a href="https://trek.nasa.gov/mars/" target="_blank" rel="noopener">NASA Mars Trek</a> (MRO HiRISE / CTX) and the USGS Gale HiRISE colour mosaic; rover traverses from NASA/JPL MMGIS.</li>
+      <li>Gale route context: NASA's <a href="https://science.nasa.gov/resource/curiositys-proposed-path-up-mount-sharp/" target="_blank" rel="noopener">Curiosity's proposed path up Mount Sharp</a>, the challenge's example map for the boxwork area.</li>
       <li>Stop photos: <a href="https://mars.nasa.gov/msl/multimedia/raw-images/" target="_blank" rel="noopener">Curiosity</a> and
         <a href="https://mars.nasa.gov/mars2020/multimedia/raw-images/" target="_blank" rel="noopener">Perseverance</a> raw images, NASA/JPL-Caltech; each photo shows its own credit.</li>
       <li>Weather: Curiosity REMS and Perseverance MEDA, both led by Spain's Centro de Astrobiología (CAB), from the
         <a href="https://mars.nasa.gov/rss/api/?feed=weather&amp;category=mars2020&amp;feedtype=json" target="_blank" rel="noopener">NASA weather feed</a>; dust optical depth from the Mars Climate Database (LMD / ESA / CNES) can be entered by hand (not filled in this snapshot).</li>
       <li>Solar particle events: <a href="https://ccmc.gsfc.nasa.gov/tools/DONKI/" target="_blank" rel="noopener">NASA CCMC DONKI</a>, detected near Earth and used as a proxy for Mars.</li>
-      <li>Radiation: Curiosity RAD at Gale, <a href="https://doi.org/10.1126/science.1244797" target="_blank" rel="noopener">Hassler et al. 2014</a> (~0.64 mSv/day). Measured at Gale; used as a proxy at Jezero.</li>
+      <li>Radiation: Curiosity RAD at Gale, <a href="https://doi.org/10.1126/science.1244797" target="_blank" rel="noopener">Hassler et al. 2014</a> (~0.64 mSv/day;
+        <a href="https://www.scienceintheclassroom.org/sites/default/files/research-papers/1244797.full_.pdf" target="_blank" rel="noopener">readable copy</a>). Measured at Gale; used as a proxy at Jezero.</li>
     </ul>
 
     <h3>AI assistance</h3>
@@ -106,6 +108,8 @@
           <a id="open-tablet" href="tablet.html" target="_blank" rel="noopener">Open field tablet</a>
           <a id="open-hud" href="hud.html" target="_blank" rel="noopener">Open helmet HUD</a>
           <a id="open-vr" href="hud.html?vr=1" target="_blank" rel="noopener" title="Phone in a Cardboard-style headset: stereo HUD that follows your head">Open helmet view (VR)</a>
+          <a id="open-flyover" href="flyover.html" target="_blank" rel="noopener" title="3D terrain fly-through of this route">Open 3D fly-through</a>
+          <a id="open-checklist" href="checklist.html" target="_blank" rel="noopener" title="The astronaut's timed cuff checklist for this walk, one printed page">Print EVA checklist</a>
         </div>
         <p class="note" id="view-links-note" hidden>Stops you added on the map stay on this page; the tablet and HUD show the file's stops.</p>
       </section>
@@ -150,6 +154,7 @@
         <h2 id="photo-title">Stop details</h2>
         <div class="photo-meta" id="photo-meta"></div>
         <div class="photos" id="photos"><p class="muted">Select a stop on the map or in the list.</p></div>
+        <div id="chemistry" hidden></div>
       </section>
 
       <section class="card">

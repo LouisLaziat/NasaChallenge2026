@@ -1,174 +1,194 @@
 <!-- Generated with AI assistance for NASA Space Apps 2026; reviewed by the team -->
 # QA matrix: release candidate
 
-Owner: `tonny-claude` (release-candidate QA, lead's 15:41 ASSIGN). Run on 2026-11-14 at 15:57-16:03
-(Toronto), on `integrate` at `24bb75d` (= `develop` + the route switch), served by `npm run serve`.
+Owner: `tonny-claude` (release-candidate QA). **Run 2 (final): 2026-11-14 19:44–19:52 Toronto**, on a
+local-only merge of `integrate` ec8ed6f + `apxs` 846007e + `views` 4a4ef8f (= everything waiting for the
+lead's merge), served by `npm run serve`. Run 1 (15:57–16:03, before the Gale default) is summarised at
+the end.
 
 ## How it was checked
 
-Every page was loaded in a fresh iframe at the given width in the in-app Chromium browser. Error
-hooks were attached before the page's modules ran (`console.error`, uncaught errors, unhandled
-promise rejections, failed images/scripts/stylesheets). After the page settled (5–7 s, long enough
-for the background route options), the harness recorded:
-- failed same-origin requests (HTTP ≥ 400);
-- horizontal page scroll;
-- the error banner;
-- for the console, the plan on screen: route mode against `?route=`, fits or not, O₂, dose,
-  Go/No-Go badge, turn-back point, best set and turn-by-turn step count.
+Each page was loaded in headless Chrome over the DevTools protocol at the given width. Error hooks
+were installed before any page script ran (`console.error`, uncaught errors, unhandled promise
+rejections, failed images/scripts/stylesheets) and every HTTP response ≥ 400 was recorded. For the
+console the harness waited for the plan and all three route options. It then recorded:
+- errors, failed requests, horizontal page scroll and the error banner;
+- console: route against `?route=`, fits or not, violations, O₂, dose, EVA time against the 6 h
+  limit, metres out of the habitat's sight, the out-of-sight legend, turn-back, best set, Go/No-Go
+  badge, site name and the five view links;
+- checklist: site, Go/No-Go, item count, comm checks, turn-back lines, and that no O₂ is negative;
+- chemistry: the APXS card for every stop on Gale and on Jezero.
 
-**Pass** = no errors, no failed requests, no horizontal scroll, no error banner.
+**Pass** = no errors, no failed requests, no horizontal scroll, no error banner, and the page shows
+what it should. Also run: `npm test` offline with no `node_modules` (**96/96** on the merge) and the
+checklist printed to PDF (**one page** on A4 and Letter, including Jezero with all hazards).
 
 ## Summary
 
-**84 checks, 84 pass, no console errors anywhere.**
-- 45 console loads: 3 sites × 5 conditions × 3 routes.
-- 36 others: 15 tablet/HUD loads, 18 phone-width loads (360 and 414 px for the console, tablet and HUD
-  on every site), 3 docs pages.
-- 3 presenter tours.
+**89 checks, 89 pass, no console errors anywhere.**
+- 45 console loads: 3 sites × 5 conditions × 3 routes, with `/` = Gale.
+- 22 view pages: tablet, HUD, VR entry, fly-through and checklist on Gale and Jezero; route = safe
+  and all-hazards checklist variants; each page with no `?data=` (Gale default).
+- 14 phone-width loads: console (3 sites), tablet, HUD, checklist and fly-through at 360 and 414 px.
+- 3 docs pages (served as text now), 2 chemistry sweeps, 3 presenter tours.
+
+Not counted as failures (explained in the findings): the browser's automatic `/favicon.ico` request
+(404), and the Perseverance traverse request from headless Chrome (finding 9).
 
 | # | Finding | Owner | Status |
 |---|---|---|---|
-| 1 | Tablet and HUD ignore `?route=safe` / `?route=short` and plan the least-oxygen route, so a link from the console on another route shows a different path. | views (`codex-views`) | **Fixed** by views (8a0e8c7). Rechecked 16:20: `tablet.html?data=real` 4 h 22 min, `&route=safe` 4 h 25 min with a different first stop, and the HUD matches |
-| 2 | `npm run serve` sends `.md` as `application/octet-stream`, so the About panel's links to `docs/model.md` and `docs/model-sources.md` download a file instead of showing it. GitHub Pages sends Markdown as text, so this only affects the local server. | lead (`scripts/serve.mjs`) | REQUEST @lead filed: add `'.md': 'text/plain; charset=utf-8'` |
-| 3 | Tour caption read "0.40 of 0.40 kg O₂: fits" on the demo best set (0.396 rounds up). | ui (me) | **Fixed**: shows 3 decimals when the two would round to the same value |
-| 4 | A "403 Forbidden" seen earlier in the console. | — | **Not reproducible.** Left over from a temporary sub-path test server; none of the 84 checks saw it |
-| 5 | Helmet view (VR) `hud.html?vr=1` not on `develop` yet. | views | **Landed.** Console now has "Open helmet view (VR)", carrying site, stops, conditions and route. Stereo view checked headless at 896 × 414 for Jezero and Gale (media kit `vr-01`, `vr-02`) |
-| 6 | HUD and helmet view name the next stop by id ("toward R3", "R6 · 68 m direct"), while the tablet heading shows the name. `walk.js` calls `buildSteps(plan, terrain)` without the names map. | views | REQUEST @views filed: pass `new Map(targets.map(t => [t.id, t.name]))` |
-| 7 | Helmet chevron vs "Head NW" text (lead's question): the chevron is the straight-line bearing to the next **stop**, shown relative to the current path heading; the text is the current path **step**. They differ wherever the path bends. | views | Answered in STATUS.md; suggest pointing the chevron along the step, or labelling it "stop" |
+| 1 | Tablet and HUD ignored `?route=`. | views | **Fixed** (8a0e8c7), rechecked in run 2: every `route=safe` view page plans the safe route |
+| 2 | `npm run serve` sent `.md` as a download. | lead | **Fixed** (eaf2ac7): docs pages open as text |
+| 3 | Tour caption read "0.40 of 0.40 kg O₂: fits". | ui | **Fixed**: 3 decimals at the limit ("0.396 of 0.400") |
+| 4 | A "403 Forbidden" seen once. | — | **Not reproducible** in either run |
+| 5 | Helmet view (VR). | views | **Landed**; entry screen loads on both sites, stereo view in the media kit |
+| 6 | HUD/VR named the next stop by id. | views | **Fixed** (d4cdd71): names everywhere |
+| 7 | VR chevron vs "Head …" text. | views | **Fixed** by views: the chevron follows the next path point |
+| 8 | Gale stop details said "Perseverance sol". | ui | **Fixed** (8edeefe): "Curiosity sol" at Gale |
+| 9 | Headless Chrome fails CORS on `mars.nasa.gov/.../M20_traverse.json` (Jezero rover path); the in-app browser and curl get `Access-Control-Allow-Origin: *` and HTTP 200. | — | **Not an app bug.** The console catches it; if the traverse ever fails live, Jezero simply has no rover line |
+| 10 | The checklist printed negative O₂ when over budget. | ui | **Fixed** before this run: "in the reserve" / "none: suit empty" |
 
 Things that work as designed, noted for the story:
-- **Weather is old:** real Jezero and Gale show **CAUTION** even with no hazard, because both weather
-  snapshots are months old (the 7-sol freshness rule).
-- **Gale and single hazards:** each hazard alone still fits at Gale (solar: 0.976 of 1.0 mSv). Only
-  all three together go over. The tour handles this by adding hazards until the walk breaks.
-- **Demo:** "Shortest" with a heavy kit goes over budget (0.41 kg) while "Least oxygen" and "Safest"
-  fit. That's a good example for the route cards.
-- **Slow background route:** under a dust storm on real Jezero, one background route option took
-  longer than 6 s. The page never waits for it; its card shows "planning…" until it is ready.
+- **Weather is old:** real Gale and Jezero show **CAUTION** with no hazard; both snapshots are past the
+  7-sol freshness rule.
+- **Gale is forgiving:** each hazard alone still fits (solar 0.976 of 1.0 mSv); all three together go
+  over. The Gale tour adds dust and the sample kit until the walk breaks.
+- **Line of sight differs a lot by site:** Gale 348 m out of the habitat's sight (behind boxwork
+  ridges), Jezero 22 m, and on two Jezero "shortest" routes 0 m (no legend shown, correctly).
+- **EVA time never binds today:** the longest walk is 5.26 h (Jezero, all hazards, safest), under 6 h.
+- **Demo:** "Shortest" with a heavy kit goes over budget (0.41 kg) while the other two fit.
 
 ## Results
 
-### Console: site x conditions x route (1280 px)
+### Console: site × conditions × route (1280 px)
 
-| Check | Result | Route shown | Fits | O₂ kg | Dose mSv | Badge | Turn-back | Best set | Steps |
-|---|---|---|---|---|---|---|---|---|---|
-| `/?data=demo` | pass | eco | yes | 0.297 | 0.105 | GO | — | — | 24 steps |
-| `/?data=demo&route=safe` | pass | safe | yes | 0.3 | 0.106 | GO | — | — | 26 steps |
-| `/?data=demo&route=short` | pass | short | yes | 0.311 | 0.106 | GO | — | — | 18 steps |
-| `/?data=demo&dust=1` | pass | eco | yes | 0.365 | 0.115 | CAUTION | — | — | 24 steps |
-| `/?data=demo&dust=1&route=safe` | pass | safe | yes | 0.369 | 0.117 | CAUTION | — | — | 26 steps |
-| `/?data=demo&dust=1&route=short` | pass | short | yes | 0.387 | 0.118 | CAUTION | — | — | 17 steps |
-| `/?data=demo&solar=1` | pass | eco | no (radiation) | 0.297 | 1.047 | NO-GO | — | 5 | 24 steps |
-| `/?data=demo&solar=1&route=safe` | pass | safe | no (radiation) | 0.3 | 1.059 | NO-GO | — | 5 | 26 steps |
-| `/?data=demo&solar=1&route=short` | pass | short | no (radiation) | 0.311 | 1.064 | NO-GO | — | 5 | 18 steps |
-| `/?data=demo&kit=1` | pass | eco | yes | 0.389 | 0.109 | CAUTION | — | — | 24 steps |
-| `/?data=demo&kit=1&route=safe` | pass | safe | yes | 0.393 | 0.111 | CAUTION | — | — | 26 steps |
-| `/?data=demo&kit=1&route=short` | pass | short | no (oxygen) | 0.41 | 0.111 | NO-GO | yes | 5 | 18 steps |
-| `/?data=demo&dust=1&solar=1&kit=1` | pass | eco | no (oxygen, radiation) | 0.483 | 1.215 | NO-GO | yes | 4 | 24 steps |
-| `/?data=demo&dust=1&solar=1&kit=1&route=safe` | pass | safe | no (oxygen, radiation) | 0.49 | 1.236 | NO-GO | yes | 5 | 26 steps |
-| `/?data=demo&dust=1&solar=1&kit=1&route=short` | pass | short | no (oxygen, radiation) | 0.515 | 1.245 | NO-GO | yes | 4 | 19 steps |
-| `/?data=real` | pass | eco | yes | 0.356 | 0.117 | CAUTION | — | — | 19 steps |
-| `/?data=real&route=safe` | pass | safe | yes | 0.359 | 0.118 | CAUTION | — | — | 13 steps |
-| `/?data=real&route=short` | pass | short | yes | 0.364 | 0.118 | CAUTION | — | — | 20 steps |
-| `/?data=real&dust=1` | pass | eco | no (oxygen) | 0.451 | 0.13 | NO-GO | yes | 5 | 19 steps |
-| `/?data=real&dust=1&route=safe` | pass | safe | no (oxygen) | 0.455 | 0.132 | NO-GO | yes | 5 | 13 steps |
-| `/?data=real&dust=1&route=short` | pass | short | no (oxygen) | 0.46 | 0.132 | NO-GO | yes | 5 | 20 steps |
-| `/?data=real&solar=1` | pass | eco | no (radiation) | 0.356 | 1.165 | NO-GO | — | 5 | 19 steps |
-| `/?data=real&solar=1&route=safe` | pass | safe | no (radiation) | 0.359 | 1.176 | NO-GO | — | 5 | 13 steps |
-| `/?data=real&solar=1&route=short` | pass | short | no (radiation) | 0.364 | 1.178 | NO-GO | — | 5 | 20 steps |
-| `/?data=real&kit=1` | pass | eco | no (oxygen) | 0.473 | 0.122 | NO-GO | yes | 5 | 19 steps |
-| `/?data=real&kit=1&route=safe` | pass | safe | no (oxygen) | 0.477 | 0.123 | NO-GO | yes | 5 | 13 steps |
-| `/?data=real&kit=1&route=short` | pass | short | no (oxygen) | 0.481 | 0.123 | NO-GO | yes | 4 | 19 steps |
-| `/?data=real&dust=1&solar=1&kit=1` | pass | eco | no (oxygen, radiation) | 0.607 | 1.384 | NO-GO | yes | 3 | 19 steps |
-| `/?data=real&dust=1&solar=1&kit=1&route=safe` | pass | safe | no (oxygen, radiation) | 0.614 | 1.401 | NO-GO | yes | 3 | 13 steps |
-| `/?data=real&dust=1&solar=1&kit=1&route=short` | pass | short | no (oxygen, radiation) | 0.621 | 1.4 | NO-GO | yes | 3 | 18 steps |
-| `/?data=gale` | pass | eco | yes | 0.271 | 0.098 | CAUTION | — | — | 14 steps |
-| `/?data=gale&route=safe` | pass | safe | yes | 0.272 | 0.098 | CAUTION | — | — | 20 steps |
-| `/?data=gale&route=short` | pass | short | yes | 0.278 | 0.099 | CAUTION | — | — | 13 steps |
-| `/?data=gale&dust=1` | pass | eco | yes | 0.323 | 0.105 | CAUTION | — | — | 14 steps |
-| `/?data=gale&dust=1&route=safe` | pass | safe | yes | 0.324 | 0.106 | CAUTION | — | — | 20 steps |
-| `/?data=gale&dust=1&route=short` | pass | short | yes | 0.339 | 0.107 | CAUTION | — | — | 14 steps |
-| `/?data=gale&solar=1` | pass | eco | yes | 0.271 | 0.976 | CAUTION | — | — | 14 steps |
-| `/?data=gale&solar=1&route=safe` | pass | safe | yes | 0.272 | 0.979 | CAUTION | — | — | 20 steps |
-| `/?data=gale&solar=1&route=short` | pass | short | yes | 0.278 | 0.986 | CAUTION | — | — | 13 steps |
-| `/?data=gale&kit=1` | pass | eco | yes | 0.351 | 0.101 | CAUTION | — | — | 14 steps |
-| `/?data=gale&kit=1&route=safe` | pass | safe | yes | 0.352 | 0.101 | CAUTION | — | — | 20 steps |
-| `/?data=gale&kit=1&route=short` | pass | short | yes | 0.365 | 0.103 | CAUTION | — | — | 11 steps |
-| `/?data=gale&dust=1&solar=1&kit=1` | pass | eco | no (oxygen, radiation) | 0.423 | 1.096 | NO-GO | yes | 3 | 14 steps |
-| `/?data=gale&dust=1&solar=1&kit=1&route=safe` | pass | safe | no (oxygen, radiation) | 0.424 | 1.101 | NO-GO | yes | 3 | 20 steps |
-| `/?data=gale&dust=1&solar=1&kit=1&route=short` | pass | short | no (oxygen, radiation) | 0.441 | 1.118 | NO-GO | yes | 3 | 11 steps |
+| URL | Result | Route | Fits | O₂ kg | Dose mSv | EVA h / 6 | Out of sight m | Badge | Turn-back | Best set |
+|---|---|---|---|---|---|---|---|---|---|---|
+| `/` | pass | eco | yes | 0.271 | 0.098 | 3.66 | 348 | CAUTION | — | — |
+| `/?route=safe` | pass | safe | yes | 0.272 | 0.098 | 3.67 | 419 | CAUTION | — | — |
+| `/?route=short` | pass | short | yes | 0.278 | 0.099 | 3.7 | 447 | CAUTION | — | — |
+| `/?dust=1` | pass | eco | yes | 0.323 | 0.105 | 3.94 | 348 | CAUTION | — | — |
+| `/?dust=1&route=safe` | pass | safe | yes | 0.324 | 0.106 | 3.96 | 419 | CAUTION | — | — |
+| `/?dust=1&route=short` | pass | short | yes | 0.339 | 0.107 | 4.03 | 593 | CAUTION | — | — |
+| `/?solar=1` | pass | eco | yes | 0.271 | 0.976 | 3.66 | 348 | CAUTION | — | — |
+| `/?solar=1&route=safe` | pass | safe | yes | 0.272 | 0.979 | 3.67 | 419 | CAUTION | — | — |
+| `/?solar=1&route=short` | pass | short | yes | 0.278 | 0.986 | 3.7 | 447 | CAUTION | — | — |
+| `/?kit=1` | pass | eco | yes | 0.351 | 0.101 | 3.78 | 348 | CAUTION | — | — |
+| `/?kit=1&route=safe` | pass | safe | yes | 0.352 | 0.101 | 3.79 | 419 | CAUTION | — | — |
+| `/?kit=1&route=short` | pass | short | yes | 0.365 | 0.103 | 3.85 | 490 | CAUTION | — | — |
+| `/?dust=1&solar=1&kit=1` | pass | eco | no (oxygen, radiation) | 0.423 | 1.096 | 4.11 | 348 | NO-GO | yes | 3 |
+| `/?dust=1&solar=1&kit=1&route=safe` | pass | safe | no (oxygen, radiation) | 0.424 | 1.101 | 4.13 | 419 | NO-GO | yes | 3 |
+| `/?dust=1&solar=1&kit=1&route=short` | pass | short | no (oxygen, radiation) | 0.441 | 1.118 | 4.19 | 596 | NO-GO | yes | 3 |
+| `/?data=real` | pass | eco | yes | 0.356 | 0.117 | 4.37 | 22 | CAUTION | — | — |
+| `/?data=real&route=safe` | pass | safe | yes | 0.359 | 0.118 | 4.41 | 10 | CAUTION | — | — |
+| `/?data=real&route=short` | pass | short | yes | 0.364 | 0.118 | 4.42 | 5 | CAUTION | — | — |
+| `/?data=real&dust=1` | pass | eco | no (oxygen) | 0.451 | 0.13 | 4.89 | 22 | NO-GO | yes | 5 |
+| `/?data=real&dust=1&route=safe` | pass | safe | no (oxygen) | 0.455 | 0.132 | 4.94 | 10 | NO-GO | yes | 5 |
+| `/?data=real&dust=1&route=short` | pass | short | no (oxygen) | 0.46 | 0.132 | 4.94 | 12 | NO-GO | yes | 5 |
+| `/?data=real&solar=1` | pass | eco | no (radiation) | 0.356 | 1.165 | 4.37 | 22 | NO-GO | — | 5 |
+| `/?data=real&solar=1&route=safe` | pass | safe | no (radiation) | 0.359 | 1.176 | 4.41 | 10 | NO-GO | — | 5 |
+| `/?data=real&solar=1&route=short` | pass | short | no (radiation) | 0.364 | 1.178 | 4.42 | 5 | NO-GO | — | 5 |
+| `/?data=real&kit=1` | pass | eco | no (oxygen) | 0.473 | 0.122 | 4.58 | 22 | NO-GO | yes | 5 |
+| `/?data=real&kit=1&route=safe` | pass | safe | no (oxygen) | 0.477 | 0.123 | 4.63 | 10 | NO-GO | yes | 5 |
+| `/?data=real&kit=1&route=short` | pass | short | no (oxygen) | 0.481 | 0.123 | 4.63 | 0 (no legend) | NO-GO | yes | 4 |
+| `/?data=real&dust=1&solar=1&kit=1` | pass | eco | no (oxygen, radiation) | 0.607 | 1.384 | 5.19 | 22 | NO-GO | yes | 3 |
+| `/?data=real&dust=1&solar=1&kit=1&route=safe` | pass | safe | no (oxygen, radiation) | 0.614 | 1.401 | 5.26 | 10 | NO-GO | yes | 3 |
+| `/?data=real&dust=1&solar=1&kit=1&route=short` | pass | short | no (oxygen, radiation) | 0.621 | 1.4 | 5.25 | 0 (no legend) | NO-GO | yes | 3 |
+| `/?data=demo` | pass | eco | yes | 0.297 | 0.105 | 3.93 | 1166 | GO | — | — |
+| `/?data=demo&route=safe` | pass | safe | yes | 0.3 | 0.106 | 3.97 | 1115 | GO | — | — |
+| `/?data=demo&route=short` | pass | short | yes | 0.311 | 0.106 | 3.99 | 1141 | GO | — | — |
+| `/?data=demo&dust=1` | pass | eco | yes | 0.365 | 0.115 | 4.32 | 1166 | CAUTION | — | — |
+| `/?data=demo&dust=1&route=safe` | pass | safe | yes | 0.369 | 0.117 | 4.39 | 1115 | CAUTION | — | — |
+| `/?data=demo&dust=1&route=short` | pass | short | yes | 0.387 | 0.118 | 4.43 | 1090 | CAUTION | — | — |
+| `/?data=demo&solar=1` | pass | eco | no (radiation) | 0.297 | 1.047 | 3.93 | 1166 | NO-GO | — | 5 |
+| `/?data=demo&solar=1&route=safe` | pass | safe | no (radiation) | 0.3 | 1.059 | 3.97 | 1115 | NO-GO | — | 5 |
+| `/?data=demo&solar=1&route=short` | pass | short | no (radiation) | 0.311 | 1.064 | 3.99 | 1141 | NO-GO | — | 5 |
+| `/?data=demo&kit=1` | pass | eco | yes | 0.389 | 0.109 | 4.09 | 1166 | CAUTION | — | — |
+| `/?data=demo&kit=1&route=safe` | pass | safe | yes | 0.393 | 0.111 | 4.14 | 1115 | CAUTION | — | — |
+| `/?data=demo&kit=1&route=short` | pass | short | no (oxygen) | 0.41 | 0.111 | 4.18 | 1170 | NO-GO | yes | 5 |
+| `/?data=demo&dust=1&solar=1&kit=1` | pass | eco | no (oxygen, radiation) | 0.483 | 1.215 | 4.56 | 1166 | NO-GO | yes | 4 |
+| `/?data=demo&dust=1&solar=1&kit=1&route=safe` | pass | safe | no (oxygen, radiation) | 0.49 | 1.236 | 4.63 | 1115 | NO-GO | yes | 5 |
+| `/?data=demo&dust=1&solar=1&kit=1&route=short` | pass | short | no (oxygen, radiation) | 0.515 | 1.245 | 4.67 | 1111 | NO-GO | yes | 4 |
 
-### Tablet, HUD, phone widths, docs pages
+Every console load also showed the right site name, the three route options and the five view links
+(tablet, HUD, VR, fly-through, checklist).
 
-| Check | Width | Result | First text on the page |
-|---|---|---|---|
-| `/tablet.html?data=demo` | 1280 px | pass | Marswalk Budget Synthetic demo terrain Field tablet Simulate EVA progr |
-| `/tablet.html?data=demo&dust=1&solar=1&kit=1` | 1280 px | pass | Marswalk Budget Synthetic demo terrain Field tablet Simulate EVA progr |
-| `/hud.html?data=demo` | 1280 px | pass | Helmet HUD Marswalk Budget SYNTHETIC DEMO TERRAIN GO Simulated conditi |
-| `/hud.html?data=demo&dust=1&solar=1&kit=1` | 1280 px | pass | Helmet HUD Marswalk Budget SYNTHETIC DEMO TERRAIN NO-GO Simulated cond |
-| `/tablet.html?data=real` | 1280 px | pass | Marswalk Budget Jezero Crater Field tablet Simulate EVA progress 0% De |
-| `/tablet.html?data=real&dust=1&solar=1&kit=1` | 1280 px | pass | Marswalk Budget Jezero Crater Field tablet Simulate EVA progress 0% De |
-| `/hud.html?data=real` | 1280 px | pass | Helmet HUD Marswalk Budget JEZERO CRATER CAUTION Jezero · MEDA ROUTE H |
-| `/hud.html?data=real&dust=1&solar=1&kit=1` | 1280 px | pass | Helmet HUD Marswalk Budget JEZERO CRATER NO-GO Jezero · MEDA ROUTE HEA |
-| `/tablet.html?data=gale` | 1280 px | pass | Marswalk Budget Gale Crater Field tablet Simulate EVA progress 0% Depa |
-| `/tablet.html?data=gale&dust=1&solar=1&kit=1` | 1280 px | pass | Marswalk Budget Gale Crater Field tablet Simulate EVA progress 0% Depa |
-| `/hud.html?data=gale` | 1280 px | pass | Helmet HUD Marswalk Budget GALE CRATER CAUTION Gale · REMS ROUTE HEADI |
-| `/hud.html?data=gale&dust=1&solar=1&kit=1` | 1280 px | pass | Helmet HUD Marswalk Budget GALE CRATER NO-GO Gale · REMS ROUTE HEADING |
-| `/tablet.html?data=real&route=safe` | 1280 px | pass (plans the safe route; finding 1 fixed) | Marswalk Budget Jezero Crater Field tablet Simulate EVA progress 0% De |
-| `/hud.html?data=real&route=safe` | 1280 px | pass (plans the safe route; finding 1 fixed) | Helmet HUD Marswalk Budget JEZERO CRATER CAUTION Jezero · MEDA ROUTE H |
-| `/hud.html?data=real&play=10` | 1280 px | pass | Helmet HUD Marswalk Budget JEZERO CRATER CAUTION Jezero · MEDA ROUTE H |
-| `/?data=demo` | 360 px | pass | plan eco, GO |
-| `/tablet.html?data=demo` | 360 px | pass | Marswalk Budget Synthetic demo terrain Field tablet Simulate EVA progr |
-| `/hud.html?data=demo` | 360 px | pass | Helmet HUD Marswalk Budget SYNTHETIC DEMO TERRAIN GO Simulated conditi |
-| `/?data=demo` | 414 px | pass | plan eco, GO |
-| `/tablet.html?data=demo` | 414 px | pass | Marswalk Budget Synthetic demo terrain Field tablet Simulate EVA progr |
-| `/hud.html?data=demo` | 414 px | pass | Helmet HUD Marswalk Budget SYNTHETIC DEMO TERRAIN GO Simulated conditi |
-| `/?data=real` | 360 px | pass | plan eco, CAUTION |
-| `/tablet.html?data=real` | 360 px | pass | Marswalk Budget Jezero Crater Field tablet Simulate EVA progress 0% De |
-| `/hud.html?data=real` | 360 px | pass | Helmet HUD Marswalk Budget JEZERO CRATER CAUTION Jezero · MEDA ROUTE H |
-| `/?data=real` | 414 px | pass | plan eco, CAUTION |
-| `/tablet.html?data=real` | 414 px | pass | Marswalk Budget Jezero Crater Field tablet Simulate EVA progress 0% De |
-| `/hud.html?data=real` | 414 px | pass | Helmet HUD Marswalk Budget JEZERO CRATER CAUTION Jezero · MEDA ROUTE H |
-| `/?data=gale` | 360 px | pass | plan eco, CAUTION |
-| `/tablet.html?data=gale` | 360 px | pass | Marswalk Budget Gale Crater Field tablet Simulate EVA progress 0% Depa |
-| `/hud.html?data=gale` | 360 px | pass | Helmet HUD Marswalk Budget GALE CRATER CAUTION Gale · REMS ROUTE HEADI |
-| `/?data=gale` | 414 px | pass | plan eco, CAUTION |
-| `/tablet.html?data=gale` | 414 px | pass | Marswalk Budget Gale Crater Field tablet Simulate EVA progress 0% Depa |
-| `/hud.html?data=gale` | 414 px | pass | Helmet HUD Marswalk Budget GALE CRATER CAUTION Gale · REMS ROUTE HEADI |
-| `/docs/conditions-demo.html` | 1280 px | pass | MARSWALK BUDGET / JEZERO CRATER Before you step outside. Three saved,  |
-| `/docs/photos-demo.html` | 1280 px | pass | Marswalk Budget — photos & NASA layers test page Real stops on HiRISE  |
-| `/docs/photos-demo.html?data=gale` | 1280 px | pass | Marswalk Budget — photos & NASA layers test page Real stops on HiRISE  |
+### View pages, phone widths, docs
 
-### Presenter tour (?tour=1), steps 1-6 (step 7 opens the HUD; checked by hand)
+| Check | URL | Width | Result | What it showed |
+|---|---|---|---|---|
+| tablet.html gale | `/tablet.html?data=gale` | 1280 px | pass | Marswalk Budget Gale Crater Field tablet Simulate EVA progress 0% Departure Habi |
+| hud.html gale | `/hud.html?data=gale` | 1280 px | pass | Helmet HUD Marswalk Budget GALE CRATER Out of habitat’s sight CAUTION Gale · REM |
+| hud.html?vr=1 gale | `/hud.html?vr=1&data=gale` | 1280 px | pass | Helmet HUD Cardboard helmet Turn your phone to look around. On desktop, drag or  |
+| flyover.html gale | `/flyover.html?data=gale` | 1280 px | pass | H · Habitat G3 · Nevado Sajama / Valle de la Luna drill pair (sol 4722) G4 · Box (3D canvas) |
+| checklist.html gale | `/checklist.html?data=gale` | 1280 px | pass | Gale Crater, CAUTION, fits, 14 items, 3 comm checks |
+| tablet.html gale safe | `/tablet.html?data=gale&route=safe` | 1280 px | pass | Marswalk Budget Gale Crater Field tablet Simulate EVA progress 0% Departure Habi |
+| hud.html gale safe | `/hud.html?data=gale&route=safe` | 1280 px | pass | Helmet HUD Marswalk Budget GALE CRATER Out of habitat’s sight CAUTION Gale · REM |
+| checklist.html gale safe | `/checklist.html?data=gale&route=safe` | 1280 px | pass | Gale Crater, CAUTION, fits, 15 items, 4 comm checks |
+| checklist gale all hazards | `/checklist.html?data=gale&dust=1&solar=1&kit=1` | 1280 px | pass | Gale Crater, NO-GO, over budget, 15 items, 3 comm checks, TURN BACK BY T+3:29 |
+| tablet.html real | `/tablet.html?data=real` | 1280 px | pass | Marswalk Budget Jezero Crater Field tablet Simulate EVA progress 0% Departure Ha |
+| hud.html real | `/hud.html?data=real` | 1280 px | pass | Helmet HUD Marswalk Budget JEZERO CRATER Out of habitat’s sight CAUTION Jezero · |
+| hud.html?vr=1 real | `/hud.html?vr=1&data=real` | 1280 px | pass | Helmet HUD Cardboard helmet Turn your phone to look around. On desktop, drag or  |
+| flyover.html real | `/flyover.html?data=real` | 1280 px | pass | H · Habitat R3 · Hawksbill Gap (foot of the climb) R4 · Skinner Ridge and Wildca (3D canvas) |
+| checklist.html real | `/checklist.html?data=real` | 1280 px | pass | Jezero Crater, CAUTION, fits, 16 items, 1 comm checks |
+| tablet.html real safe | `/tablet.html?data=real&route=safe` | 1280 px | pass | Marswalk Budget Jezero Crater Field tablet Simulate EVA progress 0% Departure Ha |
+| hud.html real safe | `/hud.html?data=real&route=safe` | 1280 px | pass | Helmet HUD Marswalk Budget JEZERO CRATER Out of habitat’s sight CAUTION Jezero · |
+| checklist.html real safe | `/checklist.html?data=real&route=safe` | 1280 px | pass | Jezero Crater, CAUTION, fits, 15 items, 0 comm checks |
+| checklist real all hazards | `/checklist.html?data=real&dust=1&solar=1&kit=1` | 1280 px | pass | Jezero Crater, NO-GO, over budget, 17 items, 1 comm checks, TURN BACK BY T+2:41 |
+| tablet.html default | `/tablet.html` | 1280 px | pass | Marswalk Budget Gale Crater Field tablet Simulate EVA progress 0% Departure Habi |
+| hud.html default | `/hud.html` | 1280 px | pass | Helmet HUD Marswalk Budget GALE CRATER Out of habitat’s sight CAUTION Gale · REM |
+| flyover.html default | `/flyover.html` | 1280 px | pass | H · Habitat G3 · Nevado Sajama / Valle de la Luna drill pair (sol 4722) G4 · Box (3D canvas) |
+| checklist.html default | `/checklist.html` | 1280 px | pass | Gale Crater, CAUTION, fits, 14 items, 3 comm checks |
+| phone 360 / | `/` | 360 px | pass | Gale Crater, Fits the budget · 4 stops, CAUTION |
+| phone 360 /?data=real | `/?data=real` | 360 px | pass | Jezero Crater, Fits the budget · 6 stops, CAUTION |
+| phone 360 /?data=demo | `/?data=demo` | 360 px | pass | Demo terrain, Fits the budget · 6 stops, GO |
+| phone 360 /tablet.html | `/tablet.html` | 360 px | pass | Marswalk Budget Gale Crater Field tablet Simulate EVA progress 0% Departure Habi |
+| phone 360 /hud.html | `/hud.html` | 360 px | pass | Helmet HUD Marswalk Budget GALE CRATER Out of habitat’s sight CAUTION Gale · REM |
+| phone 360 /checklist.html | `/checklist.html` | 360 px | pass | Gale Crater, CAUTION, fits, 14 items, 3 comm checks |
+| phone 360 /flyover.html | `/flyover.html` | 360 px | pass | G3 · Nevado Sajama / Valle de la Luna drill pair (sol 4722) G2 · Río Frío ridge  (3D canvas) |
+| phone 414 / | `/` | 414 px | pass | Gale Crater, Fits the budget · 4 stops, CAUTION |
+| phone 414 /?data=real | `/?data=real` | 414 px | pass | Jezero Crater, Fits the budget · 6 stops, CAUTION |
+| phone 414 /?data=demo | `/?data=demo` | 414 px | pass | Demo terrain, Fits the budget · 6 stops, GO |
+| phone 414 /tablet.html | `/tablet.html` | 414 px | pass | Marswalk Budget Gale Crater Field tablet Simulate EVA progress 0% Departure Habi |
+| phone 414 /hud.html | `/hud.html` | 414 px | pass | Helmet HUD Marswalk Budget GALE CRATER Out of habitat’s sight CAUTION Gale · REM |
+| phone 414 /checklist.html | `/checklist.html` | 414 px | pass | Gale Crater, CAUTION, fits, 14 items, 3 comm checks |
+| phone 414 /flyover.html | `/flyover.html` | 414 px | pass | G3 · Nevado Sajama / Valle de la Luna drill pair (sol 4722) G2 · Río Frío ridge  (3D canvas) |
+| doc /docs/model.md | `/docs/model.md` | 1280 px | pass | <!-- Generated with AI assistance for NASA Space Apps 2026; reviewed by the team |
+| doc /docs/model-sources.md | `/docs/model-sources.md` | 1280 px | pass | <!-- Generated with AI assistance for NASA Space Apps 2026; reviewed by the team |
+| doc /README.md | `/README.md` | 1280 px | pass | # Marswalk Budget NASA Space Apps 2026 — *Interplanetary Survival Guide: Martian |
 
-- `/?data=demo&tour=1`: pass
-  - 1/7 A quiet sol: 6 stops, 3 h 56 min out and back, 0.30 of 0.40 kg O₂. The walk fits.
-  - 2/7 Dust storm plus a heavy sample kit: slower, harder walking. Same stops now need 0.48 of 0.40 kg O₂: over budget.
-  - 3/7 Point of no return at T+3:13: past the red marker, the suit can't get home without the O₂ reserve.
-  - 4/7 The planner searches every set of stops for the most science that still fits: 4 stops, value 30.
-  - 5/7 Best set, dust storm + heavy kit: 4 stops, science 30, 0.396 of 0.400 kg O₂: fits, CAUTION.
-  - 6/7 Compare routes for the same stops: Least oxygen 0.396 kg, 32 m over 15° · Safest 0.405 kg, 27 m over 15° · Shortest 0.421 kg, 133 m over 15°.
-- `/?data=gale&tour=1`: pass
-  - 1/7 A quiet sol: 4 stops, 3 h 40 min out and back, 0.27 of 0.40 kg O₂. The walk fits.
-  - 2/7 Dust storm plus a heavy sample kit: slower, harder walking. Same stops now need 0.42 of 0.40 kg O₂: over budget.
-  - 3/7 Point of no return at T+3:29: past the red marker, the suit can't get home without the O₂ reserve.
-  - 4/7 The planner searches every set of stops for the most science that still fits: 3 stops, value 23.
-  - 5/7 Best set, dust storm + heavy kit: 3 stops, science 23, 0.37 of 0.40 kg O₂: fits, CAUTION.
-  - 6/7 Compare routes for the same stops: Least oxygen 0.372 kg, 10 m over 15° · Safest 0.373 kg, 7 m over 15° · Shortest 0.393 kg, 74 m over 15°.
-- `/?data=real&tour=1`: pass
-  - 1/7 A quiet sol: 6 stops, 4 h 22 min out and back, 0.36 of 0.40 kg O₂. The walk fits.
-  - 2/7 Dust storm forecast: slower walking, more effort. Same stops now need 0.45 of 0.40 kg O₂: over budget.
-  - 3/7 Point of no return at T+3:27: past the red marker, the suit can't get home without the O₂ reserve.
-  - 4/7 The planner searches every set of stops for the most science that still fits: 5 stops, value 36.
-  - 5/7 Best set, dust storm on: 5 stops, science 36, 0.38 of 0.40 kg O₂: fits, CAUTION.
-  - 6/7 Compare routes for the same stops: Least oxygen 0.378 kg, 0 m over 15° · Safest 0.380 kg, 0 m over 15° · Shortest 0.390 kg, 7 m over 15°.
+### APXS chemistry (needs `apxs` merged)
 
-## Not covered yet
+| Site | Result | Card per stop, in list order |
+|---|---|---|
+| gale | pass | Tesoro del Pangal DRT · Challapata DRT · Tartagalita DRT · Hornitos DRT |
+| jezero | pass | hidden · hidden · hidden · hidden · hidden · hidden |
 
-- **Helmet view (VR) on a real headset:** checked only in headless Chrome (stereo layout and numbers); head tracking needs a phone over https.
-- **Real phones:** compass and fullscreen need https, so they wait until the site is online.
-- **Other browsers:** Firefox and Safari not tested; only the in-app Chromium.
-- **Tour step 7:** it opens `hud.html` with `&play=30`. Checked by hand, not by the harness.
+Gale shows the nearest APXS target for every stop (G4 with the "nearby context only" note); Jezero never
+shows the card and never requests the file. Without the `apxs` files the card stays hidden and the
+page has no errors (checked on `integrate`).
 
-To re-run: serve with `npm run serve`. The harness is a short script that loads each URL in a
-hidden iframe; ask tonny-claude for it.
+### Presenter tours (?tour=1)
+
+Gale (`/?tour=1`) and Jezero (`/?data=real&tour=1`) were stepped one key at a time, because the
+harness's own probe lost the page when step 7 navigates; both run 1–7 with no errors:
+- **Gale:** 1/7 a quiet sol, 4 stops, 0.27 of 0.40 kg O₂ · 2/7 dust storm plus heavy kit, 0.42 kg, over
+  budget · 3/7 point of no return T+3:29 · 4/7 best set 3 stops, value 23 · 5/7 0.37 kg, fits, CAUTION ·
+  6/7 least oxygen 0.372 / safest 0.373 / shortest 0.393 kg · 7/7 opens `hud.html` with stops G2,G3,G4 and `play=30`.
+- **Jezero:** 1/7 6 stops, 0.36 kg · 2/7 dust storm, 0.45 kg, over budget · 3/7 T+3:27 · 4/7 best set 5
+  stops, value 36 · 5/7 0.38 kg, fits, CAUTION · 6/7 0.378 / 0.380 / 0.390 kg · 7/7 opens the HUD with R1–R5.
+- **Demo** (harness): pass. 6 captions, ending "6/7 Compare routes for the same stops: Least oxygen 0.396 kg…".
+
+## Run 1 (15:57–16:03, before the Gale default)
+
+84 checks on `integrate` 24bb75d: 45 console loads, 15 tablet/HUD, 18 phone-width, 3 docs, 3 tours;
+84 pass. Its findings 1–7 are carried in the table above with their current status.
+
+## Not covered
+
+- **Real phones and headsets:** compass, fullscreen, VR head tracking and installing the offline tablet
+  need https, so they wait until the site is online.
+- **Other browsers:** Firefox and Safari not tested; Chromium only.
+- **GPU speed of the fly-through:** checked with software WebGL only.
+
+To re-run: `npm run serve`, then the headless harness (ask tonny-claude); it writes one JSON row per check.
