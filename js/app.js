@@ -666,6 +666,28 @@ function foldConditionsDetails(box) {
   more.addEventListener('toggle', () => { state.condDetailsOpen = more.open; });
   more.append(...rest);
   card.append(more);
+  compactSources(more);
+}
+
+/**
+ * Sources list from js/conditions.js: each item is a link, a "Retrieved / recorded: <ISO time>" line and a long
+ * note. Show each as one line (name · date) with the note behind a click. Items that don't match are left alone.
+ */
+function compactSources(scope) {
+  for (const li of scope.querySelectorAll(':scope > ul > li')) {
+    const link = li.querySelector(':scope > a');
+    const smalls = [...li.querySelectorAll(':scope > small')];
+    if (!smalls.length) continue;
+    const when = smalls.find((s) => /^Retrieved/i.test(s.textContent));
+    const date = when?.textContent.match(/\d{4}-\d{2}-\d{2}/)?.[0];
+    const notes = smalls.filter((s) => s !== when).map((s) => s.textContent.trim()).filter(Boolean);
+    const name = link ?? el('span', {}, li.firstChild?.textContent?.trim() || 'Source');
+    const summary = el('summary', {}, name, date ? el('span', { class: 'src-date' }, ` · ${date}`) : null);
+    const item = el('details', { class: 'src-item' }, summary, ...notes.map((n) => el('p', { class: 'src-note' }, n)));
+    if (when) item.title = when.textContent.trim();
+    li.replaceChildren(item);
+    li.classList.add('src-li');
+  }
 }
 
 function renderGoNoGo() {

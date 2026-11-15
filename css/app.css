@@ -261,6 +261,17 @@ body.resizing #map { pointer-events: none; }
 .cond-more > summary { cursor: pointer; font-weight: 600; color: #acd6ff; }
 .cond-more > summary:focus-visible { outline: 2px solid var(--ochre); outline-offset: 2px; }
 .cond-more[open] > summary { margin-bottom: 4px; }
+/* Weather readings two per row; sources one line each, note behind a click. */
+#conditions-card .cond-more dl { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); column-gap: 14px; margin: 4px 0; }
+#conditions-card .cond-more .conditions-row { grid-template-columns: minmax(0, 1fr) auto; font-size: 12px; }
+#conditions-card .cond-more .conditions-row dd { text-align: right; }
+#conditions-card .cond-more > ul:has(.src-li) { list-style: none; padding-left: 0; }
+#conditions-card .cond-more li.src-li { margin: 0; border-bottom: 1px solid #34475a; }
+.src-item > summary { cursor: pointer; padding: 3px 0; font-size: 12px; list-style-position: inside; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.src-item[open] > summary { white-space: normal; }
+.src-item > summary:focus-visible { outline: 2px solid var(--ochre); outline-offset: 1px; }
+.src-date { color: #bdcddd; }
+.src-note { margin: 0 0 6px 14px !important; font-size: 12px; color: #bdcddd; }
 .cond-source-row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; font-size: 13px; color: var(--muted); }
 .cond-source {
   flex: 1; min-width: 0; max-width: 100%; text-overflow: ellipsis;
