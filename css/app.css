@@ -57,8 +57,23 @@ code { background: #00000055; padding: 0 4px; border-radius: 3px; }
 /* ---------- Layout ---------- */
 .layout {
   flex: 1; min-height: 0;
-  display: grid; grid-template-columns: 1fr 390px;
+  display: grid; grid-template-columns: minmax(0, 1fr) auto var(--panel-w, 390px);
 }
+/* Drag handle between the map and the side panel (js/app.js initPanelResizer). */
+.panel-resizer {
+  position: relative; width: 8px; cursor: col-resize; background: var(--panel); touch-action: none;
+  border-left: 1px solid var(--line);
+}
+.panel-resizer::after {
+  content: ""; position: absolute; left: 2px; top: 50%; width: 3px; height: 36px; margin-top: -18px;
+  border-radius: 2px; background: var(--line); transition: background .15s, height .15s;
+}
+.panel-resizer:hover::after, .panel-resizer:focus-visible::after, body.resizing .panel-resizer::after {
+  background: var(--ochre); height: 56px; margin-top: -28px;
+}
+.panel-resizer:focus-visible { outline: 2px solid var(--ochre); outline-offset: -2px; }
+body.resizing { cursor: col-resize; user-select: none; }
+body.resizing #map { pointer-events: none; }
 .map-wrap { position: relative; min-height: 0; }
 #map { position: absolute; inset: 0; background: #0b0807; }
 .panel {
@@ -379,6 +394,7 @@ code { background: #00000055; padding: 0 4px; border-radius: 3px; }
 @media (max-width: 860px) {
   body { height: auto; }
   .layout { grid-template-columns: minmax(0, 1fr); }
+  .panel-resizer { display: none; }
   .map-wrap { height: 58vh; }
   .panel { border-left: 0; border-top: 1px solid var(--line); overflow: visible; }
   .tagline { display: none; }

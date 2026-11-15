@@ -1133,6 +1133,62 @@ for (const id of ['tab-model', 'tab-sites']) {
   });
 }
 
+// Side panel width, adjustable by the user: drag the handle, or focus it and use the arrow keys
+// (Home/End = narrowest/widest, double-click or Enter = default). Remembered in this browser.
+const PANEL_DEFAULT = 390, PANEL_MIN = 320, PANEL_KEY = 'marswalk-panel-w';
+function initPanelResizer() {
+  const handle = $('panel-resizer');
+  const layout = document.querySelector('.layout');
+  if (!handle || !layout) return;
+  const maxW = () => Math.max(PANEL_MIN, Math.min(900, layout.clientWidth - 360)); // keep at least 360 px of map
+  const setW = (w, save = true) => {
+    const px = Math.round(Math.min(maxW(), Math.max(PANEL_MIN, w)));
+    layout.style.setProperty('--panel-w', `${px}px`);
+    handle.setAttribute('aria-valuenow', String(px));
+    handle.setAttribute('aria-valuemin', String(PANEL_MIN));
+    handle.setAttribute('aria-valuemax', String(maxW()));
+    if (save) { try { localStorage.setItem(PANEL_KEY, String(px)); } catch { /* storage blocked: width just isn't remembered */ } }
+    return px;
+  };
+  let saved = null;
+  try { saved = Number(localStorage.getItem(PANEL_KEY)) || null; } catch { /* ignore */ }
+  setW(saved ?? PANEL_DEFAULT, false);
+
+  handle.addEventListener('pointerdown', (e) => {
+    if (e.button !== 0) return;
+    e.preventDefault();
+    handle.setPointerCapture(e.pointerId);
+    document.body.classList.add('resizing');
+    const move = (ev) => setW(layout.getBoundingClientRect().right - ev.clientX, false);
+    const up = (ev) => {
+      handle.releasePointerCapture(ev.pointerId);
+      handle.removeEventListener('pointermove', move);
+      handle.removeEventListener('pointerup', up);
+      handle.removeEventListener('pointercancel', up);
+      document.body.classList.remove('resizing');
+      setW(parseFloat(layout.style.getPropertyValue('--panel-w')));
+    };
+    handle.addEventListener('pointermove', move);
+    handle.addEventListener('pointerup', up);
+    handle.addEventListener('pointercancel', up);
+  });
+  handle.addEventListener('dblclick', () => setW(PANEL_DEFAULT));
+  handle.addEventListener('keydown', (e) => {
+    const now = parseFloat(layout.style.getPropertyValue('--panel-w')) || PANEL_DEFAULT;
+    const step = e.shiftKey ? 80 : 20;
+    const next = { ArrowLeft: now + step, ArrowRight: now - step, Home: PANEL_MIN, End: maxW(), Enter: PANEL_DEFAULT }[e.key];
+    if (next == null) return;
+    e.preventDefault(); e.stopPropagation(); // don't step the tour
+    setW(next);
+  });
+  // Window got smaller: keep the panel within the new limit without forgetting the user's choice.
+  addEventListener('resize', () => {
+    const now = parseFloat(layout.style.getPropertyValue('--panel-w')) || PANEL_DEFAULT;
+    if (now > maxW()) setW(now, false);
+  });
+}
+initPanelResizer();
+
 function startTour() {
   document.body.classList.add('touring');
   $('map-hint').hidden = true;

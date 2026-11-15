@@ -160,7 +160,11 @@
       <div class="planning" id="planning" hidden><span class="spinner" aria-hidden="true"></span> planning…</div>
     </section>
 
-    <aside class="panel" aria-label="Plan">
+    <div class="panel-resizer" id="panel-resizer" role="separator" tabindex="0" aria-orientation="vertical"
+      aria-controls="plan-panel" aria-label="Resize the side panel (drag, or arrow keys; double-click to reset)"
+      title="Drag to resize the side panel · double-click to reset"></div>
+
+    <aside class="panel" id="plan-panel" aria-label="Plan">
       <section class="card verdict-card">
         <div class="verdict-row">
           <div class="verdict" id="verdict">Planning…</div>
